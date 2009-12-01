@@ -9,19 +9,17 @@
 
 #include "NCR.hpp"
 
-using vos::Error;
-
 namespace rescached {
 
 class NCR_List {
 public:
-	static void ADD(NCR_List **top, NCR_List *node);
-	static void ADD_RECORD(NCR_List **top, NCR *record);
-
-	NCR_List(NCR *record = NULL);
+	NCR_List();
 	~NCR_List();
 
 	void dump();
+
+	static void ADD(NCR_List **top, NCR_List *node);
+	static int ADD_RECORD(NCR_List **top, NCR *record);
 
 	NCR		*_rec;
 	NCR_List	*_up;

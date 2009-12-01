@@ -9,19 +9,18 @@
 
 #include "NCR.hpp"
 
-using vos::Error;
 using vos::DNSQuery;
 
 namespace rescached {
 
 class NCR_Tree {
 public:
-	NCR_Tree(NCR *record = NULL);
+	NCR_Tree();
 	~NCR_Tree();
 
 	int cmp(Buffer *bfr);
 	int insert(NCR_Tree *node);
-	void insert_record(NCR *record);
+	int insert_record(NCR *record);
 	void prune();
 	void dump();
 

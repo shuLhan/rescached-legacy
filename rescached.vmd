@@ -1,4 +1,5 @@
 :name	 :::'|',
 :stat    :::'|',
+:type    :::'|',
 :question:::'|':BLOB,
 :answer	 :::'|':BLOB

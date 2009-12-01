@@ -8,16 +8,13 @@
 
 namespace rescached {
 
-NCR_Tree::NCR_Tree(NCR *record) :
+NCR_Tree::NCR_Tree() :
 	_color(0),
 	_rec(NULL),
 	_left(NULL),
 	_right(NULL),
 	_top(NULL)
-{
-	if (record)
-		_rec = record;
-}
+{}
 
 NCR_Tree::~NCR_Tree()
 {
@@ -70,13 +67,12 @@ int NCR_Tree::insert(NCR_Tree *node)
 	int		s;
 	NCR_Tree	*p = this;
 
-	if (! node)
+	if (!node)
 		return 0;
 
-	if (! _rec) {
+	if (!_rec) {
 		_rec		= node->_rec;
 		node->_rec	= NULL;
-
 		return 1;
 	}
 
@@ -104,21 +100,37 @@ int NCR_Tree::insert(NCR_Tree *node)
 	return 0;
 }
 
-void NCR_Tree::insert_record(NCR *record)
+/**
+ * @desc	: insert name-cache record to the tree.
+ *
+ * @param	:
+ *	> record: name-cache record object.
+ *
+ * @return	:
+ *	< 0	: success.
+ *	< <0	: fail.
+ */
+int NCR_Tree::insert_record(NCR *record)
 {
 	int		s;
 	NCR_Tree	*node = NULL;
 
-	if (! record)
-		return;
+	if (!record)
+		return 0;
 
-	node = new NCR_Tree(record);
-	if (! node)
-		throw Error(vos::E_MEM);
+	node = new NCR_Tree();
+	if (!node) {
+		return -vos::E_MEM;
+	}
+
+	node->_rec = record;
 
 	s = insert(node);
-	if (s)
+	if (s != 0) {
 		delete node;
+	}
+
+	return 0;
 }
 
 void NCR_Tree::prune()

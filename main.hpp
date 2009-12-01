@@ -1,0 +1,28 @@
+/**
+ * Copyright (C) 2009 kilabit.org
+ * Author:
+ *	- m.shulhan (ms@kilabit.org)
+ */
+
+#ifndef _RESCACHED_MAIN_HPP
+#define	_RESCACHED_MAIN_HPP	1
+
+#include "Dlogger.hpp"
+
+using vos::Dlogger;
+
+#define	RESCACHED_CONF		"rescached.conf"
+#define	RESCACHED_CONF_HEAD	"RESCACHED"
+#define	RESCACHED_DATA		"rescached.vos"
+#define	RESCACHED_LOG		"rescached.log"
+#define	RESCACHED_MD		"rescached.vmd"
+#define	RESCACHED_CACHE_MAX	100000
+#define	RESCACHED_CACHE_MAX_S	"100000"
+
+#define	RESCACHED_DEF_LISTEN	"0.0.0.0"
+#define	RESCACHED_DEF_PORT	53
+
+extern int	RESCACHED_DEBUG;
+extern Dlogger	dlog;
+
+#endif

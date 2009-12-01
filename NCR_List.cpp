@@ -8,14 +8,47 @@
 
 namespace rescached {
 
+NCR_List::NCR_List() :
+	_rec(NULL),
+	_up(NULL),
+	_down(NULL),
+	_last(NULL)
+{}
+
+NCR_List::~NCR_List()
+{
+	if (_rec) {
+		delete _rec;
+	}
+	_up	= NULL;
+	_down	= NULL;
+	_last	= NULL;
+}
+
+void NCR_List::dump()
+{
+	int		i	= 0;
+	NCR_List	*p	= this;
+
+	putchar('\n');
+	while (p) {
+		if (p->_rec) {
+			printf("[%4d] %6d|%s\n", i++, p->_rec->_stat,
+					p->_rec->_name->_v);
+		}
+		p = p->_down;
+	}
+	putchar('\n');
+}
+
 void NCR_List::ADD(NCR_List **top, NCR_List *node)
 {
 	NCR_List *p = NULL;
 
-	if (! node)
+	if (!node)
 		return;
 
-	if (! (*top)) {
+	if (!(*top)) {
 		(*top)		= node;
 		(*top)->_last	= node;
 	} else {
@@ -48,54 +81,33 @@ void NCR_List::ADD(NCR_List **top, NCR_List *node)
 	}
 }
 
-void NCR_List::ADD_RECORD(NCR_List **top, NCR *record)
+/**
+ * @desc	: add a 'record' to the list 'top'.
+ *
+ * @param	:
+ *	> top	: the head of linked list.
+ *	> record: record to be inserted to list.
+ *
+ * @return	:
+ *	< 0	: success.
+ *	< <0	: fail, out of memory.
+ */
+int NCR_List::ADD_RECORD(NCR_List **top, NCR *record)
 {
 	NCR_List *node = NULL;
 
-	if (! record)
-		return;
+	if (!record)
+		return 0;
 
-	node = new NCR_List(record);
-	if (! node)
-		throw Error(vos::E_MEM);
+	node = new NCR_List();
+	if (!node)
+		return -vos::E_MEM;
+
+	node->_rec = record;
 
 	ADD(top, node);
-}
 
-NCR_List::NCR_List(NCR *record) :
-	_rec(NULL),
-	_up(NULL),
-	_down(NULL),
-	_last(NULL)
-{
-	if (record)
-		_rec = record;
-}
-
-NCR_List::~NCR_List()
-{
-	if (_rec)
-		delete _rec;
-
-	_up	= NULL;
-	_down	= NULL;
-	_last	= NULL;
-}
-
-void NCR_List::dump()
-{
-	int		i	= 0;
-	NCR_List	*p	= this;
-
-	putchar('\n');
-	while (p) {
-		if (p->_rec) {
-			printf("[%4d] %6d|%s\n", i++, p->_rec->_stat,
-					p->_rec->_name->_v);
-		}
-		p = p->_down;
-	}
-	putchar('\n');
+	return 0;
 }
 
 } /* namespace::rescached */

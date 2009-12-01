@@ -5,25 +5,38 @@
  */
 
 #include <signal.h>
+#include "main.hpp"
+#include "Error.hpp"
+#include "Config.hpp"
 #include "Resolver.hpp"
+#include "NCR.hpp"
 #include "NameCache.hpp"
 
+using vos::Error;
+using vos::Config;
 using vos::Socket;
-using vos::DNSQuery;
 using vos::Resolver;
-using rescached::NameCache;
 using rescached::NCR;
-/*
-#define	DNS_SERVERS		"209.128.95.2, 4.2.2.1, 69.111.95.106"
-*/
-#define	DNS_SERVERS		"222.124.204.34, 203.130.196.5"
-#define	NAMECACHE_FILE		"namecache.vos"
-#define	NAMECACHE_MD		"namecache.vmd"
-#define	RESCACHED_DEF_ADDR	"127.0.0.1"
-#define	RESCACHED_DEF_PORT	5333
+using rescached::NameCache;
+
 
 volatile sig_atomic_t	_running_	= 1;
 volatile sig_atomic_t	_SIG_lock_	= 0;
+int			RESCACHED_DEBUG	= (getenv("RESCACHED_DEBUG") == NULL)
+						? 0
+						: atoi(getenv("RESCACHED_DEBUG"));
+
+Dlogger			dlog;
+
+static long int		_cache_max	= RESCACHED_CACHE_MAX;
+static Resolver		_rslvr;
+static NameCache	_nc;
+static Socket		_srvr_tcp;
+static Socket		_srvr_udp;
+static Buffer		_file_data;
+static Buffer		_file_md;
+static Buffer		_srvr_parent;
+static Buffer		_srvr_listen;
 
 static void rescached_interrupted(int sig_num)
 {
@@ -63,19 +76,147 @@ static void rescached_set_signal_handle()
 	sigaction(SIGSEGV, &sig_new, 0);
 }
 
-static void process_tcp_clients(Resolver *resolver, NameCache *nc, Socket *srvr, fd_set *allfds)
+/**
+ * @desc: initialize Rescached object.
+ *
+ * @param:
+ *	> fconf : config file to read.
+ *
+ * @return:
+ *	< 0	: success.
+ *	< <0	: fail.
+ */
+static int rescached_init(const char *fconf)
 {
 	int		s;
-	DNSQuery	*dns_qst	= new DNSQuery();
+	Config		cfg;
+	const char	*v = NULL;
+
+	s = dlog.open(RESCACHED_LOG);
+	if (s != 0) {
+		return s;
+	}
+
+	if (!fconf) {
+		fconf = RESCACHED_CONF;
+	}
+
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] loading config > %s\n", fconf);
+	}
+
+	cfg.load(fconf);
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "file.data", RESCACHED_DATA);
+	if (!v) {
+		return 1;
+	}
+
+	s = _file_data.init_raw(v, 0);
+	if (s < 0) {
+		return s;
+	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "file.metadata", RESCACHED_MD);
+	if (!v) {
+		return 1;
+	}
+
+	s = _file_md.init_raw(v, 0);
+	if (s < 0) {
+		return s;
+	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent", NULL);
+	if (!v) {
+		dlog.er("[RESCACHED] no 'server.parent' value on config file!\n");
+		return -vos::E_CFG_BAD;
+	}
+
+	s = _srvr_parent.init_raw(v, 0);
+	if (s < 0) {
+		return s;
+	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen", RESCACHED_DEF_LISTEN);
+	if (!v) {
+		s = _srvr_listen.init_raw(RESCACHED_DEF_LISTEN, 0);
+	} else {
+		s = _srvr_listen.init_raw(v, 0);
+	}
+	if (s < 0) {
+		return s;
+	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "cache.max", RESCACHED_CACHE_MAX_S);
+
+	_cache_max = strtoul(v, 0, 10);
+	if (_cache_max <= 0) {
+		_cache_max = RESCACHED_CACHE_MAX;
+	}
+
+	_rslvr.init();
+	_rslvr.set_server(_srvr_parent._v);
+
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] cache max      > %ld\n", _cache_max);
+		dlog.er("[RESCACHED] set parent     > %s\n", _srvr_parent._v);
+		dlog.er("[RESCACHED] listening on   > %s\n", _srvr_listen._v);
+	}
+
+
+	s = _srvr_udp.create_udp();
+	if (s != 0)
+		return s;
+
+	s = _srvr_udp.bind(_srvr_listen._v, RESCACHED_DEF_PORT);
+	if (s != 0)
+		return s;
+
+	s = _srvr_tcp.create_tcp();
+	if (s != 0)
+		return s;
+
+	s = _srvr_tcp.bind_listen(_srvr_listen._v, RESCACHED_DEF_PORT);
+	if (s != 0)
+		return s;
+
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] loading caches ...\n");
+	}
+
+	s = _nc.load(_file_data._v, _file_md._v, _cache_max);
+	if (s != 0)
+		return s;
+
+	if (RESCACHED_DEBUG) {
+		_nc.dump();
+	}
+
+	return 0;
+}
+
+static int process_tcp_clients(Resolver *resolver, NameCache *nc,
+				Socket *srvr, fd_set *allfds)
+{
+	int		s;
+	int		len;
+	Buffer		*bfr_ans	= NULL;
+	Buffer		*bfr		= NULL;
+	DNSQuery	*dns_qst	= NULL;
 	DNSQuery	*dns_ans	= NULL;
 	NCR		*ncr_ans	= NULL;
 	Socket		*client		= NULL;
 	Socket		*p		= NULL;
 
+	s = DNSQuery::INIT(&dns_qst, NULL);
+	if (s != 0)
+		return s;
+
 	client = srvr->_clients;
 	while (client) {
 		s = FD_ISSET(client->_d, &srvr->_readfds);
-		if (!s) {
+		if (0 == s) {
 			goto next;
 		}
 
@@ -95,152 +236,217 @@ static void process_tcp_clients(Resolver *resolver, NameCache *nc, Socket *srvr,
 
 		ncr_ans = nc->get_answer_from_cache(&dns_qst->_name);
 		if (! ncr_ans) {
-			dns_ans = new DNSQuery();
+			s = DNSQuery::INIT(&dns_ans, NULL);
+			if (s != 0)
+				return s;
 
-			s = resolver->send_query_tcp(dns_qst,
-						(DNSQuery **) &dns_ans);
-			if (s) {
+			s = resolver->send_query_tcp(dns_qst, &dns_ans);
+			if (s != 0) {
 				delete dns_ans;
+				dns_ans = NULL;
 				goto next;
 			}
 
 			if (dns_ans->_n_ans) {
-				nc->insert(&dns_qst->_name, dns_qst->_bfr,
-						dns_ans->_bfr);
+				nc->insert_raw(vos::BUFFER_IS_TCP, &dns_qst->_name,
+						dns_qst->_bfr, dns_ans->_bfr);
 			}
 
 			client->send(dns_ans->_bfr);
 
 			delete dns_ans;
+			dns_ans = NULL;
 		} else {
 			ncr_ans->_stat++;
 			ncr_ans->_answ->set_id(dns_qst->_id);
 
-			printf("[RESCACHED] got one on cache  ...\n");
-			printf("[RESCACHED] setting answer id to: %d \n", dns_qst->_id);
-			printf("[RESCACHED] increasing stat to  : %d \n", ncr_ans->_stat);
+			if (RESCACHED_DEBUG) {
+				dlog.er("[RESCACHED] got one on cache ...\n");
+			}
 
-			client->send(ncr_ans->_answ->_bfr);
+			if (vos::BUFFER_IS_TCP == ncr_ans->_type) {
+				bfr_ans = ncr_ans->_answ->_bfr;
+			} else if (vos::BUFFER_IS_UDP == ncr_ans->_type) {
+				bfr_ans = ncr_ans->_answ->_bfr;
+				len = bfr_ans->_i;
+
+				s = Buffer::INIT_SIZE(&bfr, len + 2);
+				if (s != 0)
+					goto err;
+
+				len = ::htons(len);
+				memcpy(bfr->_v, (void *) &len, 2);
+				bfr->_i = 2;
+				bfr->append(bfr_ans);
+				bfr_ans = bfr;
+			} else {
+				dlog.er("[RESCACHED] unknown buffer type!\n");
+				goto next;
+			}
+			s = client->send(bfr_ans);
 		}
 next:
 		client = client->_next;
 	}
-
+err:
 	delete dns_qst;
+	return s;
 }
 
-static void process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr, fd_set *allfds)
+static int process_udp_clients(Resolver *resolver, NameCache *nc,
+				Socket *srvr, fd_set *allfds)
 {
-	int		s;
-	struct sockaddr	addr;
-	DNSQuery	*dns_qst	= new DNSQuery();
+	int		s		= 0;
+	struct sockaddr	addr		= {0};
+	DNSQuery	*dns_qst	= NULL;
 	DNSQuery	*dns_ans	= NULL;
 	NCR		*ncr_ans	= NULL;
 
+	s = DNSQuery::INIT(&dns_qst, NULL);
+	if (s != 0)
+		return s;
+
 	s = srvr->recv_udp(&addr);
-	if (s > 0) {
-		dns_qst->extract(srvr);
+	if (s <= 0)
+		return s;
 
-		printf(">> QUERY: %s\n", dns_qst->_name._v);
-		ncr_ans = nc->get_answer_from_cache(&dns_qst->_name);
-		if (! ncr_ans) {
-			dns_ans = new DNSQuery();
+	dns_qst->extract(srvr, vos::BUFFER_IS_UDP);
 
-			s = resolver->send_query_udp(dns_qst, dns_ans);
-			if (s) {
-				delete dns_ans;
-				goto out;
-			}
-
-			if (dns_ans->_n_ans) {
-				nc->insert(&dns_qst->_name, dns_qst->_bfr, dns_ans->_bfr);
-			}
-
-			srvr->send_udp(&addr, dns_ans->_bfr);
-
-			delete dns_ans;
-		} else {
-			ncr_ans->_stat++;
-			ncr_ans->_answ->set_id(dns_qst->_id);
-
-			printf("[RESCACHED] got one on cache  ...\n");
-			printf("[RESCACHED] setting answer id to: %d \n", dns_qst->_id);
-			printf("[RESCACHED] increasing stat to  : %d \n", ncr_ans->_stat);
-
-			srvr->send_udp(&addr, ncr_ans->_answ->_bfr);
-		}
+	if (RESCACHED_DEBUG) {
+		dlog.er(">> QUERY: %s\n", dns_qst->_name._v);
 	}
 
+	ncr_ans = nc->get_answer_from_cache(&dns_qst->_name);
+	if (!ncr_ans) {
+		s = DNSQuery::INIT(&dns_ans, NULL);
+		if (s != 0)
+			goto out;
+
+		s = resolver->send_query_udp(dns_qst, dns_ans);
+		if (s != 0) {
+			goto out;
+		}
+
+		if (dns_ans->_n_ans) {
+			s = nc->insert_raw(vos::BUFFER_IS_UDP,
+					&dns_qst->_name, dns_qst->_bfr,
+				dns_ans->_bfr);
+			if (s != 0)
+				goto out;
+		}
+
+
+		srvr->send_udp(&addr, dns_ans->_bfr);
+	} else {
+		ncr_ans->_stat++;
+		ncr_ans->_answ->set_id(dns_qst->_id);
+
+		if (RESCACHED_DEBUG) {
+			dlog.er("[RESCACHED] got one on cache ...\n");
+		}
+
+		if (vos::BUFFER_IS_UDP == ncr_ans->_type) {
+			s = srvr->send_udp(&addr, ncr_ans->_answ->_bfr);
+		} else if (vos::BUFFER_IS_TCP == ncr_ans->_type) {
+			s = srvr->send_udp_raw(&addr,
+						&ncr_ans->_answ->_bfr->_v[2],
+						ncr_ans->_answ->_bfr->_i - 2);
+		} else {
+			dlog.er("[RESCACHED] unknown buffer type!\n");
+		}
+	}
 out:
 	srvr->reset();
 
-	delete dns_qst;
+	if (dns_qst)
+		delete dns_qst;
+	if (dns_ans)
+		delete dns_ans;
+
+	return 0;
+}
+
+static void rescached_exit()
+{
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] saving caches ...\n");
+	}
+
+	_nc.save(_file_data._v, _file_md._v);
 }
 
 int main(int argc, char *argv[])
-try
 {
-	int		maxfd;
 	int		s;
+	int		maxfd;
 	fd_set		readfds;
 	fd_set		allfds;
-	NameCache	nc;
-	Resolver	resolver;
-	Socket		srvr_tcp;
-	Socket		srvr_udp;
 	Socket		*client	= NULL;
+
+	if (argc == 1) {
+		s = rescached_init(NULL);
+	} else if (argc == 2) {
+		s = rescached_init(argv[1]);
+	} else {
+		dlog.er("\n Usage: rescached <rescached-config>\n ");
+		s = -vos::E_INVALID_PARAM;
+	}
+	if (s < 0) {
+		goto err;
+	}
 
 	FD_ZERO(&allfds);
 	FD_ZERO(&readfds);
+	FD_SET(_srvr_udp._d, &allfds);
+	FD_SET(_srvr_tcp._d, &allfds);
+
+	maxfd = (_srvr_tcp._d > _srvr_udp._d ? _srvr_tcp._d : _srvr_udp._d) + 1;
 
 	rescached_set_signal_handle();
-
-	resolver.set_server(DNS_SERVERS);
-
-	printf("[RESCACHED] loading caches ...\n");
-	nc.load(NAMECACHE_FILE, NAMECACHE_MD);
-	nc.dump();
-
-	srvr_udp.create_udp();
-	srvr_udp.bind_listen(RESCACHED_DEF_ADDR, RESCACHED_DEF_PORT);
-	FD_SET(srvr_udp._d, &allfds);
-
-	srvr_tcp.create_tcp();
-	srvr_tcp.bind_listen(RESCACHED_DEF_ADDR, RESCACHED_DEF_PORT);
-	FD_SET(srvr_tcp._d, &allfds);
-
-	maxfd = (srvr_tcp._d > srvr_udp._d ? srvr_tcp._d : srvr_udp._d) + 1;
 
 	while (_running_) {
 		readfds = allfds;
 
-		printf("[RESCACHED] waiting for client...\n");
+		if (RESCACHED_DEBUG) {
+			dlog.er("[RESCACHED] waiting for client...\n");
+		}
+
 		s = select(maxfd, &readfds, NULL, NULL, NULL);
 		if (s <= 0) {
+			s = -vos::E_SOCK_TIMEOUT;
 			continue;
 		}
 
-		if (FD_ISSET(srvr_tcp._d, &srvr_tcp._readfds)) {
-			client = srvr_tcp.accept_conn();
+		if (FD_ISSET(_srvr_tcp._d, &readfds)) {
+			client = _srvr_tcp.accept_conn();
+			if (! client)
+				continue;
+
 			if (client->_d > maxfd) {
 				maxfd = client->_d;
 			}
-			FD_SET(client->_d, &allfds);
-			process_tcp_clients(&resolver, &nc, &srvr_tcp, &allfds);
+			_srvr_tcp._readfds = allfds;
+			FD_SET(client->_d, &_srvr_tcp._readfds);
+
+			process_tcp_clients(&_rslvr, &_nc, &_srvr_tcp, &allfds);
 		}
 
-		if (FD_ISSET(srvr_udp._d, &readfds)) {
-			srvr_udp._readfds = readfds;
-			process_udp_clients(&resolver, &nc, &srvr_udp, &allfds);
+		if (FD_ISSET(_srvr_udp._d, &readfds)) {
+			_srvr_udp._readfds = readfds;
+			process_udp_clients(&_rslvr, &_nc, &_srvr_udp, &allfds);
 		}
 	}
 
-	printf("[RESCACHED] saving caches ...\n");
-	nc.dump();
-	nc.save(NAMECACHE_FILE, NAMECACHE_MD);
+err:
+	if (s) {
+		if (s > 0 || s < vos::N_ERRCODE) {
+			Error e;
+			e.init(s, NULL);
+			e.print();
+		}
+	}
 
-	return 0;
-}
-catch (Error &e) {
-	e.print();
+	rescached_exit();
+
+	return s;
 }
