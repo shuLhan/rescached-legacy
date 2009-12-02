@@ -28,7 +28,8 @@ int			RESCACHED_DEBUG	= (getenv("RESCACHED_DEBUG") == NULL)
 
 Dlogger			dlog;
 
-static long int		_cache_max	= RESCACHED_CACHE_MAX;
+long int		_cache_max	= RESCACHED_CACHE_MAX;
+long int		_cache_thr	= RESCACHED_DEF_THRESHOLD;
 static Resolver		_rslvr;
 static NameCache	_nc;
 static Socket		_srvr_tcp;
@@ -77,25 +78,20 @@ static void rescached_set_signal_handle()
 }
 
 /**
- * @desc: initialize Rescached object.
+ * @desc	: get user configuration from file.
  *
  * @param:
  *	> fconf : config file to read.
  *
- * @return:
+ * @return	:
  *	< 0	: success.
  *	< <0	: fail.
  */
-static int rescached_init(const char *fconf)
+static int rescached_load_config(const char *fconf)
 {
-	int		s;
+	int		s	= 0;
 	Config		cfg;
-	const char	*v = NULL;
-
-	s = dlog.open(RESCACHED_LOG);
-	if (s != 0) {
-		return s;
-	}
+	const char	*v	= NULL;
 
 	if (!fconf) {
 		fconf = RESCACHED_CONF;
@@ -109,21 +105,21 @@ static int rescached_init(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.data", RESCACHED_DATA);
 	if (!v) {
-		return 1;
+		s = _file_data.init_raw(RESCACHED_DATA, 0);
+	} else {
+		s = _file_data.init_raw(v, 0);
 	}
-
-	s = _file_data.init_raw(v, 0);
-	if (s < 0) {
+	if (s != 0) {
 		return s;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.metadata", RESCACHED_MD);
 	if (!v) {
-		return 1;
+		s = _file_md.init_raw(RESCACHED_MD, 0);
+	} else {
+		s = _file_md.init_raw(v, 0);
 	}
-
-	s = _file_md.init_raw(v, 0);
-	if (s < 0) {
+	if (s != 0) {
 		return s;
 	}
 
@@ -132,9 +128,8 @@ static int rescached_init(const char *fconf)
 		dlog.er("[RESCACHED] no 'server.parent' value on config file!\n");
 		return -vos::E_CFG_BAD;
 	}
-
 	s = _srvr_parent.init_raw(v, 0);
-	if (s < 0) {
+	if (s != 0) {
 		return s;
 	}
 
@@ -144,26 +139,60 @@ static int rescached_init(const char *fconf)
 	} else {
 		s = _srvr_listen.init_raw(v, 0);
 	}
-	if (s < 0) {
+	if (s != 0) {
 		return s;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "cache.max", RESCACHED_CACHE_MAX_S);
-
-	_cache_max = strtoul(v, 0, 10);
-	if (_cache_max <= 0) {
-		_cache_max = RESCACHED_CACHE_MAX;
+	if (v) {
+		_cache_max = strtoul(v, 0, 10);
+		if (_cache_max <= 0)
+			_cache_max = RESCACHED_CACHE_MAX;
 	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "cache.threshold", NULL);
+	if (v) {
+		_cache_thr = strtoul(v, 0, 10);
+		if (_cache_thr <= 0)
+			_cache_thr = RESCACHED_DEF_THRESHOLD;
+	}
+
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] cache file      > %s\n", _file_data._v);
+		dlog.er("[RESCACHED] cache metadata  > %s\n", _file_md._v);
+		dlog.er("[RESCACHED] parent address  > %s\n", _srvr_parent._v);
+		dlog.er("[RESCACHED] listening on    > %s\n", _srvr_listen._v);
+		dlog.er("[RESCACHED] cache maximum   > %ld\n", _cache_max);
+		dlog.er("[RESCACHED] cache threshold > %ld\n", _cache_thr);
+	}
+
+	return 0;
+}
+
+/**
+ * @desc: initialize Rescached object.
+ *
+ * @param:
+ *	> fconf : config file to read.
+ *
+ * @return:
+ *	< 0	: success.
+ *	< <0	: fail.
+ */
+static int rescached_init(const char *fconf)
+{
+	int		s;
+
+	s = dlog.open(RESCACHED_LOG);
+	if (s != 0)
+		return s;
+
+	s = rescached_load_config(fconf);
+	if (s != 0)
+		return s;
 
 	_rslvr.init();
 	_rslvr.set_server(_srvr_parent._v);
-
-	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] cache max      > %ld\n", _cache_max);
-		dlog.er("[RESCACHED] set parent     > %s\n", _srvr_parent._v);
-		dlog.er("[RESCACHED] listening on   > %s\n", _srvr_listen._v);
-	}
-
 
 	s = _srvr_udp.create_udp();
 	if (s != 0)
@@ -199,8 +228,8 @@ static int rescached_init(const char *fconf)
 static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 				Socket *srvr, fd_set *allfds)
 {
-	int		s;
-	int		len;
+	int		s		= 0;
+	int		len		= 0;
 	Buffer		*bfr_ans	= NULL;
 	Buffer		*bfr		= NULL;
 	DNSQuery	*dns_qst	= NULL;
@@ -335,7 +364,6 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc,
 				goto out;
 		}
 
-
 		srvr->send_udp(&addr, dns_ans->_bfr);
 	} else {
 		ncr_ans->_stat++;
@@ -413,7 +441,10 @@ int main(int argc, char *argv[])
 
 		s = select(maxfd, &readfds, NULL, NULL, NULL);
 		if (s <= 0) {
-			s = -vos::E_SOCK_TIMEOUT;
+			if (s < 0 && errno != EINTR)
+				s = -vos::E_SOCK_SELECT;
+			else
+				s = 0;
 			continue;
 		}
 

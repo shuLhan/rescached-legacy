@@ -34,10 +34,15 @@ public:
 	int save(const char *fdata, const char *fmetadata);
 
 	NCR *get_answer_from_cache(Buffer *name);
+
 	int insert(NCR *record);
 	int insert_raw(const int type, const Buffer *name,
 			const Buffer *address, const Buffer *answer);
 
+	void cachet_remove(NCR *record);
+	void clean_by_threshold(int thr);
+
+	void prune();
 	void dump();
 
 	long int	_n_cache;

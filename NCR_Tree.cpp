@@ -33,15 +33,15 @@ NCR_Tree::~NCR_Tree()
 }
 
 /**
- * @desc: compare record on node with buffer 'bfr'.
+ * @desc: compare record on node with record 'r'.
  * @param:
- *	> bfr	: buffer to compare to.
+ *	> r	: record to compare to.
  * @return:
  *	< 1	: this > bfr.
  *	< 0	: this == bfr.
  *	< -1	: this < bfr.
  */
-int NCR_Tree::cmp(Buffer *bfr)
+int NCR_Tree::cmp(NCR *ncr)
 {
 	if (!_rec) {
 		return -1;
@@ -49,7 +49,7 @@ int NCR_Tree::cmp(Buffer *bfr)
 	if (!_rec->_name) {
 		return -1;
 	}
-	return _rec->_name->cmp(bfr);
+	return _rec->_name->cmp(ncr->_name);
 }
 
 /**
@@ -77,7 +77,7 @@ int NCR_Tree::insert(NCR_Tree *node)
 	}
 
 	while (p) {
-		s = p->cmp(node->_rec->_name);
+		s = p->cmp(node->_rec);
 		if (s < 0) {
 			if (! p->_left) {
 				p->_left	= node;
@@ -131,6 +131,73 @@ int NCR_Tree::insert_record(NCR *record)
 	}
 
 	return 0;
+}
+
+void NCR_Tree::remove_record(NCR *record)
+{
+	int		s	= 0;
+	NCR_Tree	*p	= this;
+	NCR_Tree	*x	= NULL;
+	NCR_Tree	*l	= NULL;
+	NCR_Tree	*r	= NULL;
+
+	if (!record)
+		return;
+
+	while (p) {
+		s = p->cmp(record);
+		if (s < 0) {
+			p = p->_left;
+		} else if (s > 0) {
+			p = p->_right;
+		} else {
+			if (p == this) {
+				if (p->_left) {
+					x		= p->_left;
+					p->_rec		= x->_rec;
+					l		= x->_left;
+					r		= x->_right;
+					p->_left	= NULL;
+				} else if (p->_right) {
+					x		= p->_right;
+					p->_rec		= x->_rec;
+					l		= x->_left;
+					r		= x->_right;
+					p->_right	= NULL;
+				} else {
+					p->_rec = NULL;
+					break;
+				}
+			} else {
+				x	= p;
+				p	= p->_top;
+				l	= x->_left;
+				r	= x->_right;
+
+				if (p->_left == x)
+					p->_left = NULL;
+				else
+					p->_right = NULL;
+			}
+
+			x->_rec		= NULL;
+			x->_top		= NULL;
+			x->_left	= NULL;
+			x->_right	= NULL;
+
+			if (l) {
+				l->_top	= NULL;
+				p->insert(l);
+			}
+			if (r) {
+				r->_top	= NULL;
+				p->insert(r);
+			}
+
+			delete x;
+			break;
+		}
+	}
 }
 
 void NCR_Tree::prune()

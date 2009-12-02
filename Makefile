@@ -6,7 +6,7 @@
 
 SRC_D		=.
 BLD_D		=build
-LIBVOS_D	=../../libvos/src
+LIBVOS_D	=lib
 
 include ${LIBVOS_D}/Makefile
 

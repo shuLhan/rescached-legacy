@@ -16,21 +16,7 @@ NameCache::NameCache() :
 
 NameCache::~NameCache()
 {
-	NCR_List *next = NULL;
-	NCR_List *node = NULL;
-
-	if (_cachet) {
-		for (int i = 0; i <= CACHET_IDX_SIZE; ++i)
-			_cachet[i].prune();
-		delete[] _cachet;
-	}
-
-	node = _cachel;
-	while (node) {
-		next = node->_down;
-		delete node;
-		node = next;
-	}
+	prune();
 }
 
 int NameCache::raw_to_ncrecord(Record *raw, NCR **ncr)
@@ -98,8 +84,7 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 
 	s = R.read(row, rmd);
 	while (s == 1 && _n_cache < max) {
-		ncr	= NULL;
-		s	= raw_to_ncrecord(row, &ncr);
+		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
 			s = insert(ncr);
 			if (s != 0) {
@@ -107,6 +92,7 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 			}
 		}
 		s = R.read(row, rmd);
+		ncr = NULL;
 	}
 
 	dlog.er("[RESCACHED] number of cache loaded > %ld\n", _n_cache);
@@ -172,12 +158,14 @@ int NameCache::save(const char *fdata, const char *fmetadata)
 
 	p = _cachel;
 	while (p) {
-		if (p->_rec) {
+		if (p->_rec && p->_rec->_name && p->_rec->_name->_i) {
 			ncrecord_to_record(p->_rec, row);
-			W.write(row, rmd);
+			s = W.write(row, rmd);
+			if (s != 0)
+				break;
+
 			row->columns_reset();
 		}
-
 		p = p->_down;
 	}
 
@@ -222,6 +210,77 @@ NCR *NameCache::get_answer_from_cache(Buffer *name)
 	return NULL;
 }
 
+void NameCache::cachet_remove(NCR *record)
+{
+	int c = 0;
+
+	c = toupper(record->_name->_v[0]);
+	if (isalpha(c)) {
+		c = c - 'A';
+		if (c < 0 || c >= CACHET_IDX_SIZE) {
+			dlog.er(" index out of range: %d\n", c);
+			return;
+		}
+	} else {
+		c = CACHET_IDX_SIZE;
+	}
+
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] removing '%s'\n", record->_name->_v);
+	}
+
+	_cachet[c].remove_record(record);
+
+	--_n_cache;
+}
+
+/**
+ * @desc	: remove cache object where status <= threshold.
+ *
+ * @param	:
+ *	> thr	: threshold value.
+ *
+ * @return	:
+ *	< 0	: success.
+ *	< <0	: fail.
+ */
+void NameCache::clean_by_threshold(int thr)
+{
+	NCR		*rec	= NULL;
+	NCR_List	*p	= NULL;
+	NCR_List	*down	= NULL;
+
+	p = _cachel;
+	while (p) {
+		rec = p->_rec;
+		if (!rec || (rec && rec->_stat > thr)) {
+			p = p->_down;
+			continue;
+		}
+
+		if (p == _cachel) {
+			prune();
+		} else {
+			_cachel->_last	= p->_up;
+			p->_up->_down	= NULL;
+			p->_up		= NULL;
+
+			while (p) {
+				down = p->_down;
+
+				cachet_remove(p->_rec);
+
+				p->_up		= NULL;
+				p->_down	= NULL;
+				p->_last	= NULL;
+				delete p;
+				p = down;
+			}
+		}
+		break;
+	}
+}
+
 /**
  * @desc: insert Record 'record' into cache tree & list.
  *
@@ -230,40 +289,62 @@ NCR *NameCache::get_answer_from_cache(Buffer *name)
  *
  * @return:
  *	< 0	: success.
- *	< -1	: fail.
+ *	< <0	: fail.
  */
 int NameCache::insert(NCR *record)
 {
-	int s = 0;
-	int c = 0;
+	int s	= 0;
+	int c	= 0;
+	int thr	= _cache_thr;
 
 	if (!record)
 		return 0;
+	if (!record->_name)
+		return 1;
+	if (!record->_name->_i)
+		return 1;
+	if (!record->_stat)
+		return 1;
 
-	if (record->_name && record->_name->_i) {
-		c = record->_name->_v[0];
-		if (isalpha(c)) {
-			c = toupper(c) - 'A';
-			if (c >= 0 && c < CACHET_IDX_SIZE) {
-				s = NCR_List::ADD_RECORD(&_cachel, record);
-				if (0 == s) {
-					s = _cachet[c].insert_record(record);
-				}
-			} else {
-				dlog.er(" index out of range: %d\n", c);
-				s = -1;
-			}
-		} else {
-			s = NCR_List::ADD_RECORD(&_cachel, record);
-			if (0 == s) {
-				s = _cachet[CACHET_IDX_SIZE].insert_record(record);
-			}
+	while (_n_cache >= _cache_max) {
+		clean_by_threshold(thr);
+
+		if (_n_cache < _cache_max)
+			break;
+
+		++thr;
+		if (RESCACHED_DEBUG) {
+			dlog.er("[RESCACHED] increasing threshold to %d\n",
+				thr);
 		}
 	}
+
+	c = toupper(record->_name->_v[0]);
+	if (isalpha(c)) {
+		c = c - 'A';
+		if (c < 0 || c >= CACHET_IDX_SIZE) {
+			dlog.er(" index out of range: %d\n", c);
+			return -1;
+		}
+	} else {
+		c = CACHET_IDX_SIZE;
+	}
+
+	s = NCR_List::ADD_RECORD(&_cachel, record);
+	if (s != 0)
+		return s;
+
+	s = _cachet[c].insert_record(record);
 
 	if (0 == s) {
 		_n_cache++;
 	}
+
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] inserting '%s' (%ld)\n",
+			record->_name->_v, _n_cache);
+	}
+
 
 	return s;
 }
@@ -293,6 +374,27 @@ int NameCache::insert_raw(const int type, const Buffer *name,
 	}
 
 	return s;
+}
+
+void NameCache::prune()
+{
+	NCR_List *next = NULL;
+	NCR_List *node = NULL;
+
+	if (_cachet) {
+		for (int i = 0; i <= CACHET_IDX_SIZE; ++i)
+			_cachet[i].prune();
+		delete[] _cachet;
+		_cachet = NULL;
+	}
+
+	node = _cachel;
+	while (node) {
+		next = node->_down;
+		delete node;
+		node = next;
+	}
+	_cachel = NULL;
 }
 
 void NameCache::dump()

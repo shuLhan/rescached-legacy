@@ -18,9 +18,12 @@ public:
 	NCR_Tree();
 	~NCR_Tree();
 
-	int cmp(Buffer *bfr);
+	int cmp(NCR *ncr);
 	int insert(NCR_Tree *node);
 	int insert_record(NCR *record);
+
+	void remove_record(NCR *record);
+
 	void prune();
 	void dump();
 

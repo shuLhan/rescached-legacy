@@ -67,6 +67,7 @@ void NCR_List::ADD(NCR_List **top, NCR_List *node)
 			node->_up	= p;
 			node->_down	= p->_down;
 			p->_down	= node;
+
 			if (node->_down) {
 				node->_down->_up = node;
 			} else {
@@ -75,6 +76,7 @@ void NCR_List::ADD(NCR_List **top, NCR_List *node)
 		} else {
 			node->_down	= (*top);
 			node->_last	= (*top)->_last;
+			(*top)->_last	= NULL;
 			(*top)->_up	= node;
 			(*top)		= node;
 		}
