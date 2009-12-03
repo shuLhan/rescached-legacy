@@ -13,6 +13,7 @@
 #include "NameCache.hpp"
 
 using vos::Error;
+using vos::File;
 using vos::Config;
 using vos::Socket;
 using vos::Resolver;
@@ -36,6 +37,7 @@ static Socket		_srvr_tcp;
 static Socket		_srvr_udp;
 static Buffer		_file_data;
 static Buffer		_file_md;
+static Buffer		_file_pid;
 static Buffer		_srvr_parent;
 static Buffer		_srvr_listen;
 
@@ -123,6 +125,16 @@ static int rescached_load_config(const char *fconf)
 		return s;
 	}
 
+	v = cfg.get(RESCACHED_CONF_HEAD, "file.pid", RESCACHED_PID);
+	if (!v) {
+		s = _file_pid.init_raw(RESCACHED_PID, 0);
+	} else {
+		s = _file_pid.init_raw(v, 0);
+	}
+	if (s != 0) {
+		return s;
+	}
+
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent", NULL);
 	if (!v) {
 		dlog.er("[RESCACHED] no 'server.parent' value on config file!\n");
@@ -160,6 +172,7 @@ static int rescached_load_config(const char *fconf)
 	if (RESCACHED_DEBUG) {
 		dlog.er("[RESCACHED] cache file      > %s\n", _file_data._v);
 		dlog.er("[RESCACHED] cache metadata  > %s\n", _file_md._v);
+		dlog.er("[RESCACHED] pid file        > %s\n", _file_pid._v);
 		dlog.er("[RESCACHED] parent address  > %s\n", _srvr_parent._v);
 		dlog.er("[RESCACHED] listening on    > %s\n", _srvr_listen._v);
 		dlog.er("[RESCACHED] cache maximum   > %ld\n", _cache_max);
@@ -181,7 +194,7 @@ static int rescached_load_config(const char *fconf)
  */
 static int rescached_init(const char *fconf)
 {
-	int		s;
+	int s;
 
 	s = dlog.open(RESCACHED_LOG);
 	if (s != 0)
@@ -221,6 +234,24 @@ static int rescached_init(const char *fconf)
 	if (RESCACHED_DEBUG) {
 		_nc.dump();
 	}
+
+	return 0;
+}
+
+static int rescached_init_write_pid()
+{
+	int	s;
+	File	fpid;
+
+	s = fpid.open_wo(_file_pid._v);
+	if (s != 0)
+		return s;
+
+	s = getpid();
+
+	s = fpid.appendi(s, 10);
+	if (s != 0)
+		return s;
 
 	return 0;
 }
@@ -400,6 +431,8 @@ static void rescached_exit()
 		dlog.er("[RESCACHED] saving caches ...\n");
 	}
 
+	unlink(_file_pid._v);
+
 	_nc.save(_file_data._v, _file_md._v);
 }
 
@@ -419,7 +452,7 @@ int main(int argc, char *argv[])
 		dlog.er("\n Usage: rescached <rescached-config>\n ");
 		s = -vos::E_INVALID_PARAM;
 	}
-	if (s < 0) {
+	if (s != 0) {
 		goto err;
 	}
 
@@ -431,6 +464,7 @@ int main(int argc, char *argv[])
 	maxfd = (_srvr_tcp._d > _srvr_udp._d ? _srvr_tcp._d : _srvr_udp._d) + 1;
 
 	rescached_set_signal_handle();
+	rescached_init_write_pid();
 
 	while (_running_) {
 		readfds = allfds;

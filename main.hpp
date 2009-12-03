@@ -16,6 +16,7 @@ using vos::Dlogger;
 #define	RESCACHED_DATA		"rescached.vos"
 #define	RESCACHED_LOG		"rescached.log"
 #define	RESCACHED_MD		"rescached.vmd"
+#define	RESCACHED_PID		"rescached.pid"
 #define	RESCACHED_CACHE_MAX	100000
 #define	RESCACHED_CACHE_MAX_S	"100000"
 

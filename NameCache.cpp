@@ -95,7 +95,9 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 		ncr = NULL;
 	}
 
-	dlog.er("[RESCACHED] number of cache loaded > %ld\n", _n_cache);
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] number of cache loaded > %ld\n", _n_cache);
+	}
 
 	delete rmd;
 	delete row;
