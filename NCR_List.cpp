@@ -33,7 +33,7 @@ void NCR_List::dump()
 	putchar('\n');
 	while (p) {
 		if (p->_rec) {
-			printf("[%4d] %6d|%s\n", i++, p->_rec->_stat,
+			dlog.it("[%d] %d|%s\n", i++, p->_rec->_stat,
 					p->_rec->_name->_v);
 		}
 		p = p->_down;

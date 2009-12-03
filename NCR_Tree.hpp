@@ -7,6 +7,7 @@
 #ifndef _RESCACHED_NCR_TREE_HPP
 #define	_RESCACHED_NCR_TREE_HPP	1
 
+#include "main.hpp"
 #include "NCR.hpp"
 
 using vos::DNSQuery;

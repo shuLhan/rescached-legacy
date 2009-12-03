@@ -7,7 +7,6 @@
 #ifndef _RESCACHED_NAME_CACHE_HPP
 #define	_RESCACHED_NAME_CACHE_HPP	1
 
-#include "main.hpp"
 #include "Reader.hpp"
 #include "Writer.hpp"
 #include "NCR_Tree.hpp"
@@ -18,7 +17,8 @@ using vos::RecordMD;
 using vos::Reader;
 using vos::Writer;
 
-#define	CACHET_IDX_SIZE	26	/* size of bucket tree, A-Z + others */
+#define	CACHET_IDX_SIZE		43	/* size of bucket tree, 0-Z + others */
+#define	CACHET_IDX_FIRST	'0'
 
 namespace rescached {
 

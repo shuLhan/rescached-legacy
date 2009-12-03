@@ -215,7 +215,7 @@ void NCR_Tree::dump()
 		_left->dump();
 	}
 	if (_rec) {
-		printf("%6d|%s\n", _rec->_stat, _rec->_name->_v);
+		dlog.it("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
 	}
 	if (_right) {
 		_right->dump();

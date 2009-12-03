@@ -62,13 +62,11 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 	Record		*row	= NULL;
 	RecordMD	*rmd	= NULL;
 
-	_cachel = NULL;
+	prune();
 
-	if (! _cachet) {
-		_cachet = new NCR_Tree[CACHET_IDX_SIZE + 1];
-		if (!_cachet)
-			return -vos::E_MEM;
-	}
+	_cachet = new NCR_Tree[CACHET_IDX_SIZE + 1];
+	if (!_cachet)
+		return -vos::E_MEM;
 
 	s = R.open_ro(fdata);
 	if (s != 0)
@@ -185,10 +183,11 @@ NCR *NameCache::get_answer_from_cache(Buffer *name)
 	if (! name)
 		return NULL;
 
-	if (! isalpha(name->_v[0])) {
-		s = CACHET_IDX_SIZE;
+	s = toupper(name->_v[0]);
+	if (isalnum(s)) {
+		s = s - CACHET_IDX_FIRST;
 	} else {
-		s = toupper(name->_v[0]) - 'A';
+		s = CACHET_IDX_SIZE;
 	}
 
 	p = &_cachet[s];
@@ -217,18 +216,14 @@ void NameCache::cachet_remove(NCR *record)
 	int c = 0;
 
 	c = toupper(record->_name->_v[0]);
-	if (isalpha(c)) {
-		c = c - 'A';
-		if (c < 0 || c >= CACHET_IDX_SIZE) {
-			dlog.er(" index out of range: %d\n", c);
-			return;
-		}
+	if (isalnum(c)) {
+		c = c - CACHET_IDX_FIRST;
 	} else {
 		c = CACHET_IDX_SIZE;
 	}
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] removing '%s'\n", record->_name->_v);
+		dlog.it("[RESCACHED] removing '%s'\n", record->_name->_v);
 	}
 
 	_cachet[c].remove_record(record);
@@ -322,12 +317,8 @@ int NameCache::insert(NCR *record)
 	}
 
 	c = toupper(record->_name->_v[0]);
-	if (isalpha(c)) {
-		c = c - 'A';
-		if (c < 0 || c >= CACHET_IDX_SIZE) {
-			dlog.er(" index out of range: %d\n", c);
-			return -1;
-		}
+	if (isalnum(c)) {
+		c = c - CACHET_IDX_FIRST;
 	} else {
 		c = CACHET_IDX_SIZE;
 	}
@@ -343,7 +334,7 @@ int NameCache::insert(NCR *record)
 	}
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] inserting '%s' (%ld)\n",
+		dlog.it("[RESCACHED] inserting '%s' (%ld)\n",
 			record->_name->_v, _n_cache);
 	}
 
@@ -403,18 +394,18 @@ void NameCache::dump()
 {
 	int i = 0;
 
-	printf("\n >> LIST\n");
+	dlog.it("\n >> LIST\n");
 	if (_cachel) {
 		_cachel->dump();
 	}
 
-	printf("\n >> TREE\n");
+	dlog.it("\n >> TREE\n");
 	if (_cachet) {
 		for (; i < CACHET_IDX_SIZE; ++i) {
-			printf(" [%c]\n", i + 'A');
+			dlog.it(" [%c]\n", i + CACHET_IDX_FIRST);
 			_cachet[i].dump();
 		}
-		printf(" [others]\n");
+		dlog.it(" [others]\n");
 		_cachet[i].dump();
 	}
 }

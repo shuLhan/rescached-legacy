@@ -100,7 +100,7 @@ static int rescached_load_config(const char *fconf)
 	}
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] loading config > %s\n", fconf);
+		dlog.er("[RESCACHED] loading config  > %s\n", fconf);
 	}
 
 	cfg.load(fconf);
@@ -389,8 +389,8 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc,
 
 		if (dns_ans->_n_ans) {
 			s = nc->insert_raw(vos::BUFFER_IS_UDP,
-					&dns_qst->_name, dns_qst->_bfr,
-				dns_ans->_bfr);
+						&dns_qst->_name, dns_qst->_bfr,
+						dns_ans->_bfr);
 			if (s != 0)
 				goto out;
 		}
