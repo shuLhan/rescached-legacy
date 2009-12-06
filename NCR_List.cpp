@@ -30,7 +30,6 @@ void NCR_List::dump()
 	int		i	= 0;
 	NCR_List	*p	= this;
 
-	putchar('\n');
 	while (p) {
 		if (p->_rec) {
 			dlog.it("[%d] %d|%s\n", i++, p->_rec->_stat,
@@ -38,7 +37,6 @@ void NCR_List::dump()
 		}
 		p = p->_down;
 	}
-	putchar('\n');
 }
 
 void NCR_List::ADD(NCR_List **top, NCR_List *node)

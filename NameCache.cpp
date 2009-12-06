@@ -70,7 +70,7 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 
 	s = R.open_ro(fdata);
 	if (s != 0)
-		return 0;
+		return s;
 
 	s = RecordMD::INIT_FROM_FILE(&rmd, fmetadata);
 	if (s != 0)
@@ -91,10 +91,6 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 		}
 		s = R.read(row, rmd);
 		ncr = NULL;
-	}
-
-	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] number of cache loaded > %ld\n", _n_cache);
 	}
 
 	delete rmd;
@@ -131,6 +127,11 @@ int NameCache::ncrecord_to_record(NCR *ncr, Record *row)
 	return 0;
 }
 
+/**
+ * @return	:
+ *	< 0	: success.
+ *	< !0	: fail.
+ */
 int NameCache::save(const char *fdata, const char *fmetadata)
 {
 	int		s	= 0;
@@ -387,7 +388,8 @@ void NameCache::prune()
 		delete node;
 		node = next;
 	}
-	_cachel = NULL;
+	_cachel		= NULL;
+	_n_cache	= 0;
 }
 
 void NameCache::dump()

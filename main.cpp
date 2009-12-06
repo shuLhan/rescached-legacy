@@ -36,6 +36,7 @@ static NameCache	_nc;
 static Socket		_srvr_tcp;
 static Socket		_srvr_udp;
 static Buffer		_file_data;
+static Buffer		_file_data_bak;
 static Buffer		_file_md;
 static Buffer		_file_pid;
 static Buffer		_srvr_parent;
@@ -100,7 +101,7 @@ static int rescached_load_config(const char *fconf)
 	}
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] loading config  > %s\n", fconf);
+		dlog.er("[RESCACHED] loading config    > %s\n", fconf);
 	}
 
 	cfg.load(fconf);
@@ -113,6 +114,22 @@ static int rescached_load_config(const char *fconf)
 	}
 	if (s != 0) {
 		return s;
+	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "file.data.backup", NULL);
+	if (v) {
+		s = _file_data_bak.init_raw(v, 0);
+		if (s != 0) {
+			return s;
+		}
+	} else {
+		s = _file_data_bak.init_raw(_file_data._v, 0);
+		if (s != 0)
+			return s;
+
+		s = _file_data_bak.append_raw(RESCACHED_DATA_BAK_EXT, 0);
+		if (s < 0)
+			return s;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.metadata", RESCACHED_MD);
@@ -170,13 +187,14 @@ static int rescached_load_config(const char *fconf)
 	}
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] cache file      > %s\n", _file_data._v);
-		dlog.er("[RESCACHED] cache metadata  > %s\n", _file_md._v);
-		dlog.er("[RESCACHED] pid file        > %s\n", _file_pid._v);
-		dlog.er("[RESCACHED] parent address  > %s\n", _srvr_parent._v);
-		dlog.er("[RESCACHED] listening on    > %s\n", _srvr_listen._v);
-		dlog.er("[RESCACHED] cache maximum   > %ld\n", _cache_max);
-		dlog.er("[RESCACHED] cache threshold > %ld\n", _cache_thr);
+		dlog.er("[RESCACHED] cache file        > %s\n", _file_data._v);
+		dlog.er("[RESCACHED] cache file backup > %s\n", _file_data_bak._v);
+		dlog.er("[RESCACHED] cache metadata    > %s\n", _file_md._v);
+		dlog.er("[RESCACHED] pid file          > %s\n", _file_pid._v);
+		dlog.er("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
+		dlog.er("[RESCACHED] listening on      > %s\n", _srvr_listen._v);
+		dlog.er("[RESCACHED] cache maximum     > %ld\n", _cache_max);
+		dlog.er("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
 	}
 
 	return 0;
@@ -224,14 +242,25 @@ static int rescached_init(const char *fconf)
 		return s;
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] loading caches ...\n");
+		dlog.er("[RESCACHED] loading caches    > ");
 	}
 
+	/**
+	 * try loading the default cache file first. if it is fail or no cache
+	 * loaded (zero record), try to load backup file.
+	 */
 	s = _nc.load(_file_data._v, _file_md._v, _cache_max);
-	if (s != 0)
-		return s;
+	if (s != 0 || _nc._n_cache == 0) {
+		s = _nc.load(_file_data_bak._v, _file_md._v, _cache_max);
+		if (s != 0) {
+			if (s == -vos::E_FILE_OPEN)
+				return 0;
+			return s;
+		}
+	}
 
 	if (RESCACHED_DEBUG) {
+		dlog.er("%d record loaded\n", _nc._n_cache);
 		_nc.dump();
 	}
 
@@ -425,15 +454,72 @@ out:
 	return 0;
 }
 
-static void rescached_exit()
+/**
+ * @desc	: create backup of cache file.
+ *		 - do not create backup if the original file is empty.
+ *
+ * @return	:
+ *	< 0	: success.
+ *	< !0	: fail.
+ */
+static int rescached_create_backup()
 {
+	int	s;
+	File	r;
+	File	w;
+
+	s = r.open_ro(_file_data._v);
+	if (s != 0) {
+		return s;
+	}
+
+	s = r.get_size();
+	if (s <= 0) {
+		return 0;
+	}
+
+	s = w.open_wo(_file_data_bak._v);
+	if (s != 0) {
+		return s;
+	}
+
+	s = r.read();
+	while (s > 0) {
+		s = w.write(&r);
+		if (s < 0)
+			break;
+		s = r.read();
+	}
+
+	return 0;
+}
+
+/**
+ * @return	:
+ *	< 0	: success.
+ *	< !0	: fail.
+ */
+static int rescached_exit()
+{
+	int s = 0;
+
 	if (RESCACHED_DEBUG) {
 		dlog.er("[RESCACHED] saving caches ...\n");
 	}
 
-	unlink(_file_pid._v);
+	if (_file_pid._v) {
+		unlink(_file_pid._v);
+	}
 
-	_nc.save(_file_data._v, _file_md._v);
+	if (_file_data._v) {
+		s = _nc.save(_file_data._v, _file_md._v);
+		if (s != 0)
+			return s;
+	}
+
+	s = rescached_create_backup();
+
+	return s;
 }
 
 int main(int argc, char *argv[])

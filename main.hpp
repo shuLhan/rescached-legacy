@@ -13,6 +13,7 @@ using vos::Dlogger;
 
 #define	RESCACHED_CONF		"rescached.conf"
 #define	RESCACHED_CONF_HEAD	"RESCACHED"
+#define	RESCACHED_DATA_BAK_EXT	".bak"
 #define	RESCACHED_DATA		"rescached.vos"
 #define	RESCACHED_LOG		"rescached.log"
 #define	RESCACHED_MD		"rescached.vmd"
