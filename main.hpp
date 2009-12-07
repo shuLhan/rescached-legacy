@@ -11,7 +11,7 @@
 
 using vos::Dlogger;
 
-#define	RESCACHED_CONF		"rescached.conf"
+#define	RESCACHED_CONF		"rescached.cfg"
 #define	RESCACHED_CONF_HEAD	"RESCACHED"
 #define	RESCACHED_DATA_BAK_EXT	".bak"
 #define	RESCACHED_DATA		"rescached.vos"
@@ -21,6 +21,7 @@ using vos::Dlogger;
 #define	RESCACHED_CACHE_MAX	100000
 #define	RESCACHED_CACHE_MAX_S	"100000"
 
+#define	RESCACHED_DEF_PARENT	"209.128.95.2, 4.2.2.1, 69.111.95.106"
 #define	RESCACHED_DEF_LISTEN	"0.0.0.0"
 #define	RESCACHED_DEF_PORT	53
 #define	RESCACHED_DEF_THRESHOLD	1

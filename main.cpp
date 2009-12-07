@@ -37,6 +37,7 @@ static Socket		_srvr_tcp;
 static Socket		_srvr_udp;
 static Buffer		_file_data;
 static Buffer		_file_data_bak;
+static Buffer		_file_log;
 static Buffer		_file_md;
 static Buffer		_file_pid;
 static Buffer		_srvr_parent;
@@ -152,12 +153,22 @@ static int rescached_load_config(const char *fconf)
 		return s;
 	}
 
+	v = cfg.get(RESCACHED_CONF_HEAD, "file.log", RESCACHED_LOG);
+	if (!v) {
+		s = _file_log.init_raw(RESCACHED_LOG, 0);
+	} else {
+		s = _file_log.init_raw(v, 0);
+	}
+	if (s != 0) {
+		return s;
+	}
+
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent", NULL);
 	if (!v) {
-		dlog.er("[RESCACHED] no 'server.parent' value on config file!\n");
-		return -vos::E_CFG_BAD;
+		s = _srvr_parent.init_raw(RESCACHED_DEF_PARENT, 0);
+	} else {
+		s = _srvr_parent.init_raw(v, 0);
 	}
-	s = _srvr_parent.init_raw(v, 0);
 	if (s != 0) {
 		return s;
 	}
@@ -186,17 +197,6 @@ static int rescached_load_config(const char *fconf)
 			_cache_thr = RESCACHED_DEF_THRESHOLD;
 	}
 
-	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] cache file        > %s\n", _file_data._v);
-		dlog.er("[RESCACHED] cache file backup > %s\n", _file_data_bak._v);
-		dlog.er("[RESCACHED] cache metadata    > %s\n", _file_md._v);
-		dlog.er("[RESCACHED] pid file          > %s\n", _file_pid._v);
-		dlog.er("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
-		dlog.er("[RESCACHED] listening on      > %s\n", _srvr_listen._v);
-		dlog.er("[RESCACHED] cache maximum     > %ld\n", _cache_max);
-		dlog.er("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
-	}
-
 	return 0;
 }
 
@@ -214,13 +214,25 @@ static int rescached_init(const char *fconf)
 {
 	int s;
 
-	s = dlog.open(RESCACHED_LOG);
-	if (s != 0)
-		return s;
-
 	s = rescached_load_config(fconf);
 	if (s != 0)
 		return s;
+
+	s = dlog.open(_file_log._v);
+	if (s != 0)
+		return s;
+
+	if (RESCACHED_DEBUG) {
+		dlog.er("[RESCACHED] cache file        > %s\n", _file_data._v);
+		dlog.er("[RESCACHED] cache file backup > %s\n", _file_data_bak._v);
+		dlog.er("[RESCACHED] cache metadata    > %s\n", _file_md._v);
+		dlog.er("[RESCACHED] pid file          > %s\n", _file_pid._v);
+		dlog.er("[RESCACHED] log file          > %s\n", _file_log._v);
+		dlog.er("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
+		dlog.er("[RESCACHED] listening on      > %s\n", _srvr_listen._v);
+		dlog.er("[RESCACHED] cache maximum     > %ld\n", _cache_max);
+		dlog.er("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
+	}
 
 	_rslvr.init();
 	_rslvr.set_server(_srvr_parent._v);
@@ -504,7 +516,7 @@ static int rescached_exit()
 	int s = 0;
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] saving caches ...\n");
+		dlog.er("\n[RESCACHED] saving caches ...\n");
 	}
 
 	if (_file_pid._v) {
