@@ -10,7 +10,7 @@ namespace rescached {
 
 NameCache::NameCache() :
 	_n_cache(0),
-	_cachet(NULL),
+	_buckets(NULL),
 	_cachel(NULL)
 {}
 
@@ -64,9 +64,12 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 
 	prune();
 
-	_cachet = new NCR_Tree[CACHET_IDX_SIZE + 1];
-	if (!_cachet)
+	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
+	if (!_buckets)
 		return -vos::E_MEM;
+
+	for (s = 0; s <= CACHET_IDX_SIZE; ++s)
+		_buckets[s]._v = NULL;
 
 	s = R.open_ro(fdata);
 	if (s != 0)
@@ -176,60 +179,34 @@ int NameCache::save(const char *fdata, const char *fmetadata)
 	return 0;
 }
 
-NCR *NameCache::get_answer_from_cache(Buffer *name)
-{
-	int		s	= 0;
-	NCR_Tree	*p	= NULL;
-
-	if (! name)
-		return NULL;
-
-	s = toupper(name->_v[0]);
-	if (isalnum(s)) {
-		s = s - CACHET_IDX_FIRST;
-	} else {
-		s = CACHET_IDX_SIZE;
-	}
-
-	p = &_cachet[s];
-
-	while (p) {
-		if (p->_rec) {
-			s = p->_rec->_name->like(name);
-			if (0 == s) {
-				return p->_rec;
-			}
-			if (s < 0) {
-				p = p->_left;
-			} else {
-				p = p->_right;
-			}
-		} else {
-			break;
-		}
-	}
-
-	return NULL;
-}
-
-void NameCache::cachet_remove(NCR *record)
+/**
+ * @return	:
+ *	< 0	: success.
+ *	< 1	: fail, name not found.
+ */
+int NameCache::get_answer_from_cache(NCR_Tree **root, NCR_Tree **node, Buffer *name)
 {
 	int c = 0;
 
-	c = toupper(record->_name->_v[0]);
+	if (!name)
+		return 1;
+
+	c = toupper(name->_v[0]);
 	if (isalnum(c)) {
 		c = c - CACHET_IDX_FIRST;
 	} else {
 		c = CACHET_IDX_SIZE;
 	}
 
-	if (RESCACHED_DEBUG) {
-		dlog.it("[RESCACHED] removing '%s'\n", record->_name->_v);
+	if (_buckets[c]._v) {
+		(*node) = _buckets[c]._v->search_record_name(name);
+		if ((*node)) {
+			(*root) = _buckets[c]._v;
+			return 0;
+		}
 	}
 
-	_cachet[c].remove_record(record);
-
-	--_n_cache;
+	return 1;
 }
 
 /**
@@ -244,38 +221,56 @@ void NameCache::cachet_remove(NCR *record)
  */
 void NameCache::clean_by_threshold(int thr)
 {
-	NCR		*rec	= NULL;
+	int		c	= 0;
 	NCR_List	*p	= NULL;
-	NCR_List	*down	= NULL;
+	NCR_List	*up	= NULL;
+	NCR_Tree	*node	= NULL;
 
-	p = _cachel;
+	p = _cachel->_last;
 	while (p) {
-		rec = p->_rec;
-		if (!rec || (rec && rec->_stat > thr)) {
-			p = p->_down;
-			continue;
+		if (p->_rec->_stat > thr)
+			break;
+
+		if (RESCACHED_DEBUG) {
+			dlog.er("[RESCACHED] removing '%s' - %d\n",
+				p->_rec->_name->_v, p->_rec->_stat);
+		}
+
+		c = toupper(p->_rec->_name->_v[0]);
+		if (isalnum(c)) {
+			c = c - CACHET_IDX_FIRST;
+		} else {
+			c = CACHET_IDX_SIZE;
+		}
+
+		if (_buckets[c]._v) {
+			node = NCR_Tree::REMOVE(&_buckets[c]._v,
+						(NCR_Tree *) p->_p_tree);
+			if (node) {
+				p->_p_tree = NULL;
+				node->_rec = NULL;
+				delete node;
+			}
 		}
 
 		if (p == _cachel) {
-			prune();
+			_cachel = NULL;
+			up	= NULL;
 		} else {
-			_cachel->_last	= p->_up;
-			p->_up->_down	= NULL;
-			p->_up		= NULL;
+			up = p->_up;
+			if (p == _cachel->_last)
+				_cachel->_last = up;
 
-			while (p) {
-				down = p->_down;
-
-				cachet_remove(p->_rec);
-
-				p->_up		= NULL;
-				p->_down	= NULL;
-				p->_last	= NULL;
-				delete p;
-				p = down;
-			}
+			up->_down = NULL;
 		}
-		break;
+
+		p->_up		= NULL;
+		p->_p_tree	= NULL;
+
+		delete p;
+		--_n_cache;
+
+		p = up;
 	}
 }
 
@@ -291,9 +286,11 @@ void NameCache::clean_by_threshold(int thr)
  */
 int NameCache::insert(NCR *record)
 {
-	int s	= 0;
-	int c	= 0;
-	int thr	= _cache_thr;
+	int		s	= 0;
+	int		c	= 0;
+	int		thr	= _cache_thr;
+	NCR_List	*p_list	= NULL;
+	NCR_Tree	*p_tree	= NULL;
 
 	if (!record)
 		return 0;
@@ -304,7 +301,7 @@ int NameCache::insert(NCR *record)
 	if (!record->_stat)
 		return 1;
 
-	while (_n_cache >= _cache_max) {
+	while (_cachel && _n_cache >= _cache_max) {
 		clean_by_threshold(thr);
 
 		if (_n_cache < _cache_max)
@@ -324,21 +321,31 @@ int NameCache::insert(NCR *record)
 		c = CACHET_IDX_SIZE;
 	}
 
-	s = NCR_List::ADD_RECORD(&_cachel, record);
-	if (s != 0)
-		return s;
+	/* add to list */
+	p_list = new NCR_List();
+	if (!p_list)
+		return -vos::E_MEM;
 
-	s = _cachet[c].insert_record(record);
+	p_list->_rec = record;
 
-	if (0 == s) {
-		_n_cache++;
-	}
+	NCR_List::ADD(&_cachel, p_list);
+
+	/* add to tree */
+	p_tree = new NCR_Tree();
+	if (!p_tree)
+		return -vos::E_MEM;
+
+	p_tree->_rec	= record;
+	p_tree->_p_list	= p_list;
+	p_list->_p_tree	= p_tree;
+
+	NCR_Tree::INSERT(&_buckets[c]._v, p_tree);
+	++_n_cache;
 
 	if (RESCACHED_DEBUG) {
-		dlog.it("[RESCACHED] inserting '%s' (%ld)\n",
-			record->_name->_v, _n_cache);
+		dlog.er("[RESCACHED] inserting '%s' - %d (%ld)\n",
+			record->_name->_v, record->_stat, _n_cache);
 	}
-
 
 	return s;
 }
@@ -375,11 +382,16 @@ void NameCache::prune()
 	NCR_List *next = NULL;
 	NCR_List *node = NULL;
 
-	if (_cachet) {
-		for (int i = 0; i <= CACHET_IDX_SIZE; ++i)
-			_cachet[i].prune();
-		delete[] _cachet;
-		_cachet = NULL;
+	if (_buckets) {
+		for (int i = 0; i <= CACHET_IDX_SIZE; ++i) {
+			if (_buckets[i]._v) {
+				_buckets[i]._v->prune();
+				delete _buckets[i]._v;
+				_buckets[i]._v = NULL;
+			}
+		}
+		delete[] _buckets;
+		_buckets = NULL;
 	}
 
 	node = _cachel;
@@ -394,21 +406,23 @@ void NameCache::prune()
 
 void NameCache::dump()
 {
-	int i = 0;
+	int i;
 
-	dlog.it("\n >> LIST\n");
+	dlog.er("\n >> LIST\n");
 	if (_cachel) {
 		_cachel->dump();
 	}
 
 	dlog.it("\n >> TREE\n");
-	if (_cachet) {
-		for (; i < CACHET_IDX_SIZE; ++i) {
+	if (_buckets) {
+		for (i = 1; i < CACHET_IDX_SIZE; ++i) {
 			dlog.it(" [%c]\n", i + CACHET_IDX_FIRST);
-			_cachet[i].dump();
+			if (_buckets[i]._v)
+				_buckets[i]._v->dump();
 		}
 		dlog.it(" [others]\n");
-		_cachet[i].dump();
+		if (_buckets[i]._v)
+			_buckets[i]._v->dump();
 	}
 }
 

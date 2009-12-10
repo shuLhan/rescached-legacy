@@ -12,7 +12,8 @@ NCR_List::NCR_List() :
 	_rec(NULL),
 	_up(NULL),
 	_down(NULL),
-	_last(NULL)
+	_last(NULL),
+	_p_tree(NULL)
 {}
 
 NCR_List::~NCR_List()
@@ -23,19 +24,56 @@ NCR_List::~NCR_List()
 	_up	= NULL;
 	_down	= NULL;
 	_last	= NULL;
+	_p_tree	= NULL;
 }
 
 void NCR_List::dump()
 {
-	int		i	= 0;
+	int		i	= 1;
 	NCR_List	*p	= this;
 
 	while (p) {
 		if (p->_rec) {
-			dlog.it("[%d] %d|%s\n", i++, p->_rec->_stat,
+			dlog.er("[%d] %d|%s\n", i++, p->_rec->_stat,
 					p->_rec->_name->_v);
 		}
 		p = p->_down;
+	}
+}
+
+void NCR_List::REBUILD(NCR_List **top, NCR_List *node)
+{
+	int		stat	= 0;
+	NCR_List	*up	= NULL;
+
+	if (!node)
+		return;
+
+	stat = node->_rec->_stat;
+	while (node->_up) {
+		up = node->_up;
+
+		if (up->_rec->_stat >= stat)
+			break;
+
+		if (node->_down) {
+			node->_down->_up = up;
+		}
+		up->_down	= node->_down;
+		node->_up	= up->_up;
+		node->_down	= up;
+		if (up->_up) {
+			up->_up->_down = node;
+		}
+		up->_up = node;
+	} 
+	if ((*top)->_up) {
+		node->_last	= (*top)->_last;
+		(*top)->_last	= NULL;
+		(*top)		= node;
+	}
+	while ((*top)->_last->_down) {
+		(*top)->_last = (*top)->_last->_down;
 	}
 }
 
@@ -79,35 +117,6 @@ void NCR_List::ADD(NCR_List **top, NCR_List *node)
 			(*top)		= node;
 		}
 	}
-}
-
-/**
- * @desc	: add a 'record' to the list 'top'.
- *
- * @param	:
- *	> top	: the head of linked list.
- *	> record: record to be inserted to list.
- *
- * @return	:
- *	< 0	: success.
- *	< <0	: fail, out of memory.
- */
-int NCR_List::ADD_RECORD(NCR_List **top, NCR *record)
-{
-	NCR_List *node = NULL;
-
-	if (!record)
-		return 0;
-
-	node = new NCR_List();
-	if (!node)
-		return -vos::E_MEM;
-
-	node->_rec = record;
-
-	ADD(top, node);
-
-	return 0;
 }
 
 } /* namespace::rescached */

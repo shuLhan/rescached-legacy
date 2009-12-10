@@ -19,13 +19,14 @@ public:
 
 	void dump();
 
+	static void REBUILD(NCR_List **top, NCR_List *node);
 	static void ADD(NCR_List **top, NCR_List *node);
-	static int ADD_RECORD(NCR_List **top, NCR *record);
 
 	NCR		*_rec;
 	NCR_List	*_up;
 	NCR_List	*_down;
 	NCR_List	*_last;
+	void		*_p_tree;
 private:
 	DISALLOW_COPY_AND_ASSIGN(NCR_List);
 };

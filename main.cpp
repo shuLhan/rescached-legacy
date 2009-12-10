@@ -17,6 +17,8 @@ using vos::File;
 using vos::Config;
 using vos::Socket;
 using vos::Resolver;
+using rescached::NCR_List;
+using rescached::NCR_Tree;
 using rescached::NCR;
 using rescached::NameCache;
 
@@ -63,6 +65,11 @@ static void rescached_interrupted(int sig_num)
 		_running_	= 0;
 		_SIG_lock_	= 0;
                 break;
+	case SIGUSR1:
+		_SIG_lock_	= 1;
+		_nc.dump();
+		_SIG_lock_	= 0;
+		break;
         }
 }
 
@@ -79,6 +86,7 @@ static void rescached_set_signal_handle()
 	sigaction(SIGQUIT, &sig_new, 0);
 	sigaction(SIGTERM, &sig_new, 0);
 	sigaction(SIGSEGV, &sig_new, 0);
+	sigaction(SIGUSR1, &sig_new, 0);
 }
 
 /**
@@ -254,7 +262,7 @@ static int rescached_init(const char *fconf)
 		return s;
 
 	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] loading caches    > ");
+		dlog.er("[RESCACHED] loading caches    >\n");
 	}
 
 	/**
@@ -307,6 +315,8 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 	DNSQuery	*dns_qst	= NULL;
 	DNSQuery	*dns_ans	= NULL;
 	NCR		*ncr_ans	= NULL;
+	NCR_Tree	*root		= NULL;
+	NCR_Tree	*node		= NULL;
 	Socket		*client		= NULL;
 	Socket		*p		= NULL;
 
@@ -335,8 +345,8 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 
 		dns_qst->extract(client, vos::BUFFER_IS_TCP);
 
-		ncr_ans = nc->get_answer_from_cache(&dns_qst->_name);
-		if (! ncr_ans) {
+		s = nc->get_answer_from_cache(&root, &node, &dns_qst->_name);
+		if (s) {
 			s = DNSQuery::INIT(&dns_ans, NULL);
 			if (s != 0)
 				return s;
@@ -358,7 +368,7 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 			delete dns_ans;
 			dns_ans = NULL;
 		} else {
-			ncr_ans->_stat++;
+			ncr_ans = node->_rec;
 			ncr_ans->_answ->set_id(dns_qst->_id);
 
 			if (RESCACHED_DEBUG) {
@@ -385,6 +395,11 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 				goto next;
 			}
 			s = client->send(bfr_ans);
+
+			ncr_ans->_stat++;
+			root = NCR_Tree::REBUILD(root, node);
+			NCR_List::REBUILD(&_nc._cachel,
+					(NCR_List *) node->_p_list);
 		}
 next:
 		client = client->_next;
@@ -394,14 +409,15 @@ err:
 	return s;
 }
 
-static int process_udp_clients(Resolver *resolver, NameCache *nc,
-				Socket *srvr, fd_set *allfds)
+static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 {
 	int		s		= 0;
-	struct sockaddr	addr		= {0};
+	struct sockaddr	addr;
 	DNSQuery	*dns_qst	= NULL;
 	DNSQuery	*dns_ans	= NULL;
 	NCR		*ncr_ans	= NULL;
+	NCR_Tree	*root		= NULL;
+	NCR_Tree	*node		= NULL;
 
 	s = DNSQuery::INIT(&dns_qst, NULL);
 	if (s != 0)
@@ -417,8 +433,8 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc,
 		dlog.er(">> QUERY: %s\n", dns_qst->_name._v);
 	}
 
-	ncr_ans = nc->get_answer_from_cache(&dns_qst->_name);
-	if (!ncr_ans) {
+	s = nc->get_answer_from_cache(&root, &node, &dns_qst->_name);
+	if (s) {
 		s = DNSQuery::INIT(&dns_ans, NULL);
 		if (s != 0)
 			goto out;
@@ -438,7 +454,7 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc,
 
 		srvr->send_udp(&addr, dns_ans->_bfr);
 	} else {
-		ncr_ans->_stat++;
+		ncr_ans = node->_rec;
 		ncr_ans->_answ->set_id(dns_qst->_id);
 
 		if (RESCACHED_DEBUG) {
@@ -453,7 +469,13 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc,
 						ncr_ans->_answ->_bfr->_i - 2);
 		} else {
 			dlog.er("[RESCACHED] unknown buffer type!\n");
+			goto out;
 		}
+
+		/* rebuild index */
+		ncr_ans->_stat++;
+		root = NCR_Tree::REBUILD(root, node);
+		NCR_List::REBUILD(&_nc._cachel, (NCR_List *) node->_p_list);
 	}
 out:
 	srvr->reset();
@@ -596,7 +618,7 @@ int main(int argc, char *argv[])
 
 		if (FD_ISSET(_srvr_udp._d, &readfds)) {
 			_srvr_udp._readfds = readfds;
-			process_udp_clients(&_rslvr, &_nc, &_srvr_udp, &allfds);
+			process_udp_clients(&_rslvr, &_nc, &_srvr_udp);
 		}
 	}
 

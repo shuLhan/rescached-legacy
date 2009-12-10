@@ -22,6 +22,10 @@ using vos::Writer;
 
 namespace rescached {
 
+struct NCR_Bucket {
+	NCR_Tree *_v;
+};
+
 class NameCache {
 public:
 	NameCache();
@@ -33,20 +37,19 @@ public:
 	int ncrecord_to_record(NCR *ncr, Record *row);
 	int save(const char *fdata, const char *fmetadata);
 
-	NCR *get_answer_from_cache(Buffer *name);
+	int get_answer_from_cache(NCR_Tree **root, NCR_Tree **node, Buffer *name);
 
 	int insert(NCR *record);
 	int insert_raw(const int type, const Buffer *name,
 			const Buffer *address, const Buffer *answer);
 
-	void cachet_remove(NCR *record);
 	void clean_by_threshold(int thr);
 
 	void prune();
 	void dump();
 
 	long int	_n_cache;
-	NCR_Tree	*_cachet;
+	NCR_Bucket	*_buckets;
 	NCR_List	*_cachel;
 private:
 	DISALLOW_COPY_AND_ASSIGN(NameCache);
