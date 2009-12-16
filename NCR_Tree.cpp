@@ -52,7 +52,7 @@ int NCR_Tree::cmp(NCR *ncr)
 	if (!_rec->_name) {
 		return -1;
 	}
-	return _rec->_name->cmp(ncr->_name);
+	return _rec->_name->like(ncr->_name);
 }
 
 NCR_Tree* NCR_Tree::search_record_name(Buffer *name)
@@ -91,8 +91,8 @@ void NCR_Tree::dump()
 	if (_left) {
 		_left->dump();
 	}
-	if (_rec) {
-		dlog.it("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
+	if (_rec && RESCACHED_DEBUG) {
+		dlog.er("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
 	}
 	if (_right) {
 		_right->dump();
@@ -161,10 +161,10 @@ static NCR_Tree* tree_rotate_left(NCR_Tree *root, NCR_Tree *y)
 	if (y == root) {
 		root = x;
 	} else {
-		if (y->_top->_left == y)
-			y->_top->_left = x;
-		else
+		if (y->_top->_right == y)
 			y->_top->_right = x;
+		else
+			y->_top->_left = x;
 	}
 
 	y->_top = x;
@@ -182,21 +182,20 @@ NCR_Tree* NCR_Tree::REBUILD(NCR_Tree *root, NCR_Tree *node)
 	stat = node->_rec->_stat;
 	while (p->_top) {
 		top = p->_top;
-		if (stat > top->_rec->_stat) {
-			if (top->_left == p) {
-				root = tree_rotate_right(root, top);
-			} else {
-				root = tree_rotate_left(root, top);
-			}
-		} else {
+		if (stat <= top->_rec->_stat)
 			break;
+
+		if (top->_left == p) {
+			root = tree_rotate_right(root, top);
+		} else {
+			root = tree_rotate_left(root, top);
 		}
 	}
 
 	return root;
 }
 
-void NCR_Tree::INSERT(NCR_Tree **root, NCR_Tree *node)
+NCR_Tree* NCR_Tree::INSERT(NCR_Tree *root, NCR_Tree *node)
 {
 	int		s	= 0;
 	Buffer		*name	= NULL;
@@ -204,18 +203,17 @@ void NCR_Tree::INSERT(NCR_Tree **root, NCR_Tree *node)
 	NCR_Tree	*top	= NULL;
 
 	if (!node || (node && !node->_rec))
-		return;
+		return root;
 
-	if (!(*root)) {
-		(*root) = node;
-		return;
+	if (!root) {
+		return node;
 	}
 
 	name	= node->_rec->_name;
-	p	= (*root);
+	p	= root;
 	while (p) {
 		top	= p;
-		s	= name->cmp(p->_rec->_name);
+		s	= name->like(p->_rec->_name);
 		if (s < 0)
 			p = p->_left;
 		else
@@ -229,12 +227,14 @@ void NCR_Tree::INSERT(NCR_Tree **root, NCR_Tree *node)
 
 	node->_top = top;
 
-	(*root) = REBUILD((*root), node);
+	root = REBUILD(root, node);
+
+	return root;
 }
 
-NCR_Tree* NCR_Tree::REMOVE(NCR_Tree **root, NCR_Tree *node)
+NCR_Tree* NCR_Tree::REMOVE(NCR_Tree *root, NCR_Tree *node)
 {
-	if (node != (*root)) {
+	if (node != root) {
 		if (node->_top->_left == node)
 			node->_top->_left = NULL;
 		else
@@ -243,54 +243,24 @@ NCR_Tree* NCR_Tree::REMOVE(NCR_Tree **root, NCR_Tree *node)
 		node->_top = NULL;
 
 		if (node->_right) {
-			INSERT(root, node->_right);
+			root = INSERT(root, node->_right);
 		}
 		if (node->_left) {
-			INSERT(root, node->_left);
+			root = INSERT(root, node->_left);
 		}
 	} else {
 		if (node->_right) {
-			(*root) = node->_right;
-			INSERT(root, node->_left);
+			root = node->_right;
+			root = INSERT(root, node->_left);
 		} else {
-			(*root) = node->_left;
+			root = node->_left;
 		}
 	}
 	node->_right	= NULL;
 	node->_left	= NULL;
 	node->_top	= NULL;
 
-	return node;
-}
-
-/**
- * @return		:
- *	< NULL		: record not found.
- *	< NCRTree*	: success.
- */
-NCR_Tree* NCR_Tree::REMOVE_RECORD(NCR_Tree **root, NCR *record)
-{
-	int		s	= 0;
-	Buffer		*name	= NULL;
-	NCR_Tree	*p	= (*root);
-
-	if (!record)
-		return NULL;
-
-	name = record->_name;
-	while (p) {
-		s = name->like(p->_rec->_name);
-		if (s == 0)
-			break;
-		if (s < 0)
-			p = p->_left;
-		else
-			p = p->_right;
-	}
-	if (!p)
-		return NULL;
-
-	return REMOVE(root, p);
+	return root;
 }
 
 } /* namespace::rescached */

@@ -37,7 +37,7 @@ public:
 	int ncrecord_to_record(NCR *ncr, Record *row);
 	int save(const char *fdata, const char *fmetadata);
 
-	int get_answer_from_cache(NCR_Tree **root, NCR_Tree **node, Buffer *name);
+	int get_answer_from_cache(NCR_Tree **node, Buffer *name);
 
 	int insert(NCR *record);
 	int insert_raw(const int type, const Buffer *name,

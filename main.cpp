@@ -308,6 +308,7 @@ static int rescached_init_write_pid()
 static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 				Socket *srvr, fd_set *allfds)
 {
+	int		idx		= 0;
 	int		s		= 0;
 	int		len		= 0;
 	Buffer		*bfr_ans	= NULL;
@@ -315,7 +316,6 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 	DNSQuery	*dns_qst	= NULL;
 	DNSQuery	*dns_ans	= NULL;
 	NCR		*ncr_ans	= NULL;
-	NCR_Tree	*root		= NULL;
 	NCR_Tree	*node		= NULL;
 	Socket		*client		= NULL;
 	Socket		*p		= NULL;
@@ -345,8 +345,8 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 
 		dns_qst->extract(client, vos::BUFFER_IS_TCP);
 
-		s = nc->get_answer_from_cache(&root, &node, &dns_qst->_name);
-		if (s) {
+		idx = nc->get_answer_from_cache(&node, &dns_qst->_name);
+		if (idx < 0) {
 			s = DNSQuery::INIT(&dns_ans, NULL);
 			if (s != 0)
 				return s;
@@ -397,9 +397,14 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 			s = client->send(bfr_ans);
 
 			ncr_ans->_stat++;
-			root = NCR_Tree::REBUILD(root, node);
+			nc->_buckets[idx]._v = NCR_Tree::REBUILD(
+							nc->_buckets[idx]._v,
+								node);
+			if (RESCACHED_DEBUG && nc->_buckets[idx]._v) {
+				nc->_buckets[idx]._v->dump_tree(0);
+			}
 			NCR_List::REBUILD(&_nc._cachel,
-					(NCR_List *) node->_p_list);
+						(NCR_List *) node->_p_list);
 		}
 next:
 		client = client->_next;
@@ -411,12 +416,12 @@ err:
 
 static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 {
+	int		idx		= 0;
 	int		s		= 0;
 	struct sockaddr	addr;
 	DNSQuery	*dns_qst	= NULL;
 	DNSQuery	*dns_ans	= NULL;
 	NCR		*ncr_ans	= NULL;
-	NCR_Tree	*root		= NULL;
 	NCR_Tree	*node		= NULL;
 
 	s = DNSQuery::INIT(&dns_qst, NULL);
@@ -433,8 +438,8 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 		dlog.er(">> QUERY: %s\n", dns_qst->_name._v);
 	}
 
-	s = nc->get_answer_from_cache(&root, &node, &dns_qst->_name);
-	if (s) {
+	idx = nc->get_answer_from_cache(&node, &dns_qst->_name);
+	if (idx < 0) {
 		s = DNSQuery::INIT(&dns_ans, NULL);
 		if (s != 0)
 			goto out;
@@ -444,7 +449,7 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 			goto out;
 		}
 
-		if (dns_ans->_n_ans) {
+		if (dns_ans->_n_ans > 0) {
 			s = nc->insert_raw(vos::BUFFER_IS_UDP,
 						&dns_qst->_name, dns_qst->_bfr,
 						dns_ans->_bfr);
@@ -474,7 +479,11 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 
 		/* rebuild index */
 		ncr_ans->_stat++;
-		root = NCR_Tree::REBUILD(root, node);
+		nc->_buckets[idx]._v = NCR_Tree::REBUILD(nc->_buckets[idx]._v,
+								node);
+		if (RESCACHED_DEBUG && nc->_buckets[idx]._v) {
+			nc->_buckets[idx]._v->dump_tree(0);
+		}
 		NCR_List::REBUILD(&_nc._cachel, (NCR_List *) node->_p_list);
 	}
 out:
