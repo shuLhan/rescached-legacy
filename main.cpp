@@ -109,8 +109,8 @@ static int rescached_load_config(const char *fconf)
 		fconf = RESCACHED_CONF;
 	}
 
-	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] loading config    > %s\n", fconf);
+	if (DBG_LVL_IS_1) {
+		dlog.it("[RESCACHED] loading config    > %s\n", fconf);
 	}
 
 	cfg.load(fconf);
@@ -230,16 +230,16 @@ static int rescached_init(const char *fconf)
 	if (s != 0)
 		return s;
 
-	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] cache file        > %s\n", _file_data._v);
-		dlog.er("[RESCACHED] cache file backup > %s\n", _file_data_bak._v);
-		dlog.er("[RESCACHED] cache metadata    > %s\n", _file_md._v);
-		dlog.er("[RESCACHED] pid file          > %s\n", _file_pid._v);
-		dlog.er("[RESCACHED] log file          > %s\n", _file_log._v);
-		dlog.er("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
-		dlog.er("[RESCACHED] listening on      > %s\n", _srvr_listen._v);
-		dlog.er("[RESCACHED] cache maximum     > %ld\n", _cache_max);
-		dlog.er("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
+	if (DBG_LVL_IS_1) {
+		dlog.it("[RESCACHED] cache file        > %s\n", _file_data._v);
+		dlog.it("[RESCACHED] cache file backup > %s\n", _file_data_bak._v);
+		dlog.it("[RESCACHED] cache metadata    > %s\n", _file_md._v);
+		dlog.it("[RESCACHED] pid file          > %s\n", _file_pid._v);
+		dlog.it("[RESCACHED] log file          > %s\n", _file_log._v);
+		dlog.it("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
+		dlog.it("[RESCACHED] listening on      > %s\n", _srvr_listen._v);
+		dlog.it("[RESCACHED] cache maximum     > %ld\n", _cache_max);
+		dlog.it("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
 	}
 
 	_rslvr.init();
@@ -261,8 +261,8 @@ static int rescached_init(const char *fconf)
 	if (s != 0)
 		return s;
 
-	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] loading caches    >\n");
+	if (DBG_LVL_IS_1) {
+		dlog.it("[RESCACHED] loading caches    >\n");
 	}
 
 	/**
@@ -279,9 +279,10 @@ static int rescached_init(const char *fconf)
 		}
 	}
 
-	if (RESCACHED_DEBUG) {
-		dlog.er("%d record loaded\n", _nc._n_cache);
-		_nc.dump();
+	if (DBG_LVL_IS_1) {
+		dlog.it("%d record loaded\n", _nc._n_cache);
+		if (DBG_LVL_IS_2)
+			_nc.dump();
 	}
 
 	return 0;
@@ -371,8 +372,8 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 			ncr_ans = node->_rec;
 			ncr_ans->_answ->set_id(dns_qst->_id);
 
-			if (RESCACHED_DEBUG) {
-				dlog.er("[RESCACHED] got one on cache ...\n");
+			if (DBG_LVL_IS_1) {
+				dlog.it("[RESCACHED] got one on cache ...\n");
 			}
 
 			if (vos::BUFFER_IS_TCP == ncr_ans->_type) {
@@ -391,7 +392,7 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 				bfr->append(bfr_ans);
 				bfr_ans = bfr;
 			} else {
-				dlog.er("[RESCACHED] unknown buffer type!\n");
+				dlog.it("[RESCACHED] unknown buffer type!\n");
 				goto next;
 			}
 			s = client->send(bfr_ans);
@@ -400,11 +401,12 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 			nc->_buckets[idx]._v = NCR_Tree::REBUILD(
 							nc->_buckets[idx]._v,
 								node);
-			if (RESCACHED_DEBUG && nc->_buckets[idx]._v) {
-				nc->_buckets[idx]._v->dump_tree(0);
-			}
 			NCR_List::REBUILD(&_nc._cachel,
 						(NCR_List *) node->_p_list);
+
+			if (DBG_LVL_IS_2 && nc->_buckets[idx]._v) {
+				nc->_buckets[idx]._v->dump_tree(0);
+			}
 		}
 next:
 		client = client->_next;
@@ -434,8 +436,8 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 
 	dns_qst->extract(srvr, vos::BUFFER_IS_UDP);
 
-	if (RESCACHED_DEBUG) {
-		dlog.er(">> QUERY: %s\n", dns_qst->_name._v);
+	if (DBG_LVL_IS_1) {
+		dlog.it(">> QUERY: %s\n", dns_qst->_name._v);
 	}
 
 	idx = nc->get_answer_from_cache(&node, &dns_qst->_name);
@@ -462,8 +464,8 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 		ncr_ans = node->_rec;
 		ncr_ans->_answ->set_id(dns_qst->_id);
 
-		if (RESCACHED_DEBUG) {
-			dlog.er("[RESCACHED] got one on cache ...\n");
+		if (DBG_LVL_IS_1) {
+			dlog.it("[RESCACHED] got one on cache ...\n");
 		}
 
 		if (vos::BUFFER_IS_UDP == ncr_ans->_type) {
@@ -473,7 +475,7 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 						&ncr_ans->_answ->_bfr->_v[2],
 						ncr_ans->_answ->_bfr->_i - 2);
 		} else {
-			dlog.er("[RESCACHED] unknown buffer type!\n");
+			dlog.it("[RESCACHED] unknown buffer type!\n");
 			goto out;
 		}
 
@@ -481,10 +483,11 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 		ncr_ans->_stat++;
 		nc->_buckets[idx]._v = NCR_Tree::REBUILD(nc->_buckets[idx]._v,
 								node);
-		if (RESCACHED_DEBUG && nc->_buckets[idx]._v) {
+		NCR_List::REBUILD(&_nc._cachel, (NCR_List *) node->_p_list);
+
+		if (DBG_LVL_IS_2 && nc->_buckets[idx]._v) {
 			nc->_buckets[idx]._v->dump_tree(0);
 		}
-		NCR_List::REBUILD(&_nc._cachel, (NCR_List *) node->_p_list);
 	}
 out:
 	srvr->reset();
@@ -546,8 +549,8 @@ static int rescached_exit()
 {
 	int s = 0;
 
-	if (RESCACHED_DEBUG) {
-		dlog.er("\n[RESCACHED] saving caches ...\n");
+	if (DBG_LVL_IS_1) {
+		dlog.it("\n[RESCACHED] saving caches ...\n");
 	}
 
 	if (_file_pid._v) {
@@ -598,8 +601,8 @@ int main(int argc, char *argv[])
 	while (_running_) {
 		readfds = allfds;
 
-		if (RESCACHED_DEBUG) {
-			dlog.er("[RESCACHED] waiting for client...\n");
+		if (DBG_LVL_IS_1) {
+			dlog.it("[RESCACHED] waiting for client...\n");
 		}
 
 		s = select(maxfd, &readfds, NULL, NULL, NULL);

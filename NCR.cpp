@@ -32,14 +32,14 @@ NCR::~NCR()
 
 void NCR::dump()
 {
-	printf(" [NCR_Tree: %s]\n", _name ? _name->_v : "\0");
-	printf("\t n accessed : %d\n", _stat); 
+	dlog.it(" [NCR_Tree: %s]\n", _name ? _name->_v : "\0");
+	dlog.it("\t n accessed : %d\n", _stat); 
 	if (_qstn) {
-		printf("\t question   : \n");
+		dlog.it("\t question   : \n");
 		_qstn->dump(vos::DNSQ_DO_ALL);
 	}
 	if (_answ) {
-		printf("\t answer     :\n");
+		dlog.it("\t answer     :\n");
 		_answ->dump(vos::DNSQ_DO_ALL);
 	}
 }

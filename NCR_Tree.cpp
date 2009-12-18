@@ -91,8 +91,8 @@ void NCR_Tree::dump()
 	if (_left) {
 		_left->dump();
 	}
-	if (_rec && RESCACHED_DEBUG) {
-		dlog.er("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
+	if (_rec && DBG_LVL_IS_2) {
+		dlog.it("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
 	}
 	if (_right) {
 		_right->dump();
@@ -107,11 +107,11 @@ void NCR_Tree::dump_tree(const int t)
 
 	if (t) {
 		for (int i = 0; i < t - 1; ++i) {
-			putchar('\t');
+			dlog.it("\t");
 		}
-		printf("  |-----");
+		dlog.it("  |-----");
 	}
-	printf("(%3d)%s\n", _rec->_stat, _rec->_name->_v);
+	dlog.it("(%d)%s\n", _rec->_stat, _rec->_name->_v);
 
 	if (_left) {
 		_left->dump_tree(t + 1);

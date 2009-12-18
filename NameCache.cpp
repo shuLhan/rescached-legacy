@@ -232,8 +232,8 @@ void NameCache::clean_by_threshold(int thr)
 		if (p->_rec->_stat > thr)
 			break;
 
-		if (RESCACHED_DEBUG) {
-			dlog.er("[RESCACHED] removing '%s' - %d\n",
+		if (DBG_LVL_IS_1) {
+			dlog.it("[RESCACHED] removing '%s' - %d\n",
 				p->_rec->_name->_v, p->_rec->_stat);
 		}
 
@@ -327,8 +327,8 @@ int NameCache::insert(NCR *record)
 			break;
 
 		++thr;
-		if (RESCACHED_DEBUG) {
-			dlog.er("[RESCACHED] increasing threshold to %d\n",
+		if (DBG_LVL_IS_1) {
+			dlog.it("[RESCACHED] increasing threshold to %d\n",
 				thr);
 		}
 	}
@@ -361,8 +361,8 @@ int NameCache::insert(NCR *record)
 	_buckets[c]._v = NCR_Tree::INSERT(_buckets[c]._v, p_tree);
 	++_n_cache;
 
-	if (RESCACHED_DEBUG) {
-		dlog.er("[RESCACHED] inserting '%s' - %d (%ld)\n",
+	if (DBG_LVL_IS_1) {
+		dlog.it("[RESCACHED] inserting '%s' - %d (%ld)\n",
 			record->_name->_v, record->_stat, _n_cache);
 	}
 
@@ -432,10 +432,10 @@ void NameCache::dump()
 		_cachel->dump();
 	}
 
-	dlog.er("\n >> TREE\n");
+	dlog.it("\n >> TREE\n");
 	if (_buckets) {
 		for (i = 0; i < CACHET_IDX_SIZE; ++i) {
-			dlog.er(" [%c]\n", i + CACHET_IDX_FIRST);
+			dlog.it(" [%c]\n", i + CACHET_IDX_FIRST);
 			if (_buckets[i]._v)
 				_buckets[i]._v->dump_tree(0);
 		}

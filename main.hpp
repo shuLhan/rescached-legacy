@@ -31,4 +31,7 @@ extern long int	_cache_thr;
 extern int	RESCACHED_DEBUG;
 extern Dlogger	dlog;
 
+#define	DBG_LVL_IS_1	(RESCACHED_DEBUG >= 1)
+#define	DBG_LVL_IS_2	(RESCACHED_DEBUG >= 2)
+
 #endif

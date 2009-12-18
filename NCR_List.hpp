@@ -7,7 +7,6 @@
 #ifndef _RESCACHED_NCR_LIST_HPP
 #define	_RESCACHED_NCR_LIST_HPP	1
 
-#include "main.hpp"
 #include "NCR.hpp"
 
 namespace rescached {
