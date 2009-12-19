@@ -308,8 +308,11 @@ int NameCache::insert(NCR *record)
 		return 1;
 
 	/* remove authority and additional record */
-	if (!answer->_n_ans) {
-		answer->extract(NULL, answer->_bfr_type);
+	if (answer->_rr_ans_p == NULL) {
+		s = answer->extract();
+		if (s != 0) {
+			return s;
+		}
 	}
 	if (answer->_n_add) {
 		answer->remove_rr_add();

@@ -280,7 +280,7 @@ static int rescached_init(const char *fconf)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.it("%d record loaded\n", _nc._n_cache);
+		dlog.it("[RESCACHED] %d record loaded\n", _nc._n_cache);
 		if (DBG_LVL_IS_2)
 			_nc.dump();
 	}
@@ -344,7 +344,9 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 			continue;
 		}
 
-		dns_qst->extract(client, vos::BUFFER_IS_TCP);
+		dns_qst->set_buffer(client, vos::BUFFER_IS_TCP);
+		dns_qst->extract_header();
+		dns_qst->extract_question();
 
 		idx = nc->get_answer_from_cache(&node, &dns_qst->_name);
 		if (idx < 0) {
@@ -359,9 +361,12 @@ static int process_tcp_clients(Resolver *resolver, NameCache *nc,
 				goto next;
 			}
 
-			if (dns_ans->_n_ans) {
-				nc->insert_raw(vos::BUFFER_IS_TCP, &dns_qst->_name,
+			s = nc->insert_raw(vos::BUFFER_IS_TCP, &dns_qst->_name,
 						dns_qst->_bfr, dns_ans->_bfr);
+			if (s != 0) {
+				delete dns_ans;
+				dns_ans = NULL;
+				goto next;
 			}
 
 			client->send(dns_ans->_bfr);
@@ -434,7 +439,9 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 	if (s <= 0)
 		return s;
 
-	dns_qst->extract(srvr, vos::BUFFER_IS_UDP);
+	dns_qst->set_buffer(srvr, vos::BUFFER_IS_UDP);
+	dns_qst->extract_header();
+	dns_qst->extract_question();
 
 	if (DBG_LVL_IS_1) {
 		dlog.it(">> QUERY: %s\n", dns_qst->_name._v);
@@ -451,12 +458,11 @@ static int process_udp_clients(Resolver *resolver, NameCache *nc, Socket *srvr)
 			goto out;
 		}
 
-		if (dns_ans->_n_ans > 0) {
-			s = nc->insert_raw(vos::BUFFER_IS_UDP,
-						&dns_qst->_name, dns_qst->_bfr,
-						dns_ans->_bfr);
-			if (s != 0)
-				goto out;
+		s = nc->insert_raw(vos::BUFFER_IS_UDP,
+					&dns_qst->_name, dns_qst->_bfr,
+					dns_ans->_bfr);
+		if (s != 0) {
+			goto out;
 		}
 
 		srvr->send_udp(&addr, dns_ans->_bfr);
