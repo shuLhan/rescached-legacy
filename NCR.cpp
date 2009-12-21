@@ -32,14 +32,15 @@ NCR::~NCR()
 
 void NCR::dump()
 {
-	dlog.it(" [NCR_Tree: %s]\n", _name ? _name->_v : "\0");
-	dlog.it("\t n accessed : %d\n", _stat); 
+	dlog.er(" [NCR_Tree: %s]\n", _name ? _name->_v : "\0");
+	dlog.er("\t n accessed	: %d\n", _stat); 
+	dlog.er("\t type	: %d\n", _type);
 	if (_qstn) {
-		dlog.it("\t question   : \n");
+		dlog.er("\t question   : \n");
 		_qstn->dump(vos::DNSQ_DO_ALL);
 	}
 	if (_answ) {
-		dlog.it("\t answer     :\n");
+		dlog.er("\t answer     :\n");
 		_answ->dump(vos::DNSQ_DO_ALL);
 	}
 }
@@ -62,11 +63,11 @@ int NCR::INIT(NCR **o, const int type, const Buffer *name,
 	if (s != 0)
 		goto err;
 
-	s = DNSQuery::INIT(&(*o)->_qstn, question);
+	s = DNSQuery::INIT(&(*o)->_qstn, question, type);
 	if (s != 0)
 		goto err;
 
-	s = DNSQuery::INIT(&(*o)->_answ, answer);
+	s = DNSQuery::INIT(&(*o)->_answ, answer, type);
 	if (s != 0)
 		goto err;
 

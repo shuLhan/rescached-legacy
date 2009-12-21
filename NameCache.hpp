@@ -34,7 +34,7 @@ public:
 	int raw_to_ncrecord(Record *raw, NCR **ncr);
 	int load(const char *fdata, const char *fmetadata, const long int max);
 
-	int ncrecord_to_record(NCR *ncr, Record *row);
+	int ncrecord_to_record(const NCR *ncr, Record *row);
 	int save(const char *fdata, const char *fmetadata);
 
 	int get_answer_from_cache(NCR_Tree **node, Buffer *name);
@@ -43,7 +43,7 @@ public:
 	int insert_raw(const int type, const Buffer *name,
 			const Buffer *address, const Buffer *answer);
 
-	void clean_by_threshold(int thr);
+	void clean_by_threshold(const int thr);
 
 	void prune();
 	void dump();

@@ -33,11 +33,11 @@ int NameCache::raw_to_ncrecord(Record *raw, NCR **ncr)
 	type		= raw->get_column(2);
 	question	= raw->get_column(3);
 	answer		= raw->get_column(4);
+	s		= strtol(type->_v, 0, 10);
 
-	s = NCR::INIT(ncr, vos::BUFFER_IS_UDP, name, question, answer);
+	s = NCR::INIT(ncr, s, name, question, answer);
 	if (0 == s) {
-		(*ncr)->_stat	= strtol(stat->_v, 0, 10);
-		(*ncr)->_type	= strtol(type->_v, 0, 10);
+		(*ncr)->_stat = strtol(stat->_v, 0, 10);
 	}
 	raw->columns_reset();
 
@@ -102,7 +102,7 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 	return 0;
 }
 
-int NameCache::ncrecord_to_record(NCR *ncr, Record *row)
+int NameCache::ncrecord_to_record(const NCR *ncr, Record *row)
 {
 	if (! ncr)
 		return 0;
@@ -220,7 +220,7 @@ int NameCache::get_answer_from_cache(NCR_Tree **node, Buffer *name)
  *	< 0	: success.
  *	< <0	: fail.
  */
-void NameCache::clean_by_threshold(int thr)
+void NameCache::clean_by_threshold(const int thr)
 {
 	int		c	= 0;
 	NCR_List	*p	= NULL;
@@ -233,7 +233,7 @@ void NameCache::clean_by_threshold(int thr)
 			break;
 
 		if (DBG_LVL_IS_1) {
-			dlog.it("[RESCACHED] removing '%s' - %d\n",
+			dlog.er("[RESCACHED] removing '%s' - %d\n",
 				p->_rec->_name->_v, p->_rec->_stat);
 		}
 
@@ -320,8 +320,12 @@ int NameCache::insert(NCR *record)
 	if (answer->_n_aut) {
 		answer->remove_rr_aut();
 	}
-	if (answer->_id)
+	if (answer->_id) {
 		answer->set_id(0);
+	}
+	if (answer->_type == vos::BUFFER_IS_TCP) {
+		answer->set_tcp_size(answer->_bfr->_i);
+	}
 
 	while (_cachel && _n_cache >= _cache_max) {
 		clean_by_threshold(thr);
@@ -364,11 +368,6 @@ int NameCache::insert(NCR *record)
 	_buckets[c]._v = NCR_Tree::INSERT(_buckets[c]._v, p_tree);
 	++_n_cache;
 
-	if (DBG_LVL_IS_1) {
-		dlog.it("[RESCACHED] inserting '%s' - %d (%ld)\n",
-			record->_name->_v, record->_stat, _n_cache);
-	}
-
 	return s;
 }
 
@@ -393,7 +392,6 @@ int NameCache::insert_raw(const int type, const Buffer *name,
 	s = insert(ncr);
 	if (s != 0) {
 		delete ncr;
-		s = 0;
 	}
 
 	return s;
