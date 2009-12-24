@@ -25,6 +25,7 @@ using vos::Dlogger;
 #define	RESCACHED_DEF_LISTEN	"0.0.0.0"
 #define	RESCACHED_DEF_PORT	53
 #define	RESCACHED_DEF_THRESHOLD	1
+#define	RESCACHED_DEF_N_THREAD	2
 
 extern long int	_cache_max;
 extern long int	_cache_thr;

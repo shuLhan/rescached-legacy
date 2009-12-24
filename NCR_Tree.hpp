@@ -26,8 +26,8 @@ public:
 	void dump_tree(const int t);
 
 	static NCR_Tree* REBUILD(NCR_Tree *root, NCR_Tree *node);
-	static NCR_Tree* INSERT(NCR_Tree *root, NCR_Tree *node);
-	static NCR_Tree* REMOVE(NCR_Tree *root, NCR_Tree *node);
+	static int INSERT(NCR_Tree **root, NCR_Tree *node);
+	static void REMOVE(NCR_Tree **root, NCR_Tree *node);
 
 	int		_color;
 	NCR		*_rec;

@@ -10,13 +10,29 @@ namespace rescached {
 
 NameCache::NameCache() :
 	_n_cache(0),
+	_lock(),
 	_buckets(NULL),
 	_cachel(NULL)
-{}
+{
+	pthread_mutex_init(&_lock, NULL);
+}
 
 NameCache::~NameCache()
 {
 	prune();
+	pthread_mutex_destroy(&_lock);
+}
+
+inline void NameCache::lock()
+{
+	while (pthread_mutex_trylock(&_lock) != 0)
+		;
+}
+
+void NameCache::unlock()
+{
+	while (pthread_mutex_unlock(&_lock) != 0)
+		;
 }
 
 int NameCache::raw_to_ncrecord(Record *raw, NCR **ncr)
@@ -211,6 +227,22 @@ int NameCache::get_answer_from_cache(NCR_Tree **node, Buffer *name)
 }
 
 /**
+ * @return	:
+ *	< >=0	: success, return index of buckets tree.
+ *	< -1	: fail, name not found.
+ */
+int NameCache::get_answer_from_cache_r(NCR_Tree **node, Buffer *name)
+{
+	int s;
+
+	lock();
+	s = get_answer_from_cache(node, name);
+	unlock();
+
+	return s;
+}
+
+/**
  * @desc	: remove cache object where status <= threshold.
  *
  * @param	:
@@ -246,7 +278,7 @@ void NameCache::clean_by_threshold(const int thr)
 
 		if (_buckets[c]._v) {
 			node = (NCR_Tree *) p->_p_tree;
-			_buckets[c]._v = NCR_Tree::REMOVE(_buckets[c]._v, node);
+			NCR_Tree::REMOVE(&_buckets[c]._v, node);
 			if (node) {
 				node->_rec = NULL;
 				delete node;
@@ -282,6 +314,7 @@ void NameCache::clean_by_threshold(const int thr)
  *	> record : Name Cache Record object.
  *
  * @return:
+ *	< >0	: fail, record already exist.
  *	< 0	: success.
  *	< <0	: fail.
  */
@@ -340,23 +373,12 @@ int NameCache::insert(NCR *record)
 		}
 	}
 
-	/* add to list */
-	p_list = new NCR_List();
-	if (!p_list)
-		return -vos::E_MEM;
-
-	p_list->_rec = record;
-
-	NCR_List::ADD(&_cachel, p_list);
-
 	/* add to tree */
 	p_tree = new NCR_Tree();
 	if (!p_tree)
 		return -vos::E_MEM;
 
-	p_tree->_rec	= record;
-	p_tree->_p_list	= p_list;
-	p_list->_p_tree	= p_tree;
+	p_tree->_rec = record;
 
 	c = toupper(record->_name->_v[0]);
 	if (isalnum(c)) {
@@ -365,7 +387,24 @@ int NameCache::insert(NCR *record)
 		c = CACHET_IDX_SIZE;
 	}
 
-	_buckets[c]._v = NCR_Tree::INSERT(_buckets[c]._v, p_tree);
+	s = NCR_Tree::INSERT(&_buckets[c]._v, p_tree);
+	if (s != 0) {
+		p_tree->_rec = NULL;
+		delete p_tree;
+		return s;
+	}
+
+	/* add to list */
+	p_list = new NCR_List();
+	if (!p_list)
+		return -vos::E_MEM;
+
+	p_list->_rec	= record;
+	p_list->_p_tree	= p_tree;
+	p_tree->_p_list	= p_list;
+
+	NCR_List::ADD(&_cachel, p_list);
+
 	++_n_cache;
 
 	return s;
@@ -373,6 +412,7 @@ int NameCache::insert(NCR *record)
 
 /**
  * @return	:
+ (	< >0	: fail, record with the same name already exist.
  *	< 0	: success.
  *	< <0	: fail.
  */
@@ -396,6 +436,39 @@ int NameCache::insert_raw(const int type, const Buffer *name,
 
 	return s;
 }
+
+int NameCache::insert_raw_r(const int type, const Buffer *name,
+				const Buffer *question, const Buffer *answer)
+{
+	int s;
+
+	lock();
+	s = insert_raw(type, name, question, answer);
+	unlock();
+
+	return s;
+}
+
+void NameCache::rebuild(const int idx, NCR_Tree *node, NCR_List *list)
+{
+	_buckets[idx]._v = NCR_Tree::REBUILD(_buckets[idx]._v, node);
+
+	NCR_List::REBUILD(&_cachel, list);
+
+	if (DBG_LVL_IS_2 && _buckets[idx]._v) {
+		_buckets[idx]._v->dump_tree(0);
+	}
+}
+
+void NameCache::increase_stat_and_rebuild_r(const int idx, NCR_Tree *node,
+						NCR_List *list)
+{
+	lock();
+	node->_rec->_stat++;
+	rebuild(idx, node, list);
+	unlock();
+}
+
 
 void NameCache::prune()
 {

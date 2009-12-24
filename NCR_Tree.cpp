@@ -195,7 +195,12 @@ NCR_Tree* NCR_Tree::REBUILD(NCR_Tree *root, NCR_Tree *node)
 	return root;
 }
 
-NCR_Tree* NCR_Tree::INSERT(NCR_Tree *root, NCR_Tree *node)
+/**
+ * @return	:
+ *	< 0	: success.
+ *	< 1	: node already exist.
+ */
+int NCR_Tree::INSERT(NCR_Tree **root, NCR_Tree *node)
 {
 	int		s	= 0;
 	Buffer		*name	= NULL;
@@ -203,17 +208,20 @@ NCR_Tree* NCR_Tree::INSERT(NCR_Tree *root, NCR_Tree *node)
 	NCR_Tree	*top	= NULL;
 
 	if (!node || (node && !node->_rec))
-		return root;
+		return 0;
 
-	if (!root) {
-		return node;
+	if (!(*root)) {
+		(*root) = node;
+		return 0;
 	}
 
 	name	= node->_rec->_name;
-	p	= root;
+	p	= (*root);
 	while (p) {
 		top	= p;
 		s	= name->like(p->_rec->_name);
+		if (s == 0)
+			return 1;
 		if (s < 0)
 			p = p->_left;
 		else
@@ -227,14 +235,19 @@ NCR_Tree* NCR_Tree::INSERT(NCR_Tree *root, NCR_Tree *node)
 
 	node->_top = top;
 
-	root = REBUILD(root, node);
+	(*root) = REBUILD((*root), node);
 
-	return root;
+	return 0;
 }
 
-NCR_Tree* NCR_Tree::REMOVE(NCR_Tree *root, NCR_Tree *node)
+/**
+ * @return	:
+ *	< 0	: success.
+ *	< >0	: fail, record not exist.
+ */
+void NCR_Tree::REMOVE(NCR_Tree **root, NCR_Tree *node)
 {
-	if (node != root) {
+	if (node != (*root)) {
 		if (node->_top->_left == node)
 			node->_top->_left = NULL;
 		else
@@ -243,24 +256,22 @@ NCR_Tree* NCR_Tree::REMOVE(NCR_Tree *root, NCR_Tree *node)
 		node->_top = NULL;
 
 		if (node->_right) {
-			root = INSERT(root, node->_right);
+			INSERT(root, node->_right);
 		}
 		if (node->_left) {
-			root = INSERT(root, node->_left);
+			INSERT(root, node->_left);
 		}
 	} else {
 		if (node->_right) {
-			root = node->_right;
-			root = INSERT(root, node->_left);
+			(*root) = node->_right;
+			INSERT(root, node->_left);
 		} else {
-			root = node->_left;
+			(*root) = node->_left;
 		}
 	}
 	node->_right	= NULL;
 	node->_left	= NULL;
 	node->_top	= NULL;
-
-	return root;
 }
 
 } /* namespace::rescached */

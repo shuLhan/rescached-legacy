@@ -31,6 +31,9 @@ public:
 	NameCache();
 	~NameCache();
 
+	void lock();
+	void unlock();
+
 	int raw_to_ncrecord(Record *raw, NCR **ncr);
 	int load(const char *fdata, const char *fmetadata, const long int max);
 
@@ -38,17 +41,25 @@ public:
 	int save(const char *fdata, const char *fmetadata);
 
 	int get_answer_from_cache(NCR_Tree **node, Buffer *name);
+	int get_answer_from_cache_r(NCR_Tree **node, Buffer *name);
+
+	void clean_by_threshold(const int thr);
 
 	int insert(NCR *record);
 	int insert_raw(const int type, const Buffer *name,
 			const Buffer *address, const Buffer *answer);
+	int insert_raw_r(const int type, const Buffer *name,
+			const Buffer *address, const Buffer *answer);
 
-	void clean_by_threshold(const int thr);
+	void rebuild(const int idx, NCR_Tree *node, NCR_List *list);
+	void increase_stat_and_rebuild_r(const int idx, NCR_Tree *node,
+						NCR_List *list);
 
 	void prune();
 	void dump();
 
 	long int	_n_cache;
+	pthread_mutex_t	_lock;
 	NCR_Bucket	*_buckets;
 	NCR_List	*_cachel;
 private:

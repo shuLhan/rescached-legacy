@@ -34,6 +34,8 @@ RESCACHED_SVC	=${INSTALL_SVC_D}/rescached
 
 RESCACHED_OBJS	=					\
 			${BLD_D}/main.oo		\
+			${BLD_D}/ResThread.oo		\
+			${BLD_D}/ResQueue.oo		\
 			${BLD_D}/NameCache.oo		\
 			${BLD_D}/NCR.oo			\
 			${BLD_D}/NCR_Tree.oo		\
