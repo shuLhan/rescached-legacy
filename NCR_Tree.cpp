@@ -9,7 +9,7 @@
 namespace rescached {
 
 NCR_Tree::NCR_Tree() :
-	_color(0),
+	_color(RBT_IS_BLACK),
 	_rec(NULL),
 	_left(NULL),
 	_right(NULL),
@@ -92,7 +92,7 @@ void NCR_Tree::dump()
 		_left->dump();
 	}
 	if (_rec && DBG_LVL_IS_2) {
-		dlog.it("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
+		dlog.er("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
 	}
 	if (_right) {
 		_right->dump();
@@ -107,100 +107,127 @@ void NCR_Tree::dump_tree(const int t)
 
 	if (t) {
 		for (int i = 0; i < t - 1; ++i) {
-			dlog.it("\t");
+			dlog.er("\t");
 		}
-		dlog.it("  |-----");
+		dlog.er("  |-----");
 	}
-	dlog.it("(%d)%s\n", _rec->_stat, _rec->_name->_v);
+	dlog.er("(%d)%s\n", _color, _rec->_name->_v);
 
 	if (_left) {
 		_left->dump_tree(t + 1);
 	}
 }
 
-static NCR_Tree* tree_rotate_right(NCR_Tree *root, NCR_Tree *y)
+static NCR_Tree* tree_rotate_right(NCR_Tree *root, NCR_Tree *x)
 {
-	NCR_Tree *x = NULL;
+	NCR_Tree *y = NULL;
 
-	x		= y->_left;
-	y->_left	= x->_right;
+	y		= x->_left;
+	x->_left	= y->_right;
 
-	if (x->_right)
-		x->_right->_top = y;
+	if (y->_right)
+		y->_right->_top = x;
 
-	x->_right	= y;
-	x->_top		= y->_top;
+	y->_top = x->_top;
 
-	if (y == root) {
-		root = x;
+	if (x->_top == NULL) {
+		root = y;
 	} else {
-		if (y->_top->_left == y)
-			y->_top->_left = x;
+		if (x->_top->_right == x)
+			x->_top->_right = y;
 		else
-			y->_top->_right = x;
+			x->_top->_left = y;
 	}
 
-	y->_top = x;
+	y->_right	= x;
+	x->_top		= y;
 
 	return root;
 }
 
-static NCR_Tree* tree_rotate_left(NCR_Tree *root, NCR_Tree *y)
+static NCR_Tree* tree_rotate_left(NCR_Tree *root, NCR_Tree *x)
 {
-	NCR_Tree *x = NULL;
+	NCR_Tree *y = NULL;
 
-	x		= y->_right;
-	y->_right	= x->_left;
+	y		= x->_right;
+	x->_right	= y->_left;
 
-	if (x->_left)
-		x->_left->_top = y;
+	if (y->_left)
+		y->_left->_top = x;
 
-	x->_left	= y;
-	x->_top		= y->_top;
+	y->_top = x->_top;
 
-	if (y == root) {
-		root = x;
+	if (x->_top == NULL) {
+		root = y;
 	} else {
-		if (y->_top->_right == y)
-			y->_top->_right = x;
+		if (x->_top->_left == x)
+			x->_top->_left = y;
 		else
-			y->_top->_left = x;
+			x->_top->_right = y;
 	}
 
-	y->_top = x;
+	y->_left	= x;
+	x->_top		= y;
 
 	return root;
 
 }
 
-NCR_Tree* NCR_Tree::REBUILD(NCR_Tree *root, NCR_Tree *node)
+static NCR_Tree * RBT_INSERT_FIXUP(NCR_Tree *root, NCR_Tree *node)
 {
-	int		stat	= 0;
-	NCR_Tree	*p	= node;
-	NCR_Tree	*top	= NULL;
+	NCR_Tree *gp = NULL;
+	NCR_Tree *y = NULL;
 
-	stat = node->_rec->_stat;
-	while (p->_top) {
-		top = p->_top;
-		if (stat <= top->_rec->_stat)
+	while (node->_top && node->_top->_color == RBT_IS_RED) {
+		gp = node->_top->_top;
+		if (!gp)
 			break;
 
-		if (top->_left == p) {
-			root = tree_rotate_right(root, top);
+		if (node->_top == gp->_left) {
+			y = gp->_right;
+			if (y && y->_color == RBT_IS_RED) {
+				node->_top->_color	= RBT_IS_BLACK;
+				y->_color		= RBT_IS_BLACK;
+				gp->_color		= RBT_IS_RED;
+				node			= gp;
+			} else {
+				if (node == node->_top->_right) {
+					node = node->_top;
+					root = tree_rotate_left(root, node);
+				}
+				node->_top->_color = RBT_IS_BLACK;
+				node->_top->_top->_color = RBT_IS_RED;
+				root = tree_rotate_right(root, node->_top->_top);
+			}
 		} else {
-			root = tree_rotate_left(root, top);
+			y = gp->_left;
+			if (y && y->_color == RBT_IS_RED) {
+				node->_top->_color	= RBT_IS_BLACK;
+				y->_color		= RBT_IS_BLACK;
+				gp->_color		= RBT_IS_RED;
+				node			= gp;
+			} else {
+				if (node == node->_top->_left) {
+					node = node->_top;
+					root = tree_rotate_right(root, node);
+				}
+				node->_top->_color = RBT_IS_BLACK;
+				node->_top->_top->_color = RBT_IS_RED;
+				root = tree_rotate_left(root, node->_top->_top);
+			}
 		}
 	}
 
+	root->_color = RBT_IS_BLACK;
 	return root;
 }
 
 /**
  * @return	:
- *	< 0	: success.
+ *	< 0	: success, or node is nil.
  *	< 1	: node already exist.
  */
-int NCR_Tree::INSERT(NCR_Tree **root, NCR_Tree *node)
+int NCR_Tree::RBT_INSERT(NCR_Tree **root, NCR_Tree *node)
 {
 	int		s	= 0;
 	Buffer		*name	= NULL;
@@ -233,45 +260,154 @@ int NCR_Tree::INSERT(NCR_Tree **root, NCR_Tree *node)
 	else
 		top->_right = node;
 
-	node->_top = top;
+	node->_top	= top;
+	node->_color	= RBT_IS_RED;
 
-	(*root) = REBUILD((*root), node);
+	(*root) = RBT_INSERT_FIXUP((*root), node);
 
 	return 0;
 }
 
-/**
- * @return	:
- *	< 0	: success.
- *	< >0	: fail, record not exist.
- */
-void NCR_Tree::REMOVE(NCR_Tree **root, NCR_Tree *node)
+static NCR_Tree * tree_minimum(NCR_Tree *x)
 {
-	if (node != (*root)) {
-		if (node->_top->_left == node)
-			node->_top->_left = NULL;
-		else
-			node->_top->_right = NULL;
+	while (x->_left != NULL)
+		x = x->_left;
 
-		node->_top = NULL;
+	return x;
+}
 
-		if (node->_right) {
-			INSERT(root, node->_right);
-		}
-		if (node->_left) {
-			INSERT(root, node->_left);
-		}
-	} else {
-		if (node->_right) {
-			(*root) = node->_right;
-			INSERT(root, node->_left);
+static NCR_Tree * tree_successor(NCR_Tree *x)
+{
+	NCR_Tree *y = NULL;
+
+	if (x->_right != NULL) {
+		return tree_minimum(x->_right);
+	}
+	y = x->_top;
+	while (y != NULL && x == y->_right) {
+		x = y;
+		y = y->_top;
+	}
+
+	return y;
+}
+
+NCR_Tree * RBT_REMOVE_FIXUP(NCR_Tree *root, NCR_Tree *x)
+{
+	NCR_Tree *w = NULL;
+
+	while (x != root && x->_color == RBT_IS_BLACK) {
+		if (x == x->_top->_left) {
+			w = x->_top->_right;
+
+			if (w->_color == RBT_IS_RED) {
+				w->_color	= RBT_IS_BLACK;
+				x->_top->_color	= RBT_IS_RED;
+				root	= tree_rotate_left(root, x->_top);
+				w	= x->_top->_right;
+			}
+
+			if (w && w->_left->_color == RBT_IS_BLACK
+			&&  w->_right->_color == RBT_IS_BLACK) {
+				w->_color	= RBT_IS_RED;
+				x		= x->_top;
+			} else {
+				if (w->_right->_color == RBT_IS_BLACK) {
+					w->_left->_color	= RBT_IS_BLACK;
+					w->_color		= RBT_IS_RED;
+					root	= tree_rotate_right(root, w);
+					w	= x->_top->_right;
+				}
+
+				w->_color		= x->_top->_color;
+				x->_top->_color		= RBT_IS_BLACK;
+				w->_right->_color	= RBT_IS_BLACK;
+				root	= tree_rotate_left(root, x->_top);
+				x	= root;
+			}
 		} else {
-			(*root) = node->_left;
+			w = x->_top->_left;
+
+			if (w->_color == RBT_IS_RED) {
+				w->_color	= RBT_IS_BLACK;
+				x->_top->_color	= RBT_IS_RED;
+				root	= tree_rotate_right(root, x->_top);
+				w	= x->_top->_left;
+			}
+
+			if (w && w->_right->_color == RBT_IS_BLACK
+			&&  w->_left->_color == RBT_IS_BLACK) {
+				w->_color	= RBT_IS_RED;
+				x		= x->_top;
+			} else {
+				if (w->_left->_color == RBT_IS_BLACK) {
+					w->_right->_color	= RBT_IS_BLACK;
+					w->_color		= RBT_IS_RED;
+					root	= tree_rotate_left(root, w);
+					w	= x->_top->_left;
+				}
+
+				w->_color		= x->_top->_color;
+				x->_top->_color		= RBT_IS_BLACK;
+				w->_left->_color	= RBT_IS_BLACK;
+				root	= tree_rotate_right(root, x->_top);
+				x	= root;
+			}
 		}
 	}
-	node->_right	= NULL;
-	node->_left	= NULL;
-	node->_top	= NULL;
+
+	x->_color = RBT_IS_BLACK;
+
+	return root;
+}
+
+/**
+ * @return	:
+ *	< root	: pointer to a new root.
+ */
+NCR_Tree * NCR_Tree::RBT_REMOVE(NCR_Tree **root, NCR_Tree *node)
+{
+	NCR_Tree *x = NULL;
+	NCR_Tree *y = NULL;
+
+	if (!node)
+		return NULL;
+
+	if (node->_left == NULL || node->_right == NULL)
+		y = node;
+	else
+		y = tree_successor(node);
+
+	if (y->_left != NULL)
+		x = y->_left;
+	else
+		x = y->_right;
+	
+	if (x != NULL)
+		x->_top = y->_top;
+
+	if (y->_top == NULL) {
+		(*root) = x;
+	} else {
+		if (y == y->_top->_left)
+			y->_top->_left = x;
+		else
+			y->_top->_right = x;
+	}
+
+	if (y != node) {
+		node->_rec	= y->_rec;
+		node->_p_list	= y->_p_list;
+	}
+	if (x && y->_color == RBT_IS_BLACK) {
+		(*root) = RBT_REMOVE_FIXUP((*root), x);
+	}
+
+	y->_left	= NULL;
+	y->_right	= NULL;
+	y->_top		= NULL;
+
+	return y;
 }
 
 } /* namespace::rescached */

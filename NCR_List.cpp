@@ -34,7 +34,7 @@ void NCR_List::dump()
 
 	while (p) {
 		if (p->_rec) {
-			dlog.it("[%d] %d|%s\n", i++, p->_rec->_stat,
+			dlog.er("[%d] %d|%s\n", i++, p->_rec->_stat,
 					p->_rec->_name->_v);
 		}
 		p = p->_down;

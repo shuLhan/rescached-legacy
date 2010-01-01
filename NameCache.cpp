@@ -278,11 +278,11 @@ void NameCache::clean_by_threshold(const int thr)
 
 		if (_buckets[c]._v) {
 			node = (NCR_Tree *) p->_p_tree;
-			NCR_Tree::REMOVE(&_buckets[c]._v, node);
+			node = NCR_Tree::RBT_REMOVE(&_buckets[c]._v, node);
 			if (node) {
-				node->_rec = NULL;
+				node->_rec	= NULL;
+				node->_p_list	= NULL;
 				delete node;
-				p->_p_tree = NULL;
 			}
 		}
 
@@ -368,7 +368,7 @@ int NameCache::insert(NCR *record)
 
 		++thr;
 		if (DBG_LVL_IS_1) {
-			dlog.it("[RESCACHED] increasing threshold to %d\n",
+			dlog.er("[RESCACHED] increasing threshold to %d\n",
 				thr);
 		}
 	}
@@ -387,7 +387,7 @@ int NameCache::insert(NCR *record)
 		c = CACHET_IDX_SIZE;
 	}
 
-	s = NCR_Tree::INSERT(&_buckets[c]._v, p_tree);
+	s = NCR_Tree::RBT_INSERT(&_buckets[c]._v, p_tree);
 	if (s != 0) {
 		p_tree->_rec = NULL;
 		delete p_tree;
@@ -449,26 +449,13 @@ int NameCache::insert_raw_r(const int type, const Buffer *name,
 	return s;
 }
 
-void NameCache::rebuild(const int idx, NCR_Tree *node, NCR_List *list)
-{
-	_buckets[idx]._v = NCR_Tree::REBUILD(_buckets[idx]._v, node);
-
-	NCR_List::REBUILD(&_cachel, list);
-
-	if (DBG_LVL_IS_2 && _buckets[idx]._v) {
-		_buckets[idx]._v->dump_tree(0);
-	}
-}
-
-void NameCache::increase_stat_and_rebuild_r(const int idx, NCR_Tree *node,
-						NCR_List *list)
+void NameCache::increase_stat_and_rebuild_r(NCR_List *list)
 {
 	lock();
-	node->_rec->_stat++;
-	rebuild(idx, node, list);
+	list->_rec->_stat++;
+	NCR_List::REBUILD(&_cachel, list);
 	unlock();
 }
-
 
 void NameCache::prune()
 {
@@ -501,19 +488,27 @@ void NameCache::dump()
 {
 	int i;
 
-	dlog.it("\n >> LIST\n");
+	dlog.er("\n >> LIST\n");
 	if (_cachel) {
 		_cachel->dump();
 	}
 
-	dlog.it("\n >> TREE\n");
+	dlog.er("\n >> TREE\n");
 	if (_buckets) {
 		for (i = 0; i < CACHET_IDX_SIZE; ++i) {
-			dlog.it(" [%c]\n", i + CACHET_IDX_FIRST);
-			if (_buckets[i]._v)
+			if (_buckets[i]._v) {
+				dlog.er(" [%c]\n", i + CACHET_IDX_FIRST);
 				_buckets[i]._v->dump_tree(0);
+			}
 		}
 	}
+}
+
+void NameCache::dump_r()
+{
+	lock();
+	dump();
+	unlock();
 }
 
 } /* namespace::rescached */

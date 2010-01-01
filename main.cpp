@@ -117,7 +117,7 @@ static int rescached_load_config(const char *fconf)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[RESCACHED] loading config    > %s\n", fconf);
+		dlog.it("[RESCACHED] loading config    > %s\n", fconf);
 	}
 
 	cfg.load(fconf);
@@ -626,20 +626,19 @@ static void process_queue(ResQueue *queue, Socket *udp_server,
 
 		s = _nc.insert_raw_r(question->_bfr_type, &question->_name,
 					question->_bfr, answer->_bfr);
-		if (s != 0) {
-			return;
-		}
 
-		if (DBG_LVL_IS_1) {
+		if (s == 0 && DBG_LVL_IS_1) {
 			dlog.er("[RESCACHED] inserting '%s' (%ld)\n",
 				question->_name._v, _nc._n_cache);
 		}
 
+		/* keep send the answer even if error at inserting answer to
+		 * cache */
 		if (answer->_bfr_type == vos::BUFFER_IS_TCP) {
 			tcp_client->reset();
 			tcp_client->send(answer->_bfr);
 		} else {
-			s = udp_server->send_udp(udp_client, answer->_bfr);
+			udp_server->send_udp(udp_client, answer->_bfr);
 		}
 	} else {
 		p_answer = node->_rec->_answ;
@@ -656,9 +655,9 @@ static void process_queue(ResQueue *queue, Socket *udp_server,
 				return;
 
 			if (p_answer->_bfr_type == vos::BUFFER_IS_UDP) {
-				s = udp_server->send_udp(udp_client, bfr_answer);
+				udp_server->send_udp(udp_client, bfr_answer);
 			} else {
-				s = udp_server->send_udp_raw(udp_client,
+				udp_server->send_udp_raw(udp_client,
 							&bfr_answer->_v[2],
 							bfr_answer->_i - 2);
 			}
@@ -691,8 +690,10 @@ static void process_queue(ResQueue *queue, Socket *udp_server,
 			return;
 		}
 
-		/* rebuild cache */
-		_nc.increase_stat_and_rebuild_r(idx, node, (NCR_List *) node->_p_list);
+		_nc.increase_stat_and_rebuild_r((NCR_List *) node->_p_list);
+	}
+	if (DBG_LVL_IS_2) {
+		_nc.dump_r();
 	}
 }
 

@@ -51,12 +51,11 @@ public:
 	int insert_raw_r(const int type, const Buffer *name,
 			const Buffer *address, const Buffer *answer);
 
-	void rebuild(const int idx, NCR_Tree *node, NCR_List *list);
-	void increase_stat_and_rebuild_r(const int idx, NCR_Tree *node,
-						NCR_List *list);
+	void increase_stat_and_rebuild_r(NCR_List *list);
 
 	void prune();
 	void dump();
+	void dump_r();
 
 	long int	_n_cache;
 	pthread_mutex_t	_lock;
