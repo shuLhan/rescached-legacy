@@ -4,15 +4,14 @@
  *	- m.shulhan (ms@kilabit.org)
  */
 
+#include "libvos.hpp"
 #include "main.hpp"
-#include "Error.hpp"
 #include "Config.hpp"
 #include "Resolver.hpp"
 #include "NCR.hpp"
 #include "NameCache.hpp"
 #include "ResThread.hpp"
 
-using vos::Error;
 using vos::File;
 using vos::Config;
 using vos::Socket;
@@ -327,7 +326,7 @@ static int rescached_init_write_pid()
 
 	s = getpid();
 
-	s = fpid.appendi(s, 10);
+	s = fpid.appendi(s);
 	if (s != 0)
 		return s;
 
@@ -836,10 +835,11 @@ err:
 	rescached_stop_client_handle();
 
 	if (s) {
-		if (s > 0 || s < vos::N_ERRCODE) {
-			Error e;
-			e.init(s, NULL);
-			e.print();
+		if (s < 0) {
+			s = -s;
+		}
+		if (s > 0 && s < vos::N_ERRCODE) {
+			dlog.er(vos::_errmsg[s]);
 		}
 	}
 

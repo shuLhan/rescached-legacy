@@ -53,7 +53,7 @@ RESCACHED_OBJS	=					\
 			${LIBVOS_BLD_D}/Config.oo	\
 			${LIBVOS_BLD_D}/File.oo		\
 			${LIBVOS_BLD_D}/Buffer.oo	\
-			${LIBVOS_BLD_D}/Error.oo
+			${LIBVOS_BLD_D}/libvos.oo
 
 
 .PHONY: all clean install uninstall
