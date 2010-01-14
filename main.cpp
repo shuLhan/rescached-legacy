@@ -200,6 +200,13 @@ static int rescached_load_config(const char *fconf)
 			_cache_thr = RESCACHED_DEF_THRESHOLD;
 	}
 
+	v = cfg.get(RESCACHED_CONF_HEAD, "debug", NULL);
+	if (v) {
+		_debug_lvl = strtol(v, 0, 10);
+		if (_debug_lvl < 0)
+			_debug_lvl = RESCACHED_DEF_DEBUG;
+	}
+
 	return 0;
 }
 
@@ -236,6 +243,7 @@ static int rescached_init(const char *fconf)
 		dlog.er("[RESCACHED] max thread        > %d\n", _rt_max);
 		dlog.er("[RESCACHED] cache maximum     > %ld\n", _cache_max);
 		dlog.er("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
+		dlog.er("[RESCACHED] debug level       > %d\n", _debug_lvl);
 	}
 
 	_rslvr.init();

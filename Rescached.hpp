@@ -27,14 +27,15 @@ namespace rescached {
 #define	RESCACHED_DEF_PORT	53
 #define	RESCACHED_DEF_THRESHOLD	1
 #define	RESCACHED_DEF_N_THREAD	2
+#define	RESCACHED_DEF_DEBUG	0
 
 extern long int	_cache_max;
 extern long int	_cache_thr;
-extern int	RESCACHED_DEBUG;
+extern int	_debug_lvl;
 extern Dlogger	dlog;
 
-#define	DBG_LVL_IS_1	(RESCACHED_DEBUG >= 1)
-#define	DBG_LVL_IS_2	(RESCACHED_DEBUG >= 2)
+#define	DBG_LVL_IS_1	(_debug_lvl >= 1)
+#define	DBG_LVL_IS_2	(_debug_lvl >= 2)
 
 #define RESCACHED_MD	\
 ":name:::'|',"		\

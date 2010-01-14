@@ -81,7 +81,10 @@ install:
 	mkdir -p ${INSTALL_CACHE_D};					\
 	echo " >> Installing program and configuration ...";		\
 	${call do_install,${TARGET},${INSTALL_BIN_D}}			\
-	${call do_install,${RESCACHED_CFG},${INSTALL_CFG_D}}		\
+	if [ ! -f ${INSTALL_CFG_D}/${RESCACHED_CFG} ]; then		\
+		${call do_install,${RESCACHED_CFG},${INSTALL_CFG_D}}	\
+	fi;								\
+	echo "";							\
 	echo " >> Installing service ...";				\
 	${call do_install,${RESCACHED_RUN},${RESCACHED_SVC}}		\
 	${call do_link,${RESCACHED_SVC},${INSTALL_BIN_D}/rcrescached}	\
