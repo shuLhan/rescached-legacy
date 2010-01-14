@@ -24,7 +24,6 @@ static Socket		_srvr_udp;
 static Buffer		_file_data;
 static Buffer		_file_data_bak;
 static Buffer		_file_log;
-static Buffer		_file_md;
 static Buffer		_file_pid;
 static Buffer		_srvr_parent;
 static Buffer		_srvr_listen;
@@ -128,16 +127,6 @@ static int rescached_load_config(const char *fconf)
 			return s;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "file.metadata", RESCACHED_MD);
-	if (!v) {
-		s = _file_md.init_raw(RESCACHED_MD, 0);
-	} else {
-		s = _file_md.init_raw(v, 0);
-	}
-	if (s != 0) {
-		return s;
-	}
-
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.pid", RESCACHED_PID);
 	if (!v) {
 		s = _file_pid.init_raw(RESCACHED_PID, 0);
@@ -239,7 +228,6 @@ static int rescached_init(const char *fconf)
 	if (DBG_LVL_IS_1) {
 		dlog.er("[RESCACHED] cache file        > %s\n", _file_data._v);
 		dlog.er("[RESCACHED] cache file backup > %s\n", _file_data_bak._v);
-		dlog.er("[RESCACHED] cache metadata    > %s\n", _file_md._v);
 		dlog.er("[RESCACHED] pid file          > %s\n", _file_pid._v);
 		dlog.er("[RESCACHED] log file          > %s\n", _file_log._v);
 		dlog.er("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
@@ -277,9 +265,9 @@ static int rescached_init(const char *fconf)
 	 * try loading the default cache file first. if it is fail or no cache
 	 * loaded (zero record), try to load backup file.
 	 */
-	s = _nc.load(_file_data._v, _file_md._v, _cache_max);
+	s = _nc.load(_file_data._v, _cache_max);
 	if (s != 0 || _nc._n_cache == 0) {
-		s = _nc.load(_file_data_bak._v, _file_md._v, _cache_max);
+		s = _nc.load(_file_data_bak._v, _cache_max);
 		if (s != 0) {
 			if (s == -vos::E_FILE_OPEN)
 				return 0;
@@ -372,7 +360,7 @@ static int rescached_exit()
 	}
 
 	if (_file_data._v) {
-		s = _nc.save(_file_data._v, _file_md._v);
+		s = _nc.save(_file_data._v);
 		if (s != 0)
 			return s;
 	}

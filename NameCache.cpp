@@ -70,7 +70,7 @@ int NameCache::raw_to_ncrecord(Record *raw, NCR **ncr)
  *	< 0	: success.
  *	< <0	: fail.
  */
-int NameCache::load(const char *fdata, const char *fmetadata, const long int max)
+int NameCache::load(const char *fdata, const long int max)
 {
 	int		s;
 	Reader		R;
@@ -91,7 +91,7 @@ int NameCache::load(const char *fdata, const char *fmetadata, const long int max
 	if (s != 0)
 		return s;
 
-	s = RecordMD::INIT_FROM_FILE(&rmd, fmetadata);
+	s = RecordMD::INIT(&rmd, RESCACHED_MD);
 	if (s != 0)
 		return s;
 
@@ -151,7 +151,7 @@ int NameCache::ncrecord_to_record(const NCR *ncr, Record *row)
  *	< 0	: success.
  *	< !0	: fail.
  */
-int NameCache::save(const char *fdata, const char *fmetadata)
+int NameCache::save(const char *fdata)
 {
 	int		s	= 0;
 	Writer		W;
@@ -168,7 +168,7 @@ int NameCache::save(const char *fdata, const char *fmetadata)
 		return s;
 	}
 
-	s = RecordMD::INIT_FROM_FILE(&rmd, fmetadata);
+	s = RecordMD::INIT(&rmd, RESCACHED_MD);
 	if (s != 0)
 		return s;
 
@@ -488,19 +488,27 @@ void NameCache::dump()
 {
 	int i;
 
-	dlog.er("\n >> LIST\n");
 	if (_cachel) {
+		dlog.write_raw("\n >> LIST\n");
 		_cachel->dump();
 	}
 
-	dlog.er("\n >> TREE\n");
-	if (_buckets) {
-		for (i = 0; i < CACHET_IDX_SIZE; ++i) {
-			if (_buckets[i]._v) {
-				dlog.er(" [%c]\n", i + CACHET_IDX_FIRST);
-				_buckets[i]._v->dump_tree(0);
-			}
-		}
+	if (!_buckets)
+		return;
+
+	dlog.write_raw("\n >> TREE\n");
+	for (i = 0; i < CACHET_IDX_SIZE; ++i) {
+		if (!_buckets[i]._v)
+			continue;
+
+		dlog.writes(
+"\n\n\
+------------------------------------------------------------------------\n\
+ [%c]\n\
+------------------------------------------------------------------------\n",
+i + CACHET_IDX_FIRST);
+
+		_buckets[i]._v->dump_tree(0);
 	}
 }
 

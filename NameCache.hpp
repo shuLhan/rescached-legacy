@@ -35,10 +35,10 @@ public:
 	void unlock();
 
 	int raw_to_ncrecord(Record *raw, NCR **ncr);
-	int load(const char *fdata, const char *fmetadata, const long int max);
+	int load(const char *fdata, const long int max);
 
 	int ncrecord_to_record(const NCR *ncr, Record *row);
-	int save(const char *fdata, const char *fmetadata);
+	int save(const char *fdata);
 
 	int get_answer_from_cache(NCR_Tree **node, Buffer *name);
 	int get_answer_from_cache_r(NCR_Tree **node, Buffer *name);

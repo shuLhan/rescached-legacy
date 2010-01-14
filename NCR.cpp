@@ -32,15 +32,17 @@ NCR::~NCR()
 
 void NCR::dump()
 {
-	dlog.er(" [NCR_Tree: %s]\n", _name ? _name->_v : "\0");
-	dlog.er("\t n accessed	: %d\n", _stat); 
-	dlog.er("\t type	: %d\n", _type);
+	dlog.writes(
+" [NCR_Tree: %s]\n\
+\t accessed : %d times\n\
+\t type	    : %d\n", _name ? _name->_v : "\0", _stat, _type
+	);
 	if (_qstn) {
-		dlog.er("\t question   : \n");
+		dlog.write_raw("\t question   : \n");
 		_qstn->dump(vos::DNSQ_DO_ALL);
 	}
 	if (_answ) {
-		dlog.er("\t answer     :\n");
+		dlog.write_raw("\t answer     :\n");
 		_answ->dump(vos::DNSQ_DO_ALL);
 	}
 }

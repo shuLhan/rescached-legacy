@@ -28,7 +28,6 @@ include ${LIBVOS_D}/Makefile
 
 TARGET		=${BLD_D}/rescached
 RESCACHED_CFG	=${SRC_D}/rescached.cfg
-RESCACHED_VMD	=${SRC_D}/rescached.vmd
 RESCACHED_RUN	=${SCR_D}/rescached.run
 RESCACHED_SVC	=${INSTALL_SVC_D}/rescached
 
@@ -83,7 +82,6 @@ install:
 	echo " >> Installing program and configuration ...";		\
 	${call do_install,${TARGET},${INSTALL_BIN_D}}			\
 	${call do_install,${RESCACHED_CFG},${INSTALL_CFG_D}}		\
-	${call do_install,${RESCACHED_VMD},${INSTALL_CFG_D}}		\
 	echo " >> Installing service ...";				\
 	${call do_install,${RESCACHED_RUN},${RESCACHED_SVC}}		\
 	${call do_link,${RESCACHED_SVC},${INSTALL_BIN_D}/rcrescached}	\
@@ -95,7 +93,6 @@ uninstall:
 	fi;								\
 	rm -f ${INSTALL_BIN_D}/rcrescached;				\
 	rm -f ${RESCACHED_SVC};						\
-	rm -f ${INSTALL_CFG_D}/rescached.vmd;				\
 	rm -f ${INSTALL_CFG_D}/rescached.cfg;				\
 	rm -f ${INSTALL_BIN_D}/rescached;				\
 	rmdir ${INSTALL_CFG_D};

@@ -92,7 +92,7 @@ void NCR_Tree::dump()
 		_left->dump();
 	}
 	if (_rec && DBG_LVL_IS_2) {
-		dlog.er("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
+		dlog.writes("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
 	}
 	if (_right) {
 		_right->dump();
@@ -107,11 +107,11 @@ void NCR_Tree::dump_tree(const int t)
 
 	if (t) {
 		for (int i = 0; i < t - 1; ++i) {
-			dlog.er("\t");
+			dlog.write_raw("\t");
 		}
-		dlog.er("  |-----");
+		dlog.write_raw("  |-----");
 	}
-	dlog.er("(%d)%s\n", _color, _rec->_name->_v);
+	dlog.writes("(%d)%s\n", _color, _rec->_name->_v);
 
 	if (_left) {
 		_left->dump_tree(t + 1);
