@@ -7,7 +7,7 @@
 #ifndef _RESCACHED_NCR_HPP
 #define	_RESCACHED_NCR_HPP	1
 
-#include "main.hpp"
+#include "Rescached.hpp"
 #include "DNSQuery.hpp"
 
 using vos::DNSQuery;

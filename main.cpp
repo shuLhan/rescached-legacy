@@ -3,36 +3,17 @@
  * Author:
  *	- m.shulhan (ms@kilabit.org)
  */
-
-#include "libvos.hpp"
 #include "main.hpp"
-#include "Config.hpp"
-#include "Resolver.hpp"
-#include "NCR.hpp"
-#include "NameCache.hpp"
-#include "ResThread.hpp"
 
 using vos::File;
 using vos::Config;
 using vos::Socket;
 using vos::Resolver;
-using rescached::NCR_List;
-using rescached::NCR_Tree;
-using rescached::NCR;
-using rescached::NameCache;
-using rescached::ResQueue;
-using rescached::ResThread;
+using namespace rescached;
 
 volatile sig_atomic_t	_running_	= 1;
 volatile sig_atomic_t	_SIG_lock_	= 0;
-int			RESCACHED_DEBUG	= (getenv("RESCACHED_DEBUG") == NULL)
-						? 0
-						: atoi(getenv("RESCACHED_DEBUG"));
 
-Dlogger			dlog;
-
-long int		_cache_max	= RESCACHED_CACHE_MAX;
-long int		_cache_thr	= RESCACHED_DEF_THRESHOLD;
 static int		_rt_max		= RESCACHED_DEF_N_THREAD;
 static int		_srvr_port	= RESCACHED_DEF_PORT;
 static int		_got_signal_	= 0;
@@ -383,7 +364,7 @@ static int rescached_exit()
 	int s = 0;
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("\n[RESCACHED] saving caches ...\n");
+		dlog.er("\n[RESCACHED] saving %d caches ...\n", _nc._n_cache);
 	}
 
 	if (_file_pid._v) {
