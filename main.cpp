@@ -8,6 +8,7 @@
 using vos::File;
 using vos::Config;
 using vos::Socket;
+using vos::SockAddr;
 using vos::Resolver;
 using namespace rescached;
 
@@ -497,13 +498,13 @@ static void * rescached_tcp_server(void *arg)
 
 static int rescached_udp_server()
 {
-	int		s		= 0;
-	int		maxfds		= 0;
-	int		rqt_idx		= 0;
-	fd_set		udp_fd_all;
-	fd_set		udp_fd_read;
-	DNSQuery	*question	= NULL;
-	struct sockaddr	*addr		= NULL;
+	int			s		= 0;
+	int			maxfds		= 0;
+	int			rqt_idx		= 0;
+	fd_set			udp_fd_all;
+	fd_set			udp_fd_read;
+	DNSQuery		*question	= NULL;
+	struct sockaddr_in	*addr		= NULL;
 
 	FD_ZERO(&udp_fd_all);
 	FD_ZERO(&udp_fd_read);
@@ -530,7 +531,7 @@ static int rescached_udp_server()
 		if (!FD_ISSET(_srvr_udp._d, &udp_fd_read))
 			continue;
 
-		addr = (struct sockaddr *) calloc(1, sizeof(struct sockaddr));
+		addr = (struct sockaddr_in *) calloc(1, SockAddr::IN_SIZE);
 		if (!addr)
 			continue;
 
@@ -569,7 +570,7 @@ static void process_queue(ResQueue *queue, Socket *udp_server,
 	DNSQuery		*p_answer	= NULL;
 	NCR_Tree		*node		= NULL;
 	Socket			*tcp_client	= NULL;
-	struct sockaddr		*udp_client	= NULL;
+	struct sockaddr_in	*udp_client	= NULL;
 
 	udp_client	= queue->_udp_client;
 	tcp_client	= queue->_tcp_client;

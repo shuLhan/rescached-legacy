@@ -20,7 +20,7 @@ public:
 	void wait();
 	void wakeup();
 
-	int push_query_r(struct sockaddr *udp_client,
+	int push_query_r(struct sockaddr_in *udp_client,
 				Socket *tcp_client, DNSQuery *question);
 	ResQueue * pop_query_r();
 
