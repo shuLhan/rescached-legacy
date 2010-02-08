@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2009 kilabit.org
+/*
+ * Copyright (C) 2009,2010 kilabit.org
  * Author:
  *	- m.shulhan (ms@kilabit.org)
  */
@@ -62,7 +62,8 @@ public:
 	NCR_Bucket	*_buckets;
 	NCR_List	*_cachel;
 private:
-	DISALLOW_COPY_AND_ASSIGN(NameCache);
+	NameCache(const NameCache&);
+	void operator=(const NameCache&);
 };
 
 } /* namespace::rescached */

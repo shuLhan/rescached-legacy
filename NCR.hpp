@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2009 kilabit.org
+/*
+ * Copyright (C) 2009,2010 kilabit.org
  * Author:
  *	- m.shulhan (ms@kilabit.org)
  */
@@ -30,7 +30,8 @@ public:
 	DNSQuery	*_qstn;
 	DNSQuery	*_answ;
 private:
-	DISALLOW_COPY_AND_ASSIGN(NCR);
+	NCR(const NCR&);
+	void operator=(const NCR&);
 };
 
 } /* namespace::rescached */

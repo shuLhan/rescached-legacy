@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2009,2010 kilabit.org
+ * Author:
+ *	- m.shulhan (ms@kilabit.org)
+ */
+
 #include "ResQueue.hpp"
 
 namespace rescached {

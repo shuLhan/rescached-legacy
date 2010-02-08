@@ -1,8 +1,9 @@
-/**
- * Copyright (C) 2009 kilabit.org
+/*
+ * Copyright (C) 2009,2010 kilabit.org
  * Author:
  *	- m.shulhan (ms@kilabit.org)
  */
+
 #include "main.hpp"
 
 using vos::File;

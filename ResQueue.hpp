@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2009,2010 kilabit.org
+ * Author:
+ *	- m.shulhan (ms@kilabit.org)
+ */
+
 #ifndef _RESCACHED_QUEUE_HPP
 #define	_RESCACHED_QUEUE_HPP	1
 
@@ -22,7 +28,8 @@ public:
 	DNSQuery		*_qstn;
 	ResQueue		*_next;
 private:
-	DISALLOW_COPY_AND_ASSIGN(ResQueue);
+	ResQueue(const ResQueue&);
+	void operator=(const ResQueue&);
 };
 
 } /* namespace::rescached */

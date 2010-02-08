@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2009,2010 kilabit.org
+ * Author:
+ *	- m.shulhan (ms@kilabit.org)
+ */
+
 #ifndef _RESCACHED_MAIN_HPP
 #define	_RESCACHED_MAIN_HPP	1
 

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2009 kilabit.org
+/*
+ * Copyright (C) 2009,2010 kilabit.org
  * Author:
  *	- m.shulhan (ms@kilabit.org)
  */
@@ -27,7 +27,8 @@ public:
 	NCR_List	*_last;
 	void		*_p_tree;
 private:
-	DISALLOW_COPY_AND_ASSIGN(NCR_List);
+	NCR_List(const NCR_List&);
+	void operator=(const NCR_List&);
 };
 
 } /* namespace::rescached */

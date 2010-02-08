@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2009,2010 kilabit.org
+ * Author:
+ *	- m.shulhan (ms@kilabit.org)
+ */
+
 #ifndef _RESCACHED_THREAD_HPP
 #define	_RESCACHED_THREAD_HPP
 
@@ -34,7 +40,8 @@ public:
 	pthread_cond_t	_cond;
 	ResQueue	*_q_query;
 private:
-	DISALLOW_COPY_AND_ASSIGN(ResThread);
+	ResThread(const ResThread&);
+	void operator=(const ResThread&);
 };
 
 } /* namespace::rescached */

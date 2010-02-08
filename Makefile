@@ -48,10 +48,11 @@ RESCACHED_OBJS	=					\
 			${LIBVOS_BLD_D}/libvos.oo
 
 
-.PHONY: all clean install uninstall
-
+.PHONY: all debug clean install uninstall
 
 all:: ${BLD_D} ${TARGET}
+
+debug:: all
 
 ${BLD_D}:
 	@mkdir -p $@
