@@ -69,7 +69,7 @@ int ResThread::push_query_r(struct sockaddr_in *udp_client,
 
 	obj = new ResQueue();
 	if (!obj)
-		return -vos::E_MEM;
+		return -1;
 
 	obj->_udp_client	= udp_client;
 	obj->_tcp_client	= tcp_client;

@@ -279,8 +279,9 @@ static int rescached_init(const char *fconf)
 	if (s != 0 || _nc._n_cache == 0) {
 		s = _nc.load(_file_data_bak._v, _cache_max);
 		if (s != 0) {
-			if (s == -vos::E_FILE_OPEN)
+			if (ENOENT == errno) {
 				return 0;
+			}
 			return s;
 		}
 	}
@@ -467,6 +468,10 @@ static void * rescached_tcp_server(void *arg)
 
 		s = select(maxfds, &tcp_fd_read, NULL, NULL, NULL);
 		if (s <= 0) {
+			if (EINTR == errno) {
+				s = 0;
+				break;
+			}
 			continue;
 		}
 
@@ -522,10 +527,10 @@ static int rescached_udp_server()
 
 		s = select(maxfds, &udp_fd_read, NULL, NULL, NULL);
 		if (s <= 0) {
-			if (s < 0 && errno != EINTR)
-				s = -vos::E_SOCK_SELECT;
-			else
+			if (EINTR == errno) {
 				s = 0;
+				break;
+			}
 			continue;
 		}
 
@@ -731,7 +736,7 @@ static int rescached_start_client_handle()
 	_rt = new ResThread[_rt_max + 1];
 
 	if (!_rt) {
-		return -vos::E_MEM;
+		return -1;
 	}
 
 	for (i = 0; i < _rt_max; i++) {
@@ -739,7 +744,7 @@ static int rescached_start_client_handle()
 					rescached_client_handle,
 					(void *) &_rt[i]);
 		if (s != 0) {
-			return s;
+			return -1;
 		}
 	}
 
@@ -788,7 +793,7 @@ int main(int argc, char *argv[])
 		s = rescached_init(argv[1]);
 	} else {
 		dlog.er("\n Usage: rescached <rescached-config>\n ");
-		s = -vos::E_INVALID_PARAM;
+		s = -1;
 	}
 	if (s != 0) {
 		goto err;
@@ -814,14 +819,8 @@ err:
 	rescached_stop_client_handle();
 
 	if (s) {
-		if (s < 0) {
-			s = -s;
-		}
-		if (s > 0 && s < vos::N_ERRCODE) {
-			dlog.er(vos::_errmsg[s]);
-		}
+		perror(NULL);
 	}
-
 	if (_rt) {
 		delete[] _rt;
 	}

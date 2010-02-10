@@ -59,7 +59,7 @@ int NCR::INIT(NCR **o, const int type, const Buffer *name,
 
 	(*o) = new NCR();
 	if (!(*o))
-		return -vos::E_MEM;
+		return -1;
 
 	s = Buffer::INIT(&(*o)->_name, name);
 	if (s != 0)

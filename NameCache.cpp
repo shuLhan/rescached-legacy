@@ -82,7 +82,7 @@ int NameCache::load(const char *fdata, const long int max)
 
 	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
 	if (!_buckets)
-		return -vos::E_MEM;
+		return -1;
 
 	for (s = 0; s <= CACHET_IDX_SIZE; ++s)
 		_buckets[s]._v = NULL;
@@ -376,7 +376,7 @@ int NameCache::insert(NCR *record)
 	/* add to tree */
 	p_tree = new NCR_Tree();
 	if (!p_tree)
-		return -vos::E_MEM;
+		return -1;
 
 	p_tree->_rec = record;
 
@@ -397,7 +397,7 @@ int NameCache::insert(NCR *record)
 	/* add to list */
 	p_list = new NCR_List();
 	if (!p_list)
-		return -vos::E_MEM;
+		return -1;
 
 	p_list->_rec	= record;
 	p_list->_p_tree	= p_tree;
