@@ -80,6 +80,7 @@ March 2010
   <li style="list-style: none">
   <ul>
   <li><a href="#intro_what_is_rescached"> What Is rescached ?</a></li>
+  <li><a href="#intro_feature_and_limit"> Features and Limitations </a></li>
   <li><a href="#intro_behind_the_dns"> Behind The DNS </a></li>
   <li><a href="#intro_how_cache_in_rescached_work"> How Cache In rescached Work </a></li>
   </ul>
@@ -111,6 +112,40 @@ March 2010
 address on local memory when running and in local disk when not running.
 </p>
 
+<h3>
+<a name="intro_feature_and_limit">
+Features and Limitations.
+</a>
+</h3>
+
+<p>
+<tt>rescached</tt> is not a reimplementation of DNS server like BIND.
+<tt>rescached</tt>
+primary goal is only to caching DNS queries and answers, used by personal
+or small group of users, to minimize unneeded traffic to outside network.
+</p>
+
+Features,
+
+<ul>
+  <li> Enable to handle UDP and TCP connections. </li>
+  <li> Saving/loading cache to/from disk </li>
+</ul>
+
+Limitations,
+
+<ul>
+  <li> Only know specific DNS record type,</li>
+  <li style="list-style: none">
+    <ul>
+    <li> A : a host address </li>
+    <li> NS : an authoritative name server </li>
+    <li> CNAME : a canonical name for an alias </li>
+    <li> MX : mail exchange </li>
+    </ul>
+  </li>
+  <li> Only run and tested in Unix system </li>
+</ul>
 
 <h3><a name="intro_behind_the_dns"> Behind The DNS </a></h3>
 
@@ -125,11 +160,11 @@ into an internet address (i.e.: 219.83.126.10) so browser can make a connection 
 <i>www.reddit.com</i> server.
 </p>
 <p>
-How browser do that ? First, it will querying one of DNS server listed in your
-system 
-configuration (<tt>/etc/resolv.conf</tt> in Unix). Then, if your DNS server
-also "caching" the name that you requested, it will reply the answer (internet
-address) directly, if it is not then it will ask to their parent DNS server.
+How browser do that ? First, it will send query to one of DNS server listed in
+your system configuration (<tt>/etc/resolv.conf</tt> in Unix). Then, if your
+DNS server also "caching" the name that you requested, it will reply the
+answer (internet address) directly, if it is not then it will ask to their
+parent DNS server.
 </p>
 
 <pre>
@@ -181,9 +216,9 @@ rescached in technical side of view.
 Each of query and answer data in cache have a number of accessed field, which
 defined how the cache will be ordered in memory. The frequently queried
 host-name will be at the top of cache list, and less queried host-name will at
-the bottom of cache list. This, obviously, make a cache list based on
-user habit and frequently accessed host-name, which effect on the search time
-on cache list.
+the bottom of cache list. This, obviously, will make a cache list based on
+user habit (frequently accessed host-name), which effect on the search time
+on cache list: fast reply.
 </p>
 
 <pre>
@@ -257,16 +292,17 @@ Post Installation Configuration
 <li>Set your parent DNS server.</li>
     <li style="list-style-type: none; list-style-image: none; list-style-position: outside;">
     <p>
-    Edit rescached configuration, <tt>/etc/rescached/rescached.cfg</tt>, change
-    the value of <tt>server.parent</tt> based on your preferred DNS server.
+    Edit rescached configuration, <tt>/etc/rescached/rescached.cfg</tt>,
+change the value of <a href="#server.parent"><tt>server.parent</tt></a> based
+on your preferred DNS server.
     </p>
     </li>
 <li> Set maximum caches. </li>
     <li style="list-style-type: none; list-style-image: none; list-style-position: outside;">
     <p>
-    Edit rescached configuration, <tt>/etc/rescached/rescached.cfg</tt>, change
-    the value of <tt>cache.max</tt> and/or <tt>cache.threshold</tt> to match
-    your system memory or your need.
+    Edit rescached configuration, <tt>/etc/rescached/rescached.cfg</tt>,
+change the value of <a href="#cache.max"><tt>cache.max</tt></a> and/or <a
+href="#cache.threshold"><tt>cache.threshold</tt></a> to match your needs.
     </p>
     </li>
 <li> Set your system DNS server to point to rescached </li>
@@ -295,8 +331,10 @@ Controlling rescached Service
 </a>
 </h3>
 
+<p>
 After <tt>rescached</tt> has been installed you can start, stop, and view
 status of <tt>rescached</tt> service using <tt>/sbin/rcrescached</tt>.
+</p>
 
 <ul>
   <li> Starting rescached service. </li>
@@ -564,8 +602,8 @@ This option set the number of process that will handle all client queries.
     <td>
 When <tt>rescached</tt> running it will keep all queries and answers in memory
 as much as <tt>cache.max</tt>.
-The bigger the <tt>cache.max</tt> value, then <tt>rescached</tt> will use more
-memory.
+The bigger the <tt>cache.max</tt> value, then the more <tt>rescached</tt>
+will use memory.
     </td>
     </tr>
 </table>
@@ -589,9 +627,9 @@ memory.
 <tr><th> Description </th>
     <td>
 When <tt>rescached</tt> cache all the queries and answers, until long enough
-it will reached it own maximum value (<tt>cache.max</tt>, when it happen
-<tt>rescached</tt> will remove all cache that their status is less than
-<tt>cache.threshold</tt>.
+it will reached it own maximum value (<tt>cache.max</tt>), when it happen
+<tt>rescached</tt> will remove all cache that their number-of-queried value
+is less than <tt>cache.threshold</tt>.
     </td>
     </tr>
 </table>
@@ -618,7 +656,7 @@ it will reached it own maximum value (<tt>cache.max</tt>, when it happen
     </tr>
 <tr><th> Description </th>
     <td>
-This option only used by developer for debugging program only.
+This option only used by developer for debugging program.
     </td>
     </tr>
 </table>
