@@ -113,7 +113,7 @@ static int rescached_load_config(const char *fconf)
 		return s;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "file.data.backup", NULL);
+	v = cfg.get(RESCACHED_CONF_HEAD, "file.data.backup");
 	if (v) {
 		s = _file_data_bak.init_raw(v, 0);
 		if (s != 0) {
@@ -124,7 +124,7 @@ static int rescached_load_config(const char *fconf)
 		if (s != 0)
 			return s;
 
-		s = _file_data_bak.append_raw(RESCACHED_DATA_BAK_EXT, 0);
+		s = _file_data_bak.append_raw(RESCACHED_DATA_BAK_EXT);
 		if (s < 0)
 			return s;
 	}
@@ -149,7 +149,7 @@ static int rescached_load_config(const char *fconf)
 		return s;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent", NULL);
+	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent");
 	if (!v) {
 		s = _srvr_parent.init_raw(RESCACHED_DEF_PARENT, 0);
 	} else {
@@ -169,7 +169,7 @@ static int rescached_load_config(const char *fconf)
 		return s;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen.port", NULL);
+	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen.port");
 	if (v) {
 		_srvr_port = strtol(v, 0, vos::NUM_BASE_10);
 		if (_srvr_port <= 0) {
@@ -177,7 +177,7 @@ static int rescached_load_config(const char *fconf)
 		}
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "server.thread", NULL);
+	v = cfg.get(RESCACHED_CONF_HEAD, "server.thread");
 	if (v) {
 		_rt_max = strtol(v, 0, vos::NUM_BASE_10);
 		if (_rt_max <= 0) {
@@ -195,14 +195,14 @@ static int rescached_load_config(const char *fconf)
 			_cache_max = RESCACHED_CACHE_MAX;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "cache.threshold", NULL);
+	v = cfg.get(RESCACHED_CONF_HEAD, "cache.threshold");
 	if (v) {
 		_cache_thr = strtoul(v, 0, 10);
 		if (_cache_thr <= 0)
 			_cache_thr = RESCACHED_DEF_THRESHOLD;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "debug", NULL);
+	v = cfg.get(RESCACHED_CONF_HEAD, "debug");
 	if (v) {
 		_debug_lvl = strtol(v, 0, 10);
 		if (_debug_lvl < 0)
@@ -699,7 +699,7 @@ static void * rescached_client_handle(void *arg)
 
 	answer.init(NULL);
 
-	while (1) {
+	while (rt->_running) {
 		rt->wait();
 
 		rt->lock();
@@ -759,6 +759,7 @@ static void rescached_stop_client_handle()
 		if (_rt && _rt[i]._id) {
 			_rt[i].set_running_r(0);
 			_rt[i].wakeup();
+			pthread_kill(_rt[i]._id, SIGUSR1);
 			pthread_join(_rt[i]._id, NULL);
 		}
 	}
