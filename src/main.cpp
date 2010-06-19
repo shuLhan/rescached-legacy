@@ -171,7 +171,7 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen.port");
 	if (v) {
-		_srvr_port = strtol(v, 0, vos::NUM_BASE_10);
+		_srvr_port = (int) strtol(v, 0, vos::NUM_BASE_10);
 		if (_srvr_port <= 0) {
 			_srvr_port = RESCACHED_DEF_PORT;
 		}
@@ -179,9 +179,9 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.thread");
 	if (v) {
-		_rt_max = strtol(v, 0, vos::NUM_BASE_10);
+		_rt_max = (int) strtol(v, 0, vos::NUM_BASE_10);
 		if (_rt_max <= 0) {
-			_rt_max = sysconf(_SC_NPROCESSORS_CONF);
+			_rt_max = (int) sysconf(_SC_NPROCESSORS_CONF);
 			if (_rt_max <= 1) {
 				_rt_max = RESCACHED_DEF_N_THREAD;
 			}
@@ -190,7 +190,7 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "cache.max", RESCACHED_CACHE_MAX_S);
 	if (v) {
-		_cache_max = strtoul(v, 0, 10);
+		_cache_max = strtol(v, 0, 10);
 		if (_cache_max <= 0)
 			_cache_max = RESCACHED_CACHE_MAX;
 	}
@@ -204,7 +204,7 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "debug");
 	if (v) {
-		_debug_lvl = strtol(v, 0, 10);
+		_debug_lvl = (int) strtol(v, 0, 10);
 		if (_debug_lvl < 0)
 			_debug_lvl = RESCACHED_DEF_DEBUG;
 	}
@@ -332,7 +332,7 @@ static int rescached_create_backup()
 		return s;
 	}
 
-	s = r.get_size();
+	s = (int) r.get_size();
 	if (s <= 0) {
 		return 0;
 	}
@@ -481,7 +481,7 @@ static void * rescached_tcp_server(void *arg)
 				continue;
 
 			if (client->_d > maxfds) {
-				maxfds = client->_d;
+				maxfds = client->_d + 1;
 			}
 			FD_SET(client->_d, &tcp_fd_all);
 
@@ -541,7 +541,7 @@ static int rescached_udp_server()
 		if (!addr)
 			continue;
 
-		s = _srvr_udp.recv_udp(addr);
+		s = (int) _srvr_udp.recv_udp(addr);
 		if (s <= 0) {
 			free(addr);
 			continue;
@@ -655,7 +655,7 @@ static void process_queue(ResQueue *queue, Socket *udp_server,
 
 				bfr->reset();
 
-				len = htons(bfr_answer->_i);
+				len = htons((uint16_t) bfr_answer->_i);
 				memset(&bfr->_v[0], '\0', 2);
 				memcpy(&bfr->_v[0], &len, 2);
 				bfr->_i = 2;

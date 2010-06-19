@@ -49,11 +49,11 @@ int NameCache::raw_to_ncrecord(Record *raw, NCR **ncr)
 	type		= raw->get_column(2);
 	question	= raw->get_column(3);
 	answer		= raw->get_column(4);
-	s		= strtol(type->_v, 0, 10);
+	s		= (int) strtol(type->_v, 0, 10);
 
 	s = NCR::INIT(ncr, s, name, question, answer);
 	if (0 == s) {
-		(*ncr)->_stat = strtol(stat->_v, 0, 10);
+		(*ncr)->_stat = (int) strtol(stat->_v, 0, 10);
 	}
 	raw->columns_reset();
 
@@ -252,7 +252,7 @@ int NameCache::get_answer_from_cache_r(NCR_Tree **node, Buffer *name)
  *	< 0	: success.
  *	< <0	: fail.
  */
-void NameCache::clean_by_threshold(const int thr)
+void NameCache::clean_by_threshold(const long int thr)
 {
 	int		c	= 0;
 	NCR_List	*p	= NULL;
@@ -322,7 +322,7 @@ int NameCache::insert(NCR *record)
 {
 	int		s	= 0;
 	int		c	= 0;
-	int		thr	= _cache_thr;
+	long int	thr	= _cache_thr;
 	DNSQuery	*answer	= NULL;
 	NCR_List	*p_list	= NULL;
 	NCR_Tree	*p_tree	= NULL;

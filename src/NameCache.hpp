@@ -43,7 +43,7 @@ public:
 	int get_answer_from_cache(NCR_Tree **node, Buffer *name);
 	int get_answer_from_cache_r(NCR_Tree **node, Buffer *name);
 
-	void clean_by_threshold(const int thr);
+	void clean_by_threshold(const long int thr);
 
 	int insert(NCR *record);
 	int insert_raw(const int type, const Buffer *name,
