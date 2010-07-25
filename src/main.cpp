@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009,2010 kilabit.org
+ * Copyright (C) 2010 kilabit.org
  * Author:
  *	- m.shulhan (ms@kilabit.org)
  */
@@ -31,6 +31,8 @@ static Buffer		_srvr_parent;
 static Buffer		_srvr_listen;
 static ResThread	*_rt = NULL;
 
+static int rescached_exit();
+
 static void rescached_interrupted(int sig_num)
 {
 	switch (sig_num) {
@@ -43,6 +45,7 @@ static void rescached_interrupted(int sig_num)
 		_SIG_lock_	= 1;
 		_got_signal_	= sig_num;
 		_running_	= 0;
+		rescached_exit();
 		_SIG_lock_	= 0;
 
 		signal(sig_num, SIG_DFL);
@@ -56,7 +59,9 @@ static void rescached_interrupted(int sig_num)
 		_SIG_lock_	= 1;
 		_got_signal_ 	= sig_num;
 		_running_	= 0;
+		rescached_exit();
 		_SIG_lock_	= 0;
+		exit(0);
                 break;
         }
 }
@@ -105,9 +110,9 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.data", RESCACHED_DATA);
 	if (!v) {
-		s = _file_data.init_raw(RESCACHED_DATA, 0);
+		s = _file_data.copy_raw(RESCACHED_DATA);
 	} else {
-		s = _file_data.init_raw(v, 0);
+		s = _file_data.copy_raw(v);
 	}
 	if (s != 0) {
 		return s;
@@ -115,12 +120,12 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.data.backup");
 	if (v) {
-		s = _file_data_bak.init_raw(v, 0);
+		s = _file_data_bak.copy_raw(v);
 		if (s != 0) {
 			return s;
 		}
 	} else {
-		s = _file_data_bak.init_raw(_file_data._v, 0);
+		s = _file_data_bak.copy(&_file_data);
 		if (s != 0)
 			return s;
 
@@ -131,9 +136,9 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.pid", RESCACHED_PID);
 	if (!v) {
-		s = _file_pid.init_raw(RESCACHED_PID, 0);
+		s = _file_pid.copy_raw(RESCACHED_PID);
 	} else {
-		s = _file_pid.init_raw(v, 0);
+		s = _file_pid.copy_raw(v);
 	}
 	if (s != 0) {
 		return s;
@@ -141,9 +146,9 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.log", RESCACHED_LOG);
 	if (!v) {
-		s = _file_log.init_raw(RESCACHED_LOG, 0);
+		s = _file_log.copy_raw(RESCACHED_LOG);
 	} else {
-		s = _file_log.init_raw(v, 0);
+		s = _file_log.copy_raw(v);
 	}
 	if (s != 0) {
 		return s;
@@ -151,9 +156,9 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent");
 	if (!v) {
-		s = _srvr_parent.init_raw(RESCACHED_DEF_PARENT, 0);
+		s = _srvr_parent.copy_raw(RESCACHED_DEF_PARENT);
 	} else {
-		s = _srvr_parent.init_raw(v, 0);
+		s = _srvr_parent.copy_raw(v);
 	}
 	if (s != 0) {
 		return s;
@@ -161,9 +166,9 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen", RESCACHED_DEF_LISTEN);
 	if (!v) {
-		s = _srvr_listen.init_raw(RESCACHED_DEF_LISTEN, 0);
+		s = _srvr_listen.copy_raw(RESCACHED_DEF_LISTEN);
 	} else {
-		s = _srvr_listen.init_raw(v, 0);
+		s = _srvr_listen.copy_raw(v);
 	}
 	if (s != 0) {
 		return s;
@@ -171,7 +176,7 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen.port");
 	if (v) {
-		_srvr_port = (int) strtol(v, 0, vos::NUM_BASE_10);
+		_srvr_port = (int) strtol(v, 0, 0);
 		if (_srvr_port <= 0) {
 			_srvr_port = RESCACHED_DEF_PORT;
 		}
@@ -179,7 +184,7 @@ static int rescached_load_config(const char *fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.thread");
 	if (v) {
-		_rt_max = (int) strtol(v, 0, vos::NUM_BASE_10);
+		_rt_max = (int) strtol(v, 0, 0);
 		if (_rt_max <= 0) {
 			_rt_max = (int) sysconf(_SC_NPROCESSORS_CONF);
 			if (_rt_max <= 1) {
@@ -455,7 +460,7 @@ static void * rescached_tcp_server(void *arg)
 	FD_SET(_srvr_tcp._d, &tcp_fd_all);
 	maxfds = _srvr_tcp._d + 1;
 
-	while (1) {
+	while (_running_) {
 		if (!rqt->is_still_running_r()) {
 			break;
 		}

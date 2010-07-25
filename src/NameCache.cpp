@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009,2010 kilabit.org
+ * Copyright (C) 2010 kilabit.org
  * Author:
  *	- m.shulhan (ms@kilabit.org)
  */
@@ -95,10 +95,10 @@ int NameCache::load(const char *fdata, const long int max)
 	if (s != 0)
 		return s;
 
-	s = Record::INIT_ROW(&row, rmd->_n_md, Buffer::DFLT_SIZE);
-	if (s != 0)
+	s = Record::INIT_ROW(&row, rmd->_n_md);
+	if (s != 0) {
 		return s;
-
+	}
 	s = R.read(row, rmd);
 	while (s == 1 && (_n_cache < max || 0 == max)) {
 		s = raw_to_ncrecord(row, &ncr);
@@ -159,10 +159,6 @@ int NameCache::save(const char *fdata)
 	Record		*row	= NULL;
 	RecordMD	*rmd	= NULL;
 
-	s = W.init();
-	if (s != 0)
-		return s;
-
 	s = W.open_wo(fdata);
 	if (s != 0) {
 		return s;
@@ -172,10 +168,10 @@ int NameCache::save(const char *fdata)
 	if (s != 0)
 		return s;
 
-	s = Record::INIT_ROW(&row, rmd->_n_md, Buffer::DFLT_SIZE);
-	if (s != 0)
+	s = Record::INIT_ROW(&row, rmd->_n_md);
+	if (s != 0) {
 		return s;
-
+	}
 	p = _cachel;
 	while (p) {
 		if (p->_rec && p->_rec->_name && p->_rec->_name->_i) {
