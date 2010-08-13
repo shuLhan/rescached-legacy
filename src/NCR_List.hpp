@@ -18,14 +18,15 @@ public:
 
 	void dump();
 
-	static void REBUILD(NCR_List **top, NCR_List *node);
-	static void ADD(NCR_List **top, NCR_List *node);
+	NCR*		_rec;
+	NCR_List*	_up;
+	NCR_List*	_down;
+	NCR_List*	_last;
+	void*		_p_tree;
 
-	NCR		*_rec;
-	NCR_List	*_up;
-	NCR_List	*_down;
-	NCR_List	*_last;
-	void		*_p_tree;
+	static void REBUILD(NCR_List** top, NCR_List* node);
+	static void ADD(NCR_List** top, NCR_List* startp, NCR_List* node);
+	static void DETACH(NCR_List** top, NCR_List* node);
 private:
 	NCR_List(const NCR_List&);
 	void operator=(const NCR_List&);

@@ -35,14 +35,14 @@ void NameCache::unlock()
 		;
 }
 
-int NameCache::raw_to_ncrecord(Record *raw, NCR **ncr)
+int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 {
 	int	s		= 0;
-	Record	*name		= NULL;
-	Record	*stat		= NULL;
-	Record	*type		= NULL;
-	Record	*question	= NULL;
-	Record	*answer		= NULL;
+	Record*	name		= NULL;
+	Record*	stat		= NULL;
+	Record*	type		= NULL;
+	Record*	question	= NULL;
+	Record*	answer		= NULL;
 
 	name		= raw->get_column(0);
 	stat		= raw->get_column(1);
@@ -61,44 +61,50 @@ int NameCache::raw_to_ncrecord(Record *raw, NCR **ncr)
 }
 
 /**
- * @desc: load cache from file 'fdata' using 'fmetadata' as meta-data.
- *
- * @param:
+ * @method		: NameCache::load
+ * @param		:
  *	> fdata		: file where cache resided.
  *	> fmetadata	: meta-data, how the data is saved in the file.
- * @return:
- *	< 0	: success.
- *	< <0	: fail.
+ * @return		:
+ *	< 0		: success.
+ *	< -1		: fail.
+ * @desc		: load cache from file 'fdata' using 'fmetadata' as
+ * meta-data.
  */
-int NameCache::load(const char *fdata, const long int max)
+int NameCache::load(const char* fdata, const long int max)
 {
 	int		s;
 	Reader		R;
-	NCR		*ncr	= NULL;
-	Record		*row	= NULL;
-	RecordMD	*rmd	= NULL;
+	NCR*		ncr	= NULL;
+	Record*		row	= NULL;
+	RecordMD*	rmd	= NULL;
 
 	prune();
 
 	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
-	if (!_buckets)
+	if (!_buckets) {
 		return -1;
+	}
 
-	for (s = 0; s <= CACHET_IDX_SIZE; ++s)
+	for (s = 0; s <= CACHET_IDX_SIZE; ++s) {
 		_buckets[s]._v = NULL;
+	}
 
 	s = R.open_ro(fdata);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	s = RecordMD::INIT(&rmd, RESCACHED_MD);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	s = Record::INIT_ROW(&row, rmd->_n_md);
 	if (s != 0) {
-		return s;
+		return -1;
 	}
+
 	s = R.read(row, rmd);
 	while (s == 1 && (_n_cache < max || 0 == max)) {
 		s = raw_to_ncrecord(row, &ncr);
@@ -118,13 +124,11 @@ int NameCache::load(const char *fdata, const long int max)
 	return 0;
 }
 
-int NameCache::ncrecord_to_record(const NCR *ncr, Record *row)
+int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
 {
-	if (! ncr)
+	if (!ncr || !row) {
 		return 0;
-	if (! row)
-		return 0;
-
+	}
 	if (ncr->_name) {
 		row->set_column(0, ncr->_name);
 	}
@@ -137,10 +141,10 @@ int NameCache::ncrecord_to_record(const NCR *ncr, Record *row)
 		row->set_column_number(2, vos::BUFFER_IS_UDP);
 	}
 	if (ncr->_qstn) {
-		row->set_column(3, ncr->_qstn->_bfr);
+		row->set_column(3, ncr->_qstn);
 	}
 	if (ncr->_answ) {
-		row->set_column(4, ncr->_answ->_bfr);
+		row->set_column(4, ncr->_answ);
 	}
 
 	return 0;
@@ -149,36 +153,40 @@ int NameCache::ncrecord_to_record(const NCR *ncr, Record *row)
 /**
  * @return	:
  *	< 0	: success.
- *	< !0	: fail.
+ *	< -1	: fail.
  */
-int NameCache::save(const char *fdata)
+int NameCache::save(const char* fdata)
 {
 	int		s	= 0;
 	Writer		W;
-	NCR_List	*p	= NULL;
-	Record		*row	= NULL;
-	RecordMD	*rmd	= NULL;
+	NCR_List*	p	= NULL;
+	Record*		row	= NULL;
+	RecordMD*	rmd	= NULL;
 
 	s = W.open_wo(fdata);
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	s = RecordMD::INIT(&rmd, RESCACHED_MD);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	s = Record::INIT_ROW(&row, rmd->_n_md);
 	if (s != 0) {
-		return s;
+		return -1;
 	}
+
 	p = _cachel;
 	while (p) {
 		if (p->_rec && p->_rec->_name && p->_rec->_name->_i) {
 			ncrecord_to_record(p->_rec, row);
+
 			s = W.write(row, rmd);
-			if (s != 0)
+			if (s != 0) {
 				break;
+			}
 
 			row->columns_reset();
 		}
@@ -196,12 +204,13 @@ int NameCache::save(const char *fdata)
  *	< >=0	: success, return index of buckets tree.
  *	< -1	: fail, name not found.
  */
-int NameCache::get_answer_from_cache(NCR_Tree **node, Buffer *name)
+int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
 {
-	int c = 0;
-
-	if (!name)
+	if (!name) {
 		return -1;
+	}
+
+	int c = 0;
 
 	c = toupper(name->_v[0]);
 	if (isalnum(c)) {
@@ -227,7 +236,7 @@ int NameCache::get_answer_from_cache(NCR_Tree **node, Buffer *name)
  *	< >=0	: success, return index of buckets tree.
  *	< -1	: fail, name not found.
  */
-int NameCache::get_answer_from_cache_r(NCR_Tree **node, Buffer *name)
+int NameCache::get_answer_from_cache_r(NCR_Tree** node, Buffer* name)
 {
 	int s;
 
@@ -251,18 +260,19 @@ int NameCache::get_answer_from_cache_r(NCR_Tree **node, Buffer *name)
 void NameCache::clean_by_threshold(const long int thr)
 {
 	int		c	= 0;
-	NCR_List	*p	= NULL;
-	NCR_List	*up	= NULL;
-	NCR_Tree	*node	= NULL;
+	NCR_List*	p	= NULL;
+	NCR_List*	up	= NULL;
+	NCR_Tree*	node	= NULL;
 
 	p = _cachel->_last;
 	while (p) {
-		if (p->_rec->_stat > thr)
+		if (p->_rec->_stat > thr) {
 			break;
+		}
 
 		if (DBG_LVL_IS_1) {
-			dlog.er("[RESCACHED] removing '%s' - %d\n",
-				p->_rec->_name->_v, p->_rec->_stat);
+			dlog.er("[RESCACHED] removing '%s' - %d\n"
+				, p->_rec->_name->_v, p->_rec->_stat);
 		}
 
 		c = toupper(p->_rec->_name->_v[0]);
@@ -287,9 +297,9 @@ void NameCache::clean_by_threshold(const long int thr)
 			up	= NULL;
 		} else {
 			up = p->_up;
-			if (p == _cachel->_last)
+			if (p == _cachel->_last) {
 				_cachel->_last = up;
-
+			}
 			up->_down = NULL;
 		}
 
@@ -312,35 +322,38 @@ void NameCache::clean_by_threshold(const long int thr)
  * @return:
  *	< >0	: fail, record already exist.
  *	< 0	: success.
- *	< <0	: fail.
+ *	< -1	: fail.
  */
 int NameCache::insert(NCR *record)
 {
+	if (!record) {
+		return -1;
+	}
+	if (!record->_name) {
+		return 1;
+	}
+	if (!record->_name->_i) {
+		return 1;
+	}
+	if (!record->_stat) {
+		return 1;
+	}
+	if (!record->_answ) {
+		return 1;
+	}
+
 	int		s	= 0;
 	int		c	= 0;
 	long int	thr	= _cache_thr;
-	DNSQuery	*answer	= NULL;
+	DNSQuery	*answer	= record->_answ;
 	NCR_List	*p_list	= NULL;
 	NCR_Tree	*p_tree	= NULL;
-
-	if (!record)
-		return 0;
-	if (!record->_name)
-		return 1;
-	if (!record->_name->_i)
-		return 1;
-	if (!record->_stat)
-		return 1;
-
-	answer = record->_answ;
-	if (!answer)
-		return 1;
 
 	/* remove authority and additional record */
 	if (answer->_rr_ans_p == NULL) {
 		s = answer->extract();
 		if (s != 0) {
-			return s;
+			return -1;
 		}
 	}
 	if (answer->_n_add) {
@@ -352,15 +365,13 @@ int NameCache::insert(NCR *record)
 	if (answer->_id) {
 		answer->set_id(0);
 	}
-	if (answer->_type == vos::BUFFER_IS_TCP) {
-		answer->set_tcp_size(answer->_bfr->_i);
-	}
 
 	while (_cachel && _n_cache >= _cache_max) {
 		clean_by_threshold(thr);
 
-		if (_n_cache < _cache_max)
+		if (_n_cache < _cache_max) {
 			break;
+		}
 
 		++thr;
 		if (DBG_LVL_IS_1) {
@@ -371,8 +382,9 @@ int NameCache::insert(NCR *record)
 
 	/* add to tree */
 	p_tree = new NCR_Tree();
-	if (!p_tree)
+	if (!p_tree) {
 		return -1;
+	}
 
 	p_tree->_rec = record;
 
@@ -387,19 +399,20 @@ int NameCache::insert(NCR *record)
 	if (s != 0) {
 		p_tree->_rec = NULL;
 		delete p_tree;
-		return s;
+		return -1;
 	}
 
 	/* add to list */
 	p_list = new NCR_List();
-	if (!p_list)
+	if (!p_list) {
 		return -1;
+	}
 
 	p_list->_rec	= record;
 	p_list->_p_tree	= p_tree;
 	p_tree->_p_list	= p_list;
 
-	NCR_List::ADD(&_cachel, p_list);
+	NCR_List::ADD(&_cachel, NULL, p_list);
 
 	++_n_cache;
 
@@ -410,20 +423,23 @@ int NameCache::insert(NCR *record)
  * @return	:
  (	< >0	: fail, record with the same name already exist.
  *	< 0	: success.
- *	< <0	: fail.
+ *	< -1	: fail.
  */
-int NameCache::insert_raw(const int type, const Buffer *name,
-			const Buffer *question, const Buffer *answer)
+int NameCache::insert_raw(const int type, const Buffer* name
+				, const Buffer* question
+				, const Buffer* answer)
 {
-	int	s	= 0;
-	NCR	*ncr	= NULL;
-
-	if (!name)
+	if (!name) {
 		return 0;
+	}
+
+	int	s	= 0;
+	NCR*	ncr	= NULL;
 
 	s = NCR::INIT(&ncr, type, name, question, answer);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	s = insert(ncr);
 	if (s != 0) {
@@ -433,8 +449,9 @@ int NameCache::insert_raw(const int type, const Buffer *name,
 	return s;
 }
 
-int NameCache::insert_raw_r(const int type, const Buffer *name,
-				const Buffer *question, const Buffer *answer)
+int NameCache::insert_raw_r(const int type, const Buffer* name
+				, const Buffer* question
+				, const Buffer* answer)
 {
 	int s;
 
@@ -445,7 +462,7 @@ int NameCache::insert_raw_r(const int type, const Buffer *name,
 	return s;
 }
 
-void NameCache::increase_stat_and_rebuild_r(NCR_List *list)
+void NameCache::increase_stat_and_rebuild_r(NCR_List* list)
 {
 	lock();
 	list->_rec->_stat++;
@@ -455,8 +472,8 @@ void NameCache::increase_stat_and_rebuild_r(NCR_List *list)
 
 void NameCache::prune()
 {
-	NCR_List *next = NULL;
-	NCR_List *node = NULL;
+	NCR_List* next = NULL;
+	NCR_List* node = NULL;
 
 	if (_buckets) {
 		for (int i = 0; i <= CACHET_IDX_SIZE; ++i) {
@@ -485,17 +502,19 @@ void NameCache::dump()
 	int i;
 
 	if (_cachel) {
-		dlog.write_raw("\n >> LIST\n");
+		dlog.write_raw("\n[rescached::NameCach] >> LIST\n");
 		_cachel->dump();
 	}
 
-	if (!_buckets)
+	if (!_buckets) {
 		return;
+	}
 
-	dlog.write_raw("\n >> TREE\n");
+	dlog.write_raw("\n[rescached::NameCach] >> TREE\n");
 	for (i = 0; i < CACHET_IDX_SIZE; ++i) {
-		if (!_buckets[i]._v)
+		if (!_buckets[i]._v) {
 			continue;
+		}
 
 		dlog.writes(
 "\n\n\

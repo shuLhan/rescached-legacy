@@ -8,8 +8,9 @@
 
 using vos::File;
 using vos::Config;
-using vos::Socket;
 using vos::SockAddr;
+using vos::Socket;
+using vos::SockServer;
 using vos::Resolver;
 using namespace rescached;
 
@@ -19,10 +20,9 @@ volatile sig_atomic_t	_SIG_lock_	= 0;
 static int		_rt_max		= RESCACHED_DEF_N_THREAD;
 static int		_srvr_port	= RESCACHED_DEF_PORT;
 static int		_got_signal_	= 0;
-static Resolver		_rslvr;
 static NameCache	_nc;
-static Socket		_srvr_tcp;
-static Socket		_srvr_udp;
+static SockServer	_srvr_tcp;
+static SockServer	_srvr_udp;
 static Buffer		_file_data;
 static Buffer		_file_data_bak;
 static Buffer		_file_log;
@@ -31,7 +31,7 @@ static Buffer		_srvr_parent;
 static Buffer		_srvr_listen;
 static ResThread	*_rt = NULL;
 
-static int rescached_exit();
+static void rescached_exit();
 
 static void rescached_interrupted(int sig_num)
 {
@@ -90,13 +90,13 @@ static void rescached_set_signal_handle()
  *
  * @return	:
  *	< 0	: success.
- *	< <0	: fail.
+ *	< -1	: fail.
  */
-static int rescached_load_config(const char *fconf)
+static int rescached_load_config(const char* fconf)
 {
 	int		s	= 0;
 	Config		cfg;
-	const char	*v	= NULL;
+	const char*	v	= NULL;
 
 	if (!fconf) {
 		fconf = RESCACHED_CONF;
@@ -115,23 +115,25 @@ static int rescached_load_config(const char *fconf)
 		s = _file_data.copy_raw(v);
 	}
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.data.backup");
 	if (v) {
 		s = _file_data_bak.copy_raw(v);
 		if (s != 0) {
-			return s;
+			return -1;
 		}
 	} else {
 		s = _file_data_bak.copy(&_file_data);
-		if (s != 0)
-			return s;
+		if (s != 0) {
+			return -1;
+		}
 
 		s = _file_data_bak.append_raw(RESCACHED_DATA_BAK_EXT);
-		if (s < 0)
-			return s;
+		if (s < 0) {
+			return -1;
+		}
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.pid", RESCACHED_PID);
@@ -141,7 +143,7 @@ static int rescached_load_config(const char *fconf)
 		s = _file_pid.copy_raw(v);
 	}
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.log", RESCACHED_LOG);
@@ -151,7 +153,7 @@ static int rescached_load_config(const char *fconf)
 		s = _file_log.copy_raw(v);
 	}
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent");
@@ -161,7 +163,7 @@ static int rescached_load_config(const char *fconf)
 		s = _srvr_parent.copy_raw(v);
 	}
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen", RESCACHED_DEF_LISTEN);
@@ -171,7 +173,7 @@ static int rescached_load_config(const char *fconf)
 		s = _srvr_listen.copy_raw(v);
 	}
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen.port");
@@ -196,48 +198,52 @@ static int rescached_load_config(const char *fconf)
 	v = cfg.get(RESCACHED_CONF_HEAD, "cache.max", RESCACHED_CACHE_MAX_S);
 	if (v) {
 		_cache_max = strtol(v, 0, 10);
-		if (_cache_max <= 0)
+		if (_cache_max <= 0) {
 			_cache_max = RESCACHED_CACHE_MAX;
+		}
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "cache.threshold");
 	if (v) {
 		_cache_thr = strtoul(v, 0, 10);
-		if (_cache_thr <= 0)
+		if (_cache_thr <= 0) {
 			_cache_thr = RESCACHED_DEF_THRESHOLD;
+		}
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "debug");
 	if (v) {
 		_debug_lvl = (int) strtol(v, 0, 10);
-		if (_debug_lvl < 0)
+		if (_debug_lvl < 0) {
 			_debug_lvl = RESCACHED_DEF_DEBUG;
+		}
 	}
 
 	return 0;
 }
 
 /**
- * @desc: initialize Rescached object.
- *
- * @param:
+ * @method	: rescached_init
+ * @param	:
  *	> fconf : config file to read.
- *
- * @return:
+ * @return	:
  *	< 0	: success.
- *	< <0	: fail.
+ *	< -1	: fail.
+ * @desc	: initialize Rescached object.
  */
-static int rescached_init(const char *fconf)
+static int rescached_init(const char* fconf)
 {
 	int s;
 
 	s = rescached_load_config(fconf);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	s = dlog.open(_file_log._v);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	if (DBG_LVL_IS_1) {
 		dlog.er("[RESCACHED] cache file        > %s\n", _file_data._v);
@@ -253,20 +259,20 @@ static int rescached_init(const char *fconf)
 		dlog.er("[RESCACHED] debug level       > %d\n", _debug_lvl);
 	}
 
-	_rslvr.init();
-	_rslvr.set_server(_srvr_parent._v);
-
 	s = _srvr_udp.create_udp();
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	s = _srvr_udp.bind(_srvr_listen._v, _srvr_port);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
-	s = _srvr_tcp.create_tcp();
-	if (s != 0)
-		return s;
+	s = _srvr_tcp.create();
+	if (s != 0) {
+		return -1;
+	}
 
 	s = _srvr_tcp.bind_listen(_srvr_listen._v, _srvr_port);
 	if (s != 0)
@@ -287,14 +293,15 @@ static int rescached_init(const char *fconf)
 			if (ENOENT == errno) {
 				return 0;
 			}
-			return s;
+			return -1;
 		}
 	}
 
 	if (DBG_LVL_IS_1) {
 		dlog.er("[RESCACHED] %d record loaded\n", _nc._n_cache);
-		if (DBG_LVL_IS_2)
+		if (DBG_LVL_IS_2) {
 			_nc.dump();
+		}
 	}
 
 	return 0;
@@ -306,14 +313,16 @@ static int rescached_init_write_pid()
 	File	fpid;
 
 	s = fpid.open_wo(_file_pid._v);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	s = getpid();
 
 	s = fpid.appendi(s);
-	if (s != 0)
-		return s;
+	if (s != 0) {
+		return -1;
+	}
 
 	return 0;
 }
@@ -334,7 +343,7 @@ static int rescached_create_backup()
 
 	s = r.open_ro(_file_data._v);
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	s = (int) r.get_size();
@@ -344,56 +353,28 @@ static int rescached_create_backup()
 
 	s = w.open_wo(_file_data_bak._v);
 	if (s != 0) {
-		return s;
+		return -1;
 	}
 
 	s = r.read();
 	while (s > 0) {
 		s = w.write(&r);
-		if (s < 0)
+		if (s < 0) {
 			break;
+		}
 		s = r.read();
 	}
 
 	return 0;
 }
 
-/**
- * @return	:
- *	< 0	: success.
- *	< !0	: fail.
- */
-static int rescached_exit()
-{
-	int s = 0;
-
-	if (DBG_LVL_IS_1) {
-		dlog.er("\n[RESCACHED] saving %d caches ...\n", _nc._n_cache);
-	}
-
-	if (_file_pid._v) {
-		unlink(_file_pid._v);
-	}
-
-	if (_file_data._v) {
-		s = _nc.save(_file_data._v);
-		if (s != 0)
-			return s;
-	}
-
-	s = rescached_create_backup();
-
-	return s;
-}
-
-static int process_tcp_clients(fd_set *tcp_fd_all, fd_set *tcp_fd_read)
+static int process_tcp_clients(fd_set* tcp_fd_all, fd_set* tcp_fd_read)
 {
 	int		rqt_idx		= 0;
 	int		s		= 0;
-	Socket		*unused_client	= NULL;
-	Socket		*client		= NULL;
-	Socket		*next		= NULL;
-	DNSQuery	*question	= NULL;
+	Socket*		client		= NULL;
+	Socket*		next		= NULL;
+	DNSQuery*	question	= NULL;
 
 	_srvr_tcp.lock_client();
 	client			= _srvr_tcp._clients;
@@ -407,10 +388,8 @@ static int process_tcp_clients(fd_set *tcp_fd_all, fd_set *tcp_fd_read)
 			next->_prev = NULL;
 		}
 
-		s = FD_ISSET(client->_d, tcp_fd_read);
-		if (0 == s) {
-			unused_client = Socket::ADD_CLIENT(unused_client,
-								client);
+		if (FD_ISSET(client->_d, tcp_fd_read) == 0) {
+			_srvr_tcp.add_client(client);
 			client = next;
 			continue;
 		}
@@ -418,26 +397,23 @@ static int process_tcp_clients(fd_set *tcp_fd_all, fd_set *tcp_fd_read)
 		client->reset();
 		s = client->read();
 
-		/* client close connection */
-		if (s == 0) {
+		if (s <= 0) {
+			/* client read error or close connection */
 			FD_CLR(client->_d, tcp_fd_all);
-
-			_rt[rqt_idx].push_query_r(NULL, client, NULL);
-			rqt_idx = (rqt_idx + 1) % _rt_max;
 		} else {
 			s = DNSQuery::INIT(&question, client, vos::BUFFER_IS_TCP);
 			if (s != 0) {
-				client = client->_next;
+				_srvr_tcp.add_client(client);
+				client = next;
 				continue;
 			}
-			_rt[rqt_idx].push_query_r(NULL, client, question);
-			rqt_idx = (rqt_idx + 1) % _rt_max;
-			question = NULL;
 		}
-		client = next;
-	}
 
-	_srvr_tcp.add_client_r(unused_client);
+		_rt[rqt_idx].push_query(NULL, client, question);
+		rqt_idx		= (rqt_idx + 1) % _rt_max;
+		question	= NULL;
+		client		= next;
+	}
 
 	return s;
 }
@@ -445,14 +421,14 @@ static int process_tcp_clients(fd_set *tcp_fd_all, fd_set *tcp_fd_read)
 /**
  * @desc	: run tcp server on its own process.
  */
-static void * rescached_tcp_server(void *arg)
+static void* rescached_tcp_server(void* arg)
 {
 	int		s		= 0;
 	int		maxfds		= 0;
 	fd_set		tcp_fd_all;
 	fd_set		tcp_fd_read;
-	Socket		*client		= NULL;
-	ResThread	*rqt		= (ResThread *) arg;
+	Socket*		client		= NULL;
+	ResThread*	rqt		= (ResThread*) arg;
 
 	FD_ZERO(&tcp_fd_all);
 	FD_ZERO(&tcp_fd_read);
@@ -461,7 +437,7 @@ static void * rescached_tcp_server(void *arg)
 	maxfds = _srvr_tcp._d + 1;
 
 	while (_running_) {
-		if (!rqt->is_still_running_r()) {
+		if (!rqt->is_still_running()) {
 			break;
 		}
 
@@ -482,9 +458,9 @@ static void * rescached_tcp_server(void *arg)
 
 		if (FD_ISSET(_srvr_tcp._d, &tcp_fd_read)) {
 			client = _srvr_tcp.accept_conn();
-			if (! client)
+			if (! client) {
 				continue;
-
+			}
 			if (client->_d > maxfds) {
 				maxfds = client->_d + 1;
 			}
@@ -514,8 +490,8 @@ static int rescached_udp_server()
 	int			rqt_idx		= 0;
 	fd_set			udp_fd_all;
 	fd_set			udp_fd_read;
-	DNSQuery		*question	= NULL;
-	struct sockaddr_in	*addr		= NULL;
+	DNSQuery*		question	= NULL;
+	struct sockaddr_in*	addr		= NULL;
 
 	FD_ZERO(&udp_fd_all);
 	FD_ZERO(&udp_fd_read);
@@ -539,27 +515,29 @@ static int rescached_udp_server()
 			continue;
 		}
 
-		if (!FD_ISSET(_srvr_udp._d, &udp_fd_read))
-			continue;
+		while (FD_ISSET(_srvr_udp._d, &udp_fd_read)) {
+			addr = (struct sockaddr_in*) calloc(1
+							, SockAddr::IN_SIZE);
+			if (!addr) {
+				continue;
+			}
 
-		addr = (struct sockaddr_in *) calloc(1, SockAddr::IN_SIZE);
-		if (!addr)
-			continue;
+			s = (int) _srvr_udp.recv_udp(addr);
+			if (s <= 0) {
+				free(addr);
+				continue;
+			}
 
-		s = (int) _srvr_udp.recv_udp(addr);
-		if (s <= 0) {
-			free(addr);
-			continue;
+			s = DNSQuery::INIT(&question, &_srvr_udp
+						, vos::BUFFER_IS_UDP);
+			if (s < 0) {
+				free(addr);
+				continue;
+			}
+
+			_rt[rqt_idx].push_query(addr, NULL, question);
+			rqt_idx = (rqt_idx + 1) % _rt_max;
 		}
-
-		s = DNSQuery::INIT(&question, &_srvr_udp, vos::BUFFER_IS_UDP);
-		if (s != 0) {
-			free(addr);
-			continue;
-		}
-
-		_rt[rqt_idx].push_query_r(addr, NULL, question);
-		rqt_idx = (rqt_idx + 1) % _rt_max;
 	}
 
 	if (DBG_LVL_IS_1) {
@@ -569,19 +547,16 @@ static int rescached_udp_server()
 	return s;
 }
 
-static void process_queue(ResQueue *queue, Socket *udp_server,
-				Resolver *rslvr, DNSQuery *answer,
-				Buffer *bfr)
+static void process_queue(ResQueue* queue, Socket* udp_server
+				, Resolver* rslvr, DNSQuery* answer)
 {
 	int			s		= 0;
 	int			idx		= 0;
-	uint16_t		len		= 0;
-	Buffer			*bfr_answer	= NULL;
-	DNSQuery		*question	= NULL;
-	DNSQuery		*p_answer	= NULL;
-	NCR_Tree		*node		= NULL;
-	Socket			*tcp_client	= NULL;
-	struct sockaddr_in	*udp_client	= NULL;
+	DNSQuery*		question	= NULL;
+	DNSQuery*		p_answer	= NULL;
+	NCR_Tree*		node		= NULL;
+	Socket*			tcp_client	= NULL;
+	struct sockaddr_in*	udp_client	= NULL;
 
 	udp_client	= queue->_udp_client;
 	tcp_client	= queue->_tcp_client;
@@ -590,6 +565,7 @@ static void process_queue(ResQueue *queue, Socket *udp_server,
 	/* client close connection */
 	if (!question) {
 		if (tcp_client) {
+			_srvr_tcp.remove_client(tcp_client);
 			delete tcp_client;
 		}
 		return;
@@ -612,97 +588,70 @@ static void process_queue(ResQueue *queue, Socket *udp_server,
 			return;
 		}
 
-		s = _nc.insert_raw_r(question->_bfr_type, &question->_name,
-					question->_bfr, answer->_bfr);
+		s = _nc.insert_raw_r(question->_bfr_type, &question->_name
+					, question, answer);
 
 		if (s == 0 && DBG_LVL_IS_1) {
 			dlog.er("[RESCACHED] inserting '%s' (%ld)\n",
 				question->_name._v, _nc._n_cache);
 		}
-
-		/* keep send the answer even if error at inserting answer to
-		 * cache */
-		if (answer->_bfr_type == vos::BUFFER_IS_TCP) {
-			tcp_client->reset();
-			tcp_client->send(answer->_bfr);
-		} else {
-			udp_server->send_udp(udp_client, answer->_bfr);
-		}
+		p_answer = answer;
 	} else {
-		p_answer = node->_rec->_answ;
-		p_answer->set_id(question->_id);
-
-		bfr_answer = p_answer->_bfr;
-
 		if (DBG_LVL_IS_1) {
 			dlog.er("[RESCACHED] udp: got one on cache ...\n");
 		}
 
-		if (question->_bfr_type == vos::BUFFER_IS_UDP) {
-			if (!udp_client)
+		_nc.increase_stat_and_rebuild_r((NCR_List *) node->_p_list);
+		p_answer = node->_rec->_answ;
+	}
+
+	p_answer->set_id(question->_id);
+
+	if (tcp_client) {
+		if (p_answer->_bfr_type == vos::BUFFER_IS_UDP) {
+			s = p_answer->to_tcp();
+			if (s < 0) {
 				return;
-
-			if (p_answer->_bfr_type == vos::BUFFER_IS_UDP) {
-				udp_server->send_udp(udp_client, bfr_answer);
-			} else {
-				udp_server->send_udp_raw(udp_client,
-							&bfr_answer->_v[2],
-							bfr_answer->_i - 2);
 			}
-		} else if (question->_bfr_type == vos::BUFFER_IS_TCP) {
-			if (!tcp_client)
-				return;
-
-			if (p_answer->_bfr_type == vos::BUFFER_IS_UDP) {
-				s = bfr->resize(bfr_answer->_i + 2);
-				if (s != 0)
-					return;
-
-				bfr->reset();
-
-				len = htons((uint16_t) bfr_answer->_i);
-				memset(&bfr->_v[0], '\0', 2);
-				memcpy(&bfr->_v[0], &len, 2);
-				bfr->_i = 2;
-				bfr->append(bfr_answer);
-				bfr_answer = bfr;
-			}
-
-			tcp_client->reset();
-			tcp_client->send(bfr_answer);
-
-			_srvr_tcp.add_client_r(tcp_client);
-		} else {
-			fprintf(stderr, "[RESCACHED] unknown buffer type %d\n",
-							question->_bfr_type);
-			return;
 		}
 
-		_nc.increase_stat_and_rebuild_r((NCR_List *) node->_p_list);
+		tcp_client->reset();
+		tcp_client->write(p_answer);
+
+		_srvr_tcp.add_client(tcp_client);
+	} else if (udp_client) {
+		if (p_answer->_bfr_type == vos::BUFFER_IS_UDP) {
+			udp_server->send_udp(udp_client, p_answer);
+		} else {
+			udp_server->send_udp_raw(udp_client
+						, &p_answer->_v[2]
+						, p_answer->_i - 2);
+		}
+	} else {
+		dlog.er("[RESCACHED] no client connected!\n");
+		return;
 	}
+
 	if (DBG_LVL_IS_2) {
 		_nc.dump_r();
 	}
 }
 
-static void * rescached_client_handle(void *arg)
+static void* rescached_client_handle(void* arg)
 {
 	Resolver	rslvr;
 	DNSQuery	answer;
-	Buffer		bfr;
 	Socket		udp_server;
-	ResQueue	*queue		= NULL;
-	ResQueue	*next		= NULL;
-	ResThread	*rt		= NULL;
+	ResQueue*	queue_start	= NULL;
+	ResQueue*	queue		= NULL;
+	ResThread*	rt		= NULL;
 
-	rt = (ResThread *) arg; 
+	rt = (ResThread*) arg; 
 
 	rslvr.init();
 	rslvr.set_server(_srvr_parent._v);
 
 	udp_server._d = _srvr_udp._d;
-
-	answer.init(NULL);
 
 	while (rt->_running) {
 		rt->wait();
@@ -712,25 +661,23 @@ static void * rescached_client_handle(void *arg)
 			rt->unlock();
 			break;
 		}
-		queue		= rt->_q_query;
-		rt->_q_query	= NULL;
 		rt->unlock();
 
+		queue		= rt->detach_query();
+		queue_start	= queue;
+
 		while (queue) {
-			next		= queue->_next;
-			queue->_next	= NULL;
-
-			process_queue(queue, &udp_server, &rslvr, &answer,
-					&bfr);
-			delete queue;
-
-			queue = next;
+			process_queue(queue, &udp_server, &rslvr, &answer);
+			queue = queue->_next;
+		}
+		if (queue_start) {
+			delete queue_start;
 		}
 	}
 
 	udp_server._d = 0;
 
-	return ((void *) 0);
+	return ((void*) 0);
 }
 
 static int rescached_start_client_handle()
@@ -745,9 +692,9 @@ static int rescached_start_client_handle()
 	}
 
 	for (i = 0; i < _rt_max; i++) {
-		s = pthread_create(&_rt[i]._id, NULL,
-					rescached_client_handle,
-					(void *) &_rt[i]);
+		s = pthread_create(&_rt[i]._id, NULL
+					, rescached_client_handle
+					, (void *) &_rt[i]);
 		if (s != 0) {
 			return -1;
 		}
@@ -762,7 +709,7 @@ static void rescached_stop_client_handle()
 
 	for (; i < _rt_max; ++i) {
 		if (_rt && _rt[i]._id) {
-			_rt[i].set_running_r(0);
+			_rt[i].set_running(0);
 			_rt[i].wakeup();
 			pthread_kill(_rt[i]._id, SIGUSR1);
 			pthread_join(_rt[i]._id, NULL);
@@ -772,21 +719,48 @@ static void rescached_stop_client_handle()
 
 static int rescached_start_tcp_server(ResThread *rqt)
 {
-	int		s;
+	int s;
 
-	rqt->set_running_r(_running_);
+	rqt->set_running(_running_);
 
-	s = pthread_create(&rqt->_id, NULL, rescached_tcp_server,
-				(void *) rqt);
+	s = pthread_create(&rqt->_id, NULL, rescached_tcp_server
+				, (void *) rqt);
 
 	return s;
 }
 
 static void rescached_stop_tcp_server(ResThread *rqt)
 {
-	rqt->set_running_r(0);
+	rqt->set_running(0);
 	pthread_kill(rqt->_id, SIGUSR1);
 	pthread_join(rqt->_id, NULL);
+}
+
+/**
+ * @return	:
+ *	< 0	: success.
+ *	< !0	: fail.
+ */
+static void rescached_exit()
+{
+	rescached_stop_client_handle();
+	rescached_stop_tcp_server(&_rt[_rt_max]);
+
+	if (DBG_LVL_IS_1) {
+		dlog.er("\n[RESCACHED] saving %d records ...\n", _nc._n_cache);
+	}
+	if (_file_pid._v) {
+		unlink(_file_pid._v);
+	}
+	if (_file_data._v) {
+		_nc.save(_file_data._v);
+	}
+
+	rescached_create_backup();
+
+	if (_rt) {
+		delete[] _rt;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -819,16 +793,9 @@ int main(int argc, char *argv[])
 	}
 
 	rescached_udp_server();
-
-	rescached_stop_tcp_server(&_rt[_rt_max]);
 err:
-	rescached_stop_client_handle();
-
 	if (s) {
 		perror(NULL);
-	}
-	if (_rt) {
-		delete[] _rt;
 	}
 	rescached_exit();
 

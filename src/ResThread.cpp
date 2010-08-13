@@ -9,12 +9,12 @@
 namespace rescached {
 
 ResThread::ResThread() :
-	_id(),
-	_running(1),
-	_n_query(0),
-	_lock(),
-	_cond(),
-	_q_query(NULL)
+	_id()
+,	_running(1)
+,	_n_query(0)
+,	_lock()
+,	_cond()
+,	_q_query(NULL)
 {
 	pthread_mutex_init(&_lock, NULL);
 	pthread_cond_init(&_cond, NULL);
@@ -33,14 +33,16 @@ ResThread::~ResThread()
 
 void ResThread::lock()
 {
-	while (pthread_mutex_trylock(&_lock) != 0)
+	while (pthread_mutex_trylock(&_lock) != 0) {
 		;
+	}
 }
 
 void ResThread::unlock()
 {
-	while (pthread_mutex_unlock(&_lock) != 0)
+	while (pthread_mutex_unlock(&_lock) != 0) {
 		;
+	}
 }
 
 void ResThread::wait()
@@ -62,14 +64,15 @@ void ResThread::wakeup()
  *	< 0	: success.
  *	< <0	: fail.
  */
-int ResThread::push_query_r(struct sockaddr_in *udp_client,
-				Socket *tcp_client, DNSQuery *question)
+int ResThread::push_query(struct sockaddr_in* udp_client
+				, Socket* tcp_client, DNSQuery* question)
 {
-	ResQueue *obj = NULL;
+	ResQueue* obj = NULL;
 
 	obj = new ResQueue();
-	if (!obj)
+	if (!obj) {
 		return -1;
+	}
 
 	obj->_udp_client	= udp_client;
 	obj->_tcp_client	= tcp_client;
@@ -77,7 +80,7 @@ int ResThread::push_query_r(struct sockaddr_in *udp_client,
 
 	lock();
 
-	_q_query = ResQueue::PUSH(_q_query, obj);
+	ResQueue::PUSH(&_q_query, obj);
 	_n_query++;
 	pthread_cond_signal(&_cond);
 
@@ -87,13 +90,13 @@ int ResThread::push_query_r(struct sockaddr_in *udp_client,
 }
 
 
-ResQueue * ResThread::pop_query_r()
+ResQueue* ResThread::pop_query()
 {
-	ResQueue *queue	= NULL;
+	ResQueue* queue = NULL;
 
 	lock();
 	if (_n_query > 0) {
-		_q_query = ResQueue::POP(_q_query, &queue);
+		ResQueue::POP(&_q_query, &queue);
 		if (queue) {
 			_n_query--;
 		}
@@ -103,14 +106,31 @@ ResQueue * ResThread::pop_query_r()
 	return queue;
 }
 
-void ResThread::set_running_r(const int run)
+ResQueue* ResThread::detach_query()
+{
+	if (!_q_query) {
+		return NULL;
+	}
+
+	ResQueue* queries = NULL;
+
+	lock();
+	queries 	= _q_query;
+	_q_query	= NULL;
+	_n_query	= 0;
+	unlock();
+
+	return queries;
+}
+
+void ResThread::set_running(const int run)
 {
 	lock();
 	_running = run;
 	unlock();
 }
 
-int ResThread::is_still_running_r()
+int ResThread::is_still_running()
 {
 	int r;
 

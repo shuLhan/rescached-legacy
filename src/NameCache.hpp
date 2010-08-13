@@ -23,7 +23,7 @@ using vos::Writer;
 namespace rescached {
 
 struct NCR_Bucket {
-	NCR_Tree *_v;
+	NCR_Tree* _v;
 };
 
 class NameCache {
@@ -34,22 +34,22 @@ public:
 	void lock();
 	void unlock();
 
-	int raw_to_ncrecord(Record *raw, NCR **ncr);
-	int load(const char *fdata, const long int max);
+	int raw_to_ncrecord(Record* raw, NCR** ncr);
+	int load(const char* fdata, const long int max);
 
-	int ncrecord_to_record(const NCR *ncr, Record *row);
-	int save(const char *fdata);
+	int ncrecord_to_record(const NCR* ncr, Record* row);
+	int save(const char* fdata);
 
-	int get_answer_from_cache(NCR_Tree **node, Buffer *name);
-	int get_answer_from_cache_r(NCR_Tree **node, Buffer *name);
+	int get_answer_from_cache(NCR_Tree** node, Buffer* name);
+	int get_answer_from_cache_r(NCR_Tree** node, Buffer* name);
 
 	void clean_by_threshold(const long int thr);
 
-	int insert(NCR *record);
-	int insert_raw(const int type, const Buffer *name,
-			const Buffer *address, const Buffer *answer);
-	int insert_raw_r(const int type, const Buffer *name,
-			const Buffer *address, const Buffer *answer);
+	int insert(NCR* record);
+	int insert_raw(const int type, const Buffer* name
+			, const Buffer* question, const Buffer* answer);
+	int insert_raw_r(const int type, const Buffer* name
+			, const Buffer* question, const Buffer* answer);
 
 	void increase_stat_and_rebuild_r(NCR_List *list);
 
@@ -59,8 +59,8 @@ public:
 
 	long int	_n_cache;
 	pthread_mutex_t	_lock;
-	NCR_Bucket	*_buckets;
-	NCR_List	*_cachel;
+	NCR_Bucket*	_buckets;
+	NCR_List*	_cachel;
 private:
 	NameCache(const NameCache&);
 	void operator=(const NameCache&);

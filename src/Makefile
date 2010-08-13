@@ -5,21 +5,23 @@
 ##
 SRC_D		=.
 BLD_D		=build
-SCR_D		=$(SRC_D)/scripts
+SCRIPTS_D		=$(SRC_D)/scripts
 
 INSTALL_BIN_D	=/usr/sbin
 INSTALL_CFG_D	=/etc/rescached
-INSTALL_SVC_D	=/etc/init.d
 INSTALL_CACHE_D	=/var/cache/rescached
 
 LIBVOS_D	=lib
 
 include $(LIBVOS_D)/Makefile
 
+SERVICE_NAME	=rescached
+
 TARGET		=$(BLD_D)/rescached
 RESCACHED_CFG	=$(SRC_D)/rescached.cfg
-RESCACHED_RUN	=$(SCR_D)/rescached.run
-RESCACHED_SVC	=$(INSTALL_SVC_D)/rescached
+RESCACHED_SVC	=
+INSTALL_SVC_D	=
+SYSTEM_SVC	=
 
 TARGET_OBJS	=					\
 			$(BLD_D)/main.oo		\
@@ -37,8 +39,9 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/Resolver.oo	\
 			$(LIBVOS_BLD_D)/DNSQuery.oo	\
 			$(LIBVOS_BLD_D)/DNS_rr.oo	\
-			$(LIBVOS_BLD_D)/Socket.oo	\
 			$(LIBVOS_BLD_D)/SockAddr.oo	\
+			$(LIBVOS_BLD_D)/Socket.oo	\
+			$(LIBVOS_BLD_D)/SockServer.oo	\
 			$(LIBVOS_BLD_D)/Dlogger.oo	\
 			$(LIBVOS_BLD_D)/ConfigData.oo	\
 			$(LIBVOS_BLD_D)/Config.oo	\
@@ -48,7 +51,7 @@ TARGET_OBJS	=					\
 
 PRE_TARGET	+= $(BLD_D)
 
-.PHONY: all debug clean install uninstall
+.PHONY: all debug clean install install-arch uninstall
 
 all: libvos-all
 
@@ -63,15 +66,18 @@ $(BLD_D)/rescached: $(TARGET_OBJS)
 $(BLD_D)/%.oo: $(SRC_D)/%.cpp $(SRC_D)/%.hpp
 	@$(do_compile)
 
-install:
-	@if [[ $$(UID) != 0 ]]; then					\
+do-install:
+	@if [[ $${UID} != 0 ]]; then					\
 		echo " >> User root needed for installation!";		\
 		exit 1;							\
 	fi;								\
-	mkdir -p $(INSTALL_BIN_D);					\
-	mkdir -p $(INSTALL_CFG_D);					\
-	mkdir -p $(INSTALL_SVC_D);					\
-	mkdir -p $(INSTALL_CACHE_D);					\
+	echo "";							\
+	echo " >> Creating directories ...";				\
+	$(call do_mkdir,$(INSTALL_BIN_D))				\
+	$(call do_mkdir,$(INSTALL_CFG_D))				\
+	$(call do_mkdir,$(INSTALL_SVC_D))				\
+	$(call do_mkdir,$(INSTALL_CACHE_D))				\
+	echo "";							\
 	echo " >> Installing program and configuration ...";		\
 	$(call do_install,$(TARGET),$(INSTALL_BIN_D))			\
 	if [ ! -f $(INSTALL_CFG_D)/$(RESCACHED_CFG) ]; then		\
@@ -79,8 +85,19 @@ install:
 	fi;								\
 	echo "";							\
 	echo " >> Installing service ...";				\
-	$(call do_install,$(RESCACHED_RUN),$(RESCACHED_SVC))		\
-	$(call do_link,$(RESCACHED_SVC),$(INSTALL_BIN_D)/rcrescached)	\
+	$(call do_install,$(RESCACHED_SVC),$(SYSTEM_SVC))		\
+	$(call do_link,$(SYSTEM_SVC),$(INSTALL_BIN_D)/rcrescached)
+
+
+install: INSTALL_SVC_D=/etc/init.d
+install: RESCACHED_SVC=$(SCRIPTS_D)/rescached.run
+install: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+install: do-install
+
+install-arch: INSTALL_SVC_D=/etc/rc.d
+install-arch: RESCACHED_SVC=$(SCRIPTS_D)/rescached.arch
+install-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+install-arch: do-install
 
 uninstall:
 	@if [[ $$(UID) != 0 ]]; then					\

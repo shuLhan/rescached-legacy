@@ -9,52 +9,50 @@
 namespace rescached {
 
 ResQueue::ResQueue() :
-	_udp_client(NULL),
-	_tcp_client(NULL),
-	_qstn(NULL),
-	_next(NULL)
+	_udp_client(NULL)
+,	_tcp_client(NULL)
+,	_qstn(NULL)
+,	_next(NULL)
+,	_last(this)
 {}
 
 ResQueue::~ResQueue()
 {
-	if (_udp_client)
+	if (_udp_client) {
 		free(_udp_client);
-	if (_tcp_client)
+		_udp_client = NULL;
+	}
+	if (_tcp_client) {
 		_tcp_client = NULL;
-	if (_qstn)
+	}
+	if (_qstn) {
 		delete _qstn;
-	if (_next)
+		_qstn = NULL;
+	}
+	if (_next) {
 		delete _next;
+		_next = NULL;
+	}
 }
 
 /**
  * @desc	: push a new node to queue.
- *
  * @param	:
  *	> head	: head of queue.
  *	> node	: pointer to new node.
- *
- * @return	:
- *	< head	: pointer to new head of queue.
  */
-ResQueue * ResQueue::PUSH(ResQueue *head, ResQueue *node)
+void ResQueue::PUSH(ResQueue** head, ResQueue* node)
 {
-	ResQueue *p = head;
-
-	if (!head)
-		return node;
-
-	while (p->_next)
-		p = p->_next;
-
-	p->_next = node;
-
-	return head;
+	if (!(*head)) {
+		(*head) = node;
+	} else {
+		(*head)->_last->_next	= node;
+		(*head)->_last		= node;
+	}
 }
 
 /**
  * @desc	: remove head from queue.
- *
  * @param	:
  *	> head	: pointer to head of queue.
  *	> node	: return value, the current head of queue.
@@ -62,16 +60,21 @@ ResQueue * ResQueue::PUSH(ResQueue *head, ResQueue *node)
  * @return	:
  *	< head	: a new head of queue.
  */
-ResQueue * ResQueue::POP(ResQueue *head, ResQueue **node)
+void ResQueue::POP(ResQueue** head, ResQueue** node)
 {
-	if (!head)
-		return NULL;
+	if (!(*head)) {
+		(*node) = NULL;
+	} else {
+		(*node)		= (*head);
+		(*head)		= (*head)->_next;
 
-	(*node)		= head;
-	head		= head->_next;
-	(*node)->_next	= NULL;
+		if ((*head)) {
+			(*head)->_last = (*node)->_last;
+		}
 
-	return head;
+		(*node)->_next	= NULL;
+		(*node)->_last	= NULL;
+	}
 }
 
 } /* namespace::rescached */

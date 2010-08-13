@@ -1,0 +1,40 @@
+#!/bin/bash
+
+. /etc/rc.conf
+. /etc/rc.d/functions
+
+BIN="/usr/sbin/rescached"
+CFG="/etc/rescached/rescached.cfg"
+
+PID=`pidof -o %PPID ${BIN}`
+
+case "$1" in
+	start)
+		stat_busy "Starting rescached"
+		[ -z "$PID" ] && ${BIN} ${CFG} &
+		if [ $? -gt 0 ]; then
+			stat_fail
+		else
+			add_daemon rescached
+			stat_done
+		fi
+		;;
+	stop)
+		stat_busy "Stopping rescached"
+		[ ! -z "$PID" ] && kill $PID
+		if [ $? -gt 0 ]; then
+			stat_fail
+		else
+			rm_daemon rescached
+			stat_done
+		fi
+		;;
+	restart)
+		$0 stop
+		sleep 3
+		$0 start
+		;;
+	*)
+		echo "usage: $0 {start|stop|restart}"
+esac
+exit 0

@@ -26,19 +26,20 @@ public:
 	void wait();
 	void wakeup();
 
-	int push_query_r(struct sockaddr_in *udp_client,
-				Socket *tcp_client, DNSQuery *question);
-	ResQueue * pop_query_r();
+	int push_query(struct sockaddr_in* udp_client
+			, Socket* tcp_client, DNSQuery* question);
+	ResQueue* pop_query();
+	ResQueue* detach_query();
 
-	void set_running_r(const int run);
-	int is_still_running_r();
+	void set_running(const int run);
+	int is_still_running();
 
 	pthread_t	_id;
 	int		_running;
 	int		_n_query;
 	pthread_mutex_t	_lock;
 	pthread_cond_t	_cond;
-	ResQueue	*_q_query;
+	ResQueue*	_q_query;
 private:
 	ResThread(const ResThread&);
 	void operator=(const ResThread&);

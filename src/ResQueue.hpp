@@ -20,13 +20,14 @@ public:
 	ResQueue();
 	~ResQueue();
 
-	static ResQueue * PUSH(ResQueue *head, ResQueue *node);
-	static ResQueue * POP(ResQueue *head, ResQueue **node);
+	struct sockaddr_in*	_udp_client;
+	Socket*			_tcp_client;
+	DNSQuery*		_qstn;
+	ResQueue*		_next;
+	ResQueue*		_last;
 
-	struct sockaddr_in	*_udp_client;
-	Socket			*_tcp_client;
-	DNSQuery		*_qstn;
-	ResQueue		*_next;
+	static void PUSH(ResQueue** head, ResQueue* node);
+	static void POP(ResQueue** head, ResQueue** node);
 private:
 	ResQueue(const ResQueue&);
 	void operator=(const ResQueue&);

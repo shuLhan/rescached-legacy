@@ -14,8 +14,8 @@ using vos::DNSQuery;
 namespace rescached {
 
 enum _rbt_color {
-	RBT_IS_BLACK	= 0,
-	RBT_IS_RED	= 1
+	RBT_IS_BLACK	= 0
+,	RBT_IS_RED	= 1
 };
 
 class NCR_Tree {
@@ -23,22 +23,22 @@ public:
 	NCR_Tree();
 	~NCR_Tree();
 
-	int cmp(NCR *ncr);
-	NCR_Tree* search_record_name(Buffer *name);
+	int cmp(NCR* ncr);
+	NCR_Tree* search_record_name(Buffer* name);
 
 	void prune();
 	void dump();
 	void dump_tree(const int t);
 
-	static int RBT_INSERT(NCR_Tree **root, NCR_Tree *node);
-	static NCR_Tree * RBT_REMOVE(NCR_Tree **root, NCR_Tree *node);
-
 	int		_color;
-	NCR		*_rec;
-	NCR_Tree	*_left;
-	NCR_Tree	*_right;
-	NCR_Tree	*_top;
-	void		*_p_list;
+	NCR*		_rec;
+	NCR_Tree*	_left;
+	NCR_Tree*	_right;
+	NCR_Tree*	_top;
+	void*		_p_list;
+
+	static int RBT_INSERT(NCR_Tree** root, NCR_Tree* node);
+	static NCR_Tree* RBT_REMOVE(NCR_Tree** root, NCR_Tree* node);
 private:
 	NCR_Tree(const NCR_Tree&);
 	void operator=(const NCR_Tree&);
