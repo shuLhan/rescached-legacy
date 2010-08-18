@@ -14,8 +14,7 @@ NCR::NCR() :
 ,	_name(NULL)
 ,	_qstn(NULL)
 ,	_answ(NULL)
-{
-}
+{}
 
 NCR::~NCR()
 {

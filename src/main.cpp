@@ -17,9 +17,12 @@ using namespace rescached;
 volatile sig_atomic_t	_running_	= 1;
 volatile sig_atomic_t	_SIG_lock_	= 0;
 
-static int		_rt_max		= RESCACHED_DEF_N_THREAD;
+static int		_rto		= RESCACHED_DEF_TIMEOUT;
 static int		_srvr_port	= RESCACHED_DEF_PORT;
 static int		_got_signal_	= 0;
+static int		_maxfds		= 0;
+static fd_set		_fd_all;
+static fd_set		_fd_read;
 static NameCache	_nc;
 static SockServer	_srvr_tcp;
 static SockServer	_srvr_udp;
@@ -29,7 +32,8 @@ static Buffer		_file_log;
 static Buffer		_file_pid;
 static Buffer		_srvr_parent;
 static Buffer		_srvr_listen;
-static ResThread	*_rt = NULL;
+static Resolver		_rslvr_udp;
+static ResQueue*	_queue;
 
 static void rescached_exit();
 
@@ -37,6 +41,7 @@ static void rescached_interrupted(int sig_num)
 {
 	switch (sig_num) {
 	case SIGUSR1:
+		/* send interrupt to select() */
 		break;
 	case SIGSEGV:
 		if (_SIG_lock_) {
@@ -184,13 +189,13 @@ static int rescached_load_config(const char* fconf)
 		}
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "server.thread");
+	v = cfg.get(RESCACHED_CONF_HEAD, "server.timeout");
 	if (v) {
-		_rt_max = (int) strtol(v, 0, 0);
-		if (_rt_max <= 0) {
-			_rt_max = (int) sysconf(_SC_NPROCESSORS_CONF);
-			if (_rt_max <= 1) {
-				_rt_max = RESCACHED_DEF_N_THREAD;
+		_rto = (int) strtol(v, 0, 0);
+		if (_rto <= 0) {
+			_rto = (int) sysconf(_SC_NPROCESSORS_CONF);
+			if (_rto <= 1) {
+				_rto = RESCACHED_DEF_TIMEOUT;
 			}
 		}
 	}
@@ -253,7 +258,7 @@ static int rescached_init(const char* fconf)
 		dlog.er("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
 		dlog.er("[RESCACHED] listening on      > %s\n", _srvr_listen._v);
 		dlog.er("[RESCACHED] listening on port > %d\n", _srvr_port);
-		dlog.er("[RESCACHED] max thread        > %d\n", _rt_max);
+		dlog.er("[RESCACHED] timeout           > %d\n", _rto);
 		dlog.er("[RESCACHED] cache maximum     > %ld\n", _cache_max);
 		dlog.er("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
 		dlog.er("[RESCACHED] debug level       > %d\n", _debug_lvl);
@@ -304,9 +309,37 @@ static int rescached_init(const char* fconf)
 		}
 	}
 
+	s = _rslvr_udp.init();
+	if (s < 0) {
+		return -1;
+	}
+
+	s = _rslvr_udp.set_server(_srvr_parent._v);
+	if (s < 0) {
+		return -1;
+	}
+
+	FD_ZERO(&_fd_all);
+	FD_ZERO(&_fd_read);
+
+	FD_SET(_srvr_udp._d, &_fd_all);
+	FD_SET(_srvr_tcp._d, &_fd_all);
+	FD_SET(_rslvr_udp._d, &_fd_all);
+
+	_maxfds = (_srvr_udp._d > _srvr_tcp._d ? _srvr_udp._d : _srvr_tcp._d);
+	_maxfds = (_maxfds > _rslvr_udp._d ? _maxfds : _rslvr_udp._d);
+	_maxfds++;
+
 	return 0;
 }
 
+/**
+ * @method	: rescached_init_write_pid
+ * @return	:
+ *	< 0	: success.
+ *	< -1	: fail.
+ * @desc	: create rescached PID file.
+ */
 static int rescached_init_write_pid()
 {
 	int	s;
@@ -333,7 +366,7 @@ static int rescached_init_write_pid()
  *
  * @return	:
  *	< 0	: success.
- *	< !0	: fail.
+ *	< -1	: fail.
  */
 static int rescached_create_backup()
 {
@@ -368,28 +401,224 @@ static int rescached_create_backup()
 	return 0;
 }
 
-static int process_tcp_clients(fd_set* tcp_fd_all, fd_set* tcp_fd_read)
+/**
+ * @method		: queue_push
+ * @param		:
+ *	> udp_client	: address of client, if send from UDP.
+ *	> tcp_client	: pointer to client Socket object, if query is send
+ *                        from TCP.
+ *	> question	: pointer to DNS packet question.
+ * @return		:
+ *	< 0		: success.
+ *	< -1		: fail.
+ * @desc		: add client question to queue.
+ */
+static int queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
+			, DNSQuery* question)
 {
-	int		rqt_idx		= 0;
+	ResQueue* obj = NULL;
+
+	obj = new ResQueue();
+	if (!obj) {
+		return -1;
+	}
+
+	obj->_udp_client	= udp_client;
+	obj->_tcp_client	= tcp_client;
+	obj->_qstn		= question;
+
+	ResQueue::PUSH(&_queue, obj);
+
+	return 0;
+}
+
+static void queue_clean()
+{
+	double		x = 0;
+	time_t		t = time(NULL);
+	ResQueue*	q = _queue;
+	ResQueue*	n = NULL;
+
+	while (q) {
+		n = q->_next;
+
+		x = difftime(t, q->_timeout);
+		if (x >= _rto) {
+			ResQueue::REMOVE(&_queue, q);
+		}
+
+		q = n;
+	}
+}
+
+static int queue_send_answer(struct sockaddr_in* udp_client
+				, Socket* tcp_client
+				, DNSQuery* question
+				, DNSQuery* answer)
+{
+	int s;
+
+	answer->set_id(question->_id);
+
+	if (tcp_client) {
+		if (answer->_bfr_type == vos::BUFFER_IS_UDP) {
+			s = answer->to_tcp();
+			if (s < 0) {
+				return -1;
+			}
+		}
+
+		tcp_client->reset();
+		tcp_client->write(answer);
+
+	} else if (udp_client) {
+		if (answer->_bfr_type == vos::BUFFER_IS_UDP) {
+			_srvr_udp.send_udp(udp_client, answer);
+		} else {
+			_srvr_udp.send_udp_raw(udp_client
+						, &answer->_v[2]
+						, answer->_i - 2);
+		}
+	} else {
+		dlog.er("[RESCACHED] queue_send_answer: no client connected!\n");
+		return -1;
+	}
+
+	if (DBG_LVL_IS_2) {
+		_nc.dump_r();
+	}
+
+	return 0;
+}
+
+static int queue_process(DNSQuery* answer)
+{
+	int		s;
+	ResQueue* 	q = NULL;
+	ResQueue*	n = NULL;
+
+	/* search queue by id and name only */
+	q = _queue;
+	while (q) {
+		if (q->_qstn && q->_qstn->_id == answer->_id) {
+			s = q->_qstn->_name.like(&answer->_name);
+			if (s == 0) {
+				s = _nc.insert_raw(answer->_bfr_type
+						, &answer->_name
+						, q->_qstn, answer);
+
+				break;
+			}
+		}
+
+		q = q->_next;
+	}
+	if (!q) {
+		/* search queue by name only */
+		q = _queue;
+		while (q) {
+			if (q->_qstn) {
+				s = q->_qstn->_name.like(&answer->_name);
+				if (s == 0) {
+					s = _nc.insert_raw(answer->_bfr_type
+							, &answer->_name
+							, q->_qstn, answer);
+					break;
+				}
+			}
+			q = q->_next;
+		}
+		if (!q) {
+			return 0;
+		}
+	}
+
+	s = queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn, answer);
+
+	ResQueue::REMOVE(&_queue, q);
+
+	/* send reply to all queue with the same name */
+	q = _queue;
+	while (q) {
+		n = q->_next;
+
+		if (q->_qstn) {
+			s = q->_qstn->_name.like(&answer->_name);
+			if (s == 0) {
+				s = queue_send_answer(q->_udp_client
+							, q->_tcp_client
+							, q->_qstn
+							, answer);
+				ResQueue::REMOVE(&_queue, q);
+			}
+		}
+		q = n;
+	}
+
+	return 0;
+}
+
+static int process_client(struct sockaddr_in* udp_client
+				, Socket* tcp_client
+				, DNSQuery* question)
+{
+	if (!question) {
+		return -1;
+	}
+
+	int		s;
+	int		idx;
+	NCR_Tree*	node	= NULL;
+	DNSQuery*	answer	= NULL;
+
+	question->extract_header();
+	question->extract_question();
+
+	dlog.out("[RESCACHED] process_client: '%s'\n", question->_name.v());
+
+	idx = _nc.get_answer_from_cache(&node, &question->_name);
+
+	if (idx < 0) {
+		s = _rslvr_udp.send_udp(question);
+		if (s < 0) {
+			return -1;
+		}
+
+		queue_push(udp_client, tcp_client, question);
+
+		return 0;
+	}
+
+	if (DBG_LVL_IS_1) {
+		dlog.er("[RESCACHED] process_client: got one on cache ...\n");
+	}
+
+	_nc.increase_stat_and_rebuild((NCR_List *) node->_p_list);
+	answer = node->_rec->_answ;
+
+	s = queue_send_answer(udp_client, tcp_client, question, answer);
+
+	if (udp_client) {
+		free(udp_client);
+	}
+	delete question;
+
+	return s;
+}
+
+static int process_tcp_client()
+{
 	int		s		= 0;
 	Socket*		client		= NULL;
 	Socket*		next		= NULL;
 	DNSQuery*	question	= NULL;
 
-	_srvr_tcp.lock_client();
-	client			= _srvr_tcp._clients;
-	_srvr_tcp._clients	= NULL;
-	_srvr_tcp.unlock_client();
+	client = _srvr_tcp._clients;
 
 	while (client) {
-		next		= client->_next;
-		client->_next	= NULL;
-		if (next) {
-			next->_prev = NULL;
-		}
+		next = client->_next;
 
-		if (FD_ISSET(client->_d, tcp_fd_read) == 0) {
-			_srvr_tcp.add_client(client);
+		if (FD_ISSET(client->_d, &_fd_read) == 0) {
 			client = next;
 			continue;
 		}
@@ -399,123 +628,61 @@ static int process_tcp_clients(fd_set* tcp_fd_all, fd_set* tcp_fd_read)
 
 		if (s <= 0) {
 			/* client read error or close connection */
-			FD_CLR(client->_d, tcp_fd_all);
+			FD_CLR(client->_d, &_fd_all);
+			_srvr_tcp.remove_client(client);
+			delete client;
 		} else {
-			s = DNSQuery::INIT(&question, client, vos::BUFFER_IS_TCP);
-			if (s != 0) {
-				_srvr_tcp.add_client(client);
+			s = DNSQuery::INIT(&question, client
+						, vos::BUFFER_IS_TCP);
+			if (s < 0) {
 				client = next;
 				continue;
 			}
+
+			process_client(NULL, client, question);
+
+			question = NULL;
 		}
 
-		_rt[rqt_idx].push_query(NULL, client, question);
-		rqt_idx		= (rqt_idx + 1) % _rt_max;
-		question	= NULL;
-		client		= next;
+		client = next;
 	}
 
-	return s;
+	return 0;
 }
 
-/**
- * @desc	: run tcp server on its own process.
- */
-static void* rescached_tcp_server(void* arg)
-{
-	int		s		= 0;
-	int		maxfds		= 0;
-	fd_set		tcp_fd_all;
-	fd_set		tcp_fd_read;
-	Socket*		client		= NULL;
-	ResThread*	rqt		= (ResThread*) arg;
-
-	FD_ZERO(&tcp_fd_all);
-	FD_ZERO(&tcp_fd_read);
-
-	FD_SET(_srvr_tcp._d, &tcp_fd_all);
-	maxfds = _srvr_tcp._d + 1;
-
-	while (_running_) {
-		if (!rqt->is_still_running()) {
-			break;
-		}
-
-		tcp_fd_read = tcp_fd_all;
-
-		if (DBG_LVL_IS_1) {
-			dlog.er("[RESCACHED] tcp: waiting for client...\n");
-		}
-
-		s = select(maxfds, &tcp_fd_read, NULL, NULL, NULL);
-		if (s <= 0) {
-			if (EINTR == errno) {
-				s = 0;
-				break;
-			}
-			continue;
-		}
-
-		if (FD_ISSET(_srvr_tcp._d, &tcp_fd_read)) {
-			client = _srvr_tcp.accept_conn();
-			if (! client) {
-				continue;
-			}
-			if (client->_d > maxfds) {
-				maxfds = client->_d + 1;
-			}
-			FD_SET(client->_d, &tcp_fd_all);
-
-			tcp_fd_read = tcp_fd_all;
-
-			process_tcp_clients(&tcp_fd_all, &tcp_fd_read);
-		} else {
-			/* must be tcp clients */
-			tcp_fd_read = tcp_fd_all;
-			process_tcp_clients(&tcp_fd_all, &tcp_fd_read);
-		}
-	}
-
-	if (DBG_LVL_IS_1) {
-		dlog.er("[RESCACHED] tcp server exit ...\n");
-	}
-
-	return (0);
-}
-
-static int rescached_udp_server()
+static int rescached_server()
 {
 	int			s		= 0;
-	int			maxfds		= 0;
-	int			rqt_idx		= 0;
-	fd_set			udp_fd_all;
-	fd_set			udp_fd_read;
+	struct timeval		timeout;
+	DNSQuery		answer;
 	DNSQuery*		question	= NULL;
+	Socket*			client		= NULL;
 	struct sockaddr_in*	addr		= NULL;
 
-	FD_ZERO(&udp_fd_all);
-	FD_ZERO(&udp_fd_read);
-
-	FD_SET(_srvr_udp._d, &udp_fd_all);
-	maxfds = _srvr_udp._d + 1;
-
 	while (_running_) {
-		udp_fd_read = udp_fd_all;
+		_fd_read = _fd_all;
 
-		if (DBG_LVL_IS_1) {
-			dlog.er("[RESCACHED] udp: waiting for client...\n");
-		}
+		timeout.tv_sec	= _rto;
+		timeout.tv_usec	= 0;
 
-		s = select(maxfds, &udp_fd_read, NULL, NULL, NULL);
+		s = select(_maxfds, &_fd_read, NULL, NULL, &timeout);
 		if (s <= 0) {
 			if (EINTR == errno) {
 				s = 0;
 				break;
 			}
+			queue_clean();
 			continue;
 		}
 
-		while (FD_ISSET(_srvr_udp._d, &udp_fd_read)) {
+		if (FD_ISSET(_rslvr_udp._d, &_fd_read)) {
+			answer.reset(vos::DNSQ_DO_ALL);
+
+			s = _rslvr_udp.recv_udp(&answer);
+			if (s >= 0) {
+				s = queue_process(&answer);
+			}
+		} else if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
 			addr = (struct sockaddr_in*) calloc(1
 							, SockAddr::IN_SIZE);
 			if (!addr) {
@@ -535,8 +702,24 @@ static int rescached_udp_server()
 				continue;
 			}
 
-			_rt[rqt_idx].push_query(addr, NULL, question);
-			rqt_idx = (rqt_idx + 1) % _rt_max;
+			s = process_client(addr, NULL, question);
+		} else if (FD_ISSET(_srvr_tcp._d, &_fd_read)) {
+			client = _srvr_tcp.accept_conn();
+			if (! client) {
+				continue;
+			}
+
+			FD_SET(client->_d, &_fd_all);
+
+			if (client->_d >= _maxfds) {
+				_maxfds = client->_d + 1;
+			}
+
+			s = process_tcp_client();
+		} else {
+			if (_srvr_tcp._clients) {
+				s = process_tcp_client();
+			}
 		}
 	}
 
@@ -547,205 +730,8 @@ static int rescached_udp_server()
 	return s;
 }
 
-static void process_queue(ResQueue* queue, Socket* udp_server
-				, Resolver* rslvr, DNSQuery* answer)
-{
-	int			s		= 0;
-	int			idx		= 0;
-	DNSQuery*		question	= NULL;
-	DNSQuery*		p_answer	= NULL;
-	NCR_Tree*		node		= NULL;
-	Socket*			tcp_client	= NULL;
-	struct sockaddr_in*	udp_client	= NULL;
-
-	udp_client	= queue->_udp_client;
-	tcp_client	= queue->_tcp_client;
-	question	= queue->_qstn;
-
-	/* client close connection */
-	if (!question) {
-		if (tcp_client) {
-			_srvr_tcp.remove_client(tcp_client);
-			delete tcp_client;
-		}
-		return;
-	}
-
-	question->extract_header();
-	question->extract_question();
-
-	if (DBG_LVL_IS_1) {
-		dlog.er(">> QUERY: %s\n", question->_name._v);
-	}
-
-	idx = _nc.get_answer_from_cache_r(&node, &question->_name);
-
-	if (idx < 0) {
-		answer->reset(vos::DNSQ_DO_ALL);
-
-		s = rslvr->send_query(question, answer);
-		if (s != 0) {
-			return;
-		}
-
-		s = _nc.insert_raw_r(question->_bfr_type, &question->_name
-					, question, answer);
-
-		if (s == 0 && DBG_LVL_IS_1) {
-			dlog.er("[RESCACHED] inserting '%s' (%ld)\n",
-				question->_name._v, _nc._n_cache);
-		}
-		p_answer = answer;
-	} else {
-		if (DBG_LVL_IS_1) {
-			dlog.er("[RESCACHED] udp: got one on cache ...\n");
-		}
-
-		_nc.increase_stat_and_rebuild_r((NCR_List *) node->_p_list);
-		p_answer = node->_rec->_answ;
-	}
-
-	p_answer->set_id(question->_id);
-
-	if (tcp_client) {
-		if (p_answer->_bfr_type == vos::BUFFER_IS_UDP) {
-			s = p_answer->to_tcp();
-			if (s < 0) {
-				return;
-			}
-		}
-
-		tcp_client->reset();
-		tcp_client->write(p_answer);
-
-		_srvr_tcp.add_client(tcp_client);
-	} else if (udp_client) {
-		if (p_answer->_bfr_type == vos::BUFFER_IS_UDP) {
-			udp_server->send_udp(udp_client, p_answer);
-		} else {
-			udp_server->send_udp_raw(udp_client
-						, &p_answer->_v[2]
-						, p_answer->_i - 2);
-		}
-	} else {
-		dlog.er("[RESCACHED] no client connected!\n");
-		return;
-	}
-
-	if (DBG_LVL_IS_2) {
-		_nc.dump_r();
-	}
-}
-
-static void* rescached_client_handle(void* arg)
-{
-	Resolver	rslvr;
-	DNSQuery	answer;
-	Socket		udp_server;
-	ResQueue*	queue_start	= NULL;
-	ResQueue*	queue		= NULL;
-	ResThread*	rt		= NULL;
-
-	rt = (ResThread*) arg; 
-
-	rslvr.init();
-	rslvr.set_server(_srvr_parent._v);
-
-	udp_server._d = _srvr_udp._d;
-
-	while (rt->_running) {
-		rt->wait();
-
-		rt->lock();
-		if (!rt->_running) {
-			rt->unlock();
-			break;
-		}
-		rt->unlock();
-
-		queue		= rt->detach_query();
-		queue_start	= queue;
-
-		while (queue) {
-			process_queue(queue, &udp_server, &rslvr, &answer);
-			queue = queue->_next;
-		}
-		if (queue_start) {
-			delete queue_start;
-		}
-	}
-
-	udp_server._d = 0;
-
-	return ((void*) 0);
-}
-
-static int rescached_start_client_handle()
-{
-	int i = 0;
-	int s = 0;
-
-	_rt = new ResThread[_rt_max + 1];
-
-	if (!_rt) {
-		return -1;
-	}
-
-	for (i = 0; i < _rt_max; i++) {
-		s = pthread_create(&_rt[i]._id, NULL
-					, rescached_client_handle
-					, (void *) &_rt[i]);
-		if (s != 0) {
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
-static void rescached_stop_client_handle()
-{
-	int i = 0;
-
-	for (; i < _rt_max; ++i) {
-		if (_rt && _rt[i]._id) {
-			_rt[i].set_running(0);
-			_rt[i].wakeup();
-			pthread_kill(_rt[i]._id, SIGUSR1);
-			pthread_join(_rt[i]._id, NULL);
-		}
-	}
-}
-
-static int rescached_start_tcp_server(ResThread *rqt)
-{
-	int s;
-
-	rqt->set_running(_running_);
-
-	s = pthread_create(&rqt->_id, NULL, rescached_tcp_server
-				, (void *) rqt);
-
-	return s;
-}
-
-static void rescached_stop_tcp_server(ResThread *rqt)
-{
-	rqt->set_running(0);
-	pthread_kill(rqt->_id, SIGUSR1);
-	pthread_join(rqt->_id, NULL);
-}
-
-/**
- * @return	:
- *	< 0	: success.
- *	< !0	: fail.
- */
 static void rescached_exit()
 {
-	rescached_stop_client_handle();
-	rescached_stop_tcp_server(&_rt[_rt_max]);
-
 	if (DBG_LVL_IS_1) {
 		dlog.er("\n[RESCACHED] saving %d records ...\n", _nc._n_cache);
 	}
@@ -758,8 +744,8 @@ static void rescached_exit()
 
 	rescached_create_backup();
 
-	if (_rt) {
-		delete[] _rt;
+	if (_queue) {
+		delete _queue;
 	}
 }
 
@@ -782,17 +768,7 @@ int main(int argc, char *argv[])
 	rescached_set_signal_handle();
 	rescached_init_write_pid();
 
-	s = rescached_start_client_handle();
-	if (s) {
-		goto err;
-	}
-
-	s = rescached_start_tcp_server(&_rt[_rt_max]);
-	if (s) {
-		goto err;
-	}
-
-	rescached_udp_server();
+	rescached_server();
 err:
 	if (s) {
 		perror(NULL);

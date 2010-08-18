@@ -18,6 +18,17 @@ enum _rbt_color {
 ,	RBT_IS_RED	= 1
 };
 
+/**
+ * @class		: NCR_Tree
+ * @attr		:
+ *	- _color	: a color of node.
+ *	- _rec		: pointer to NCR object.
+ *	- _left		: pointer to the left node.
+ *	- _right	: pointer to the right node.
+ *	- _top		: pointer to the parent node.
+ *	- _p_list	: pointer to the same NCR object but in the list.
+ * @desc		: A representation of cache in tree mode (a Red-Black Tree)
+ */
 class NCR_Tree {
 public:
 	NCR_Tree();

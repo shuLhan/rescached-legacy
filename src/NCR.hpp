@@ -15,6 +15,17 @@ using vos::Buffer;
 
 namespace rescached {
 
+/**
+ * @class	: NCR
+ * @attr	:
+ *	- _stat	: number of times this record is queried.
+ *	- _type	: type of record, TCP or UDP packet.
+ *	- _name	: domain name this record represent.
+ *	- _qstn	: pointer to Question packet.
+ *	- _answ	: pointer to Answer packet.
+ * @desc	: Name Cache Record. This class represent a domain name and
+ * their DNS packet with number of times the same name is queried by clients. 
+ */
 class NCR {
 public:
 	NCR();

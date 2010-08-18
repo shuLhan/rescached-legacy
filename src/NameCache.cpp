@@ -210,6 +210,8 @@ int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
 		return -1;
 	}
 
+	lock();
+
 	int c = 0;
 
 	c = toupper(name->_v[0]);
@@ -222,29 +224,15 @@ int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
 	if (_buckets[c]._v) {
 		(*node) = _buckets[c]._v->search_record_name(name);
 		if (!(*node)) {
-			return -1;
+			c = -1;
 		}
 	} else {
-		return -1;
+		c = -1;
 	}
 
-	return c;
-}
-
-/**
- * @return	:
- *	< >=0	: success, return index of buckets tree.
- *	< -1	: fail, name not found.
- */
-int NameCache::get_answer_from_cache_r(NCR_Tree** node, Buffer* name)
-{
-	int s;
-
-	lock();
-	s = get_answer_from_cache(node, name);
 	unlock();
 
-	return s;
+	return c;
 }
 
 /**
@@ -436,33 +424,28 @@ int NameCache::insert_raw(const int type, const Buffer* name
 	int	s	= 0;
 	NCR*	ncr	= NULL;
 
+	lock();
+
+	if (DBG_LVL_IS_1) {
+		dlog.out("[rescached::NameCach] inserting '%s'\n", name->_v);
+	}
+
 	s = NCR::INIT(&ncr, type, name, question, answer);
 	if (s != 0) {
-		return -1;
+		goto out;
 	}
 
 	s = insert(ncr);
 	if (s != 0) {
 		delete ncr;
 	}
-
-	return s;
-}
-
-int NameCache::insert_raw_r(const int type, const Buffer* name
-				, const Buffer* question
-				, const Buffer* answer)
-{
-	int s;
-
-	lock();
-	s = insert_raw(type, name, question, answer);
+out:
 	unlock();
 
 	return s;
 }
 
-void NameCache::increase_stat_and_rebuild_r(NCR_List* list)
+void NameCache::increase_stat_and_rebuild(NCR_List* list)
 {
 	lock();
 	list->_rec->_stat++;

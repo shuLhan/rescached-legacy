@@ -23,12 +23,10 @@ NCR_Tree::~NCR_Tree()
 		delete _left;
 		_left = NULL;
 	}
-
 	if (_rec) {
 		delete _rec;
 		_p_list = NULL;
 	}
-
 	if (_right) {
 		delete _right;
 		_right = NULL;
@@ -36,13 +34,14 @@ NCR_Tree::~NCR_Tree()
 }
 
 /**
- * @desc: compare record on node with record 'r'.
- * @param:
+ * @method	: NCR_Tree::cmp
+ * @param	:
  *	> r	: record to compare to.
- * @return:
+ * @return	:
  *	< 1	: this > bfr.
  *	< 0	: this == bfr.
  *	< -1	: this < bfr.
+ * @desc	: compare name in this object with name in record 'r'.
  */
 int NCR_Tree::cmp(NCR* ncr)
 {
@@ -55,6 +54,15 @@ int NCR_Tree::cmp(NCR* ncr)
 	return _rec->_name->like(ncr->_name);
 }
 
+/**
+ * @method		: NCR_Tree::search_record_name
+ * @param		:
+ *	> name		: record name.
+ * @return		:
+ *	< NCR_Tree*	: success.
+ *	< NULL		: fail, record not found.
+ * @desc		: search node with name is 'name' in the tree.
+ */
 NCR_Tree* NCR_Tree::search_record_name(Buffer* name)
 {
 	int		s;
@@ -73,6 +81,10 @@ NCR_Tree* NCR_Tree::search_record_name(Buffer* name)
 	return NULL;
 }
 
+/**
+ * @method	: NCR_Tree::prune
+ * @desc	: clear all data in this tree.
+ */
 void NCR_Tree::prune()
 {
 	if (_left) {
@@ -85,6 +97,11 @@ void NCR_Tree::prune()
 	}
 }
 
+/**
+ * @method	: NCR_Tree::dump
+ * @desc	: Print content of the tree to the standard output, in
+ * sequential mode.
+ */
 void NCR_Tree::dump()
 {
 	if (_left) {
@@ -98,6 +115,13 @@ void NCR_Tree::dump()
 	}
 }
 
+/**
+ * @method	: NCR_Tree::dump_tree
+ * @param	:
+ *	> t	: space for formatting.
+ * @desc	: Print content of tree to standard mode, in tree mode - left
+ * to right.
+ */
 void NCR_Tree::dump_tree(const int t)
 {
 	if (_right) {
@@ -110,6 +134,7 @@ void NCR_Tree::dump_tree(const int t)
 		}
 		dlog.write_raw("  |-----");
 	}
+
 	dlog.writes("(%d)%s\n", _color, _rec->_name->_v);
 
 	if (_left) {
@@ -226,9 +251,14 @@ static NCR_Tree* RBT_INSERT_FIXUP(NCR_Tree* root, NCR_Tree* node)
 }
 
 /**
+ * @method	: NCR_Tree::RBT_INSERT
+ * @param	:
+ *	> root	: pointer to the root of the tree.
+ *	> node	: pointer to the new node to be inserted.
  * @return	:
  *	< 0	: success, or node is nil.
  *	< 1	: node already exist.
+ * @desc	: Insert a new node to the tree.
  */
 int NCR_Tree::RBT_INSERT(NCR_Tree** root, NCR_Tree* node)
 {
@@ -368,8 +398,13 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 }
 
 /**
+ * @method	: NCR_Tree::RBT_REMOVE
+ * @param	:
+ *	> root	: pointer to the root of the tree.
+ *	> node	: pointer to the node in the tree.
  * @return	:
  *	< root	: pointer to a new root.
+ * @desc	: remove 'node' from the tree.
  */
 NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 {

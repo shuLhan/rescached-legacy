@@ -9,10 +9,12 @@
 namespace rescached {
 
 ResQueue::ResQueue() :
-	_udp_client(NULL)
+	_timeout(0)
+,	_udp_client(NULL)
 ,	_tcp_client(NULL)
 ,	_qstn(NULL)
 ,	_next(NULL)
+,	_prev(NULL)
 ,	_last(this)
 {}
 
@@ -33,6 +35,7 @@ ResQueue::~ResQueue()
 		delete _next;
 		_next = NULL;
 	}
+	_prev = NULL;
 }
 
 /**
@@ -47,34 +50,41 @@ void ResQueue::PUSH(ResQueue** head, ResQueue* node)
 		(*head) = node;
 	} else {
 		(*head)->_last->_next	= node;
+		node->_prev		= (*head)->_last;
 		(*head)->_last		= node;
 	}
+	node->_timeout = time(NULL);
 }
 
 /**
- * @desc	: remove head from queue.
+ * @method	: ResQueue::REMOVE
  * @param	:
- *	> head	: pointer to head of queue.
- *	> node	: return value, the current head of queue.
- *
- * @return	:
- *	< head	: a new head of queue.
+ *	> head	: pointer to head of the list.
+ *	> node	: pointer to member of the list.
+ * @desc	: remove member 'node' from the 'list'.
  */
-void ResQueue::POP(ResQueue** head, ResQueue** node)
+void ResQueue::REMOVE(ResQueue** head, ResQueue* node)
 {
 	if (!(*head)) {
-		(*node) = NULL;
-	} else {
-		(*node)		= (*head);
-		(*head)		= (*head)->_next;
-
-		if ((*head)) {
-			(*head)->_last = (*node)->_last;
-		}
-
-		(*node)->_next	= NULL;
-		(*node)->_last	= NULL;
+		return;
 	}
+	if (node == (*head)) {
+		(*head) = (*head)->_next;
+		if ((*head)) {
+			(*head)->_last = node->_last;
+			(*head)->_prev = NULL;
+		}
+	} else if ((*head)->_last == node) {
+		(*head)->_last		= node->_prev;
+		(*head)->_last->_next	= NULL;
+	} else {
+		node->_prev->_next	= node->_next;
+		node->_next->_prev	= node->_prev;
+	}
+
+	node->_next = NULL;
+	node->_prev = NULL;
+	delete node;
 }
 
 } /* namespace::rescached */
