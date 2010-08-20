@@ -45,8 +45,7 @@ public:
 	void clean_by_threshold(const long int thr);
 
 	int insert(NCR* record);
-	int insert_raw(const int type, const Buffer* name
-			, const Buffer* question, const Buffer* answer);
+	int insert_raw(const Buffer* name, const Buffer* answer);
 
 	void increase_stat_and_rebuild(NCR_List *list);
 

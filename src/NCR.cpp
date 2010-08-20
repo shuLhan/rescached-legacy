@@ -10,9 +10,7 @@ namespace rescached {
 
 NCR::NCR() :
 	_stat(1)
-,	_type(vos::BUFFER_IS_UDP)
 ,	_name(NULL)
-,	_qstn(NULL)
 ,	_answ(NULL)
 {}
 
@@ -20,9 +18,6 @@ NCR::~NCR()
 {
 	if (_name) {
 		delete _name;
-	}
-	if (_qstn) {
-		delete _qstn;
 	}
 	if (_answ) {
 		delete _answ;
@@ -32,13 +27,8 @@ NCR::~NCR()
 void NCR::dump()
 {
 	dlog.writes("[rescached::NCR_Tree] %s\n"
-		"  accessed : %d times\n"
-		"  type	    : %d\n", _name ? _name->v() : "\0", _stat, _type);
+		"  accessed : %d times\n", _name ? _name->v() : "\0", _stat);
 
-	if (_qstn) {
-		dlog.write_raw("  question   : \n");
-		_qstn->dump(vos::DNSQ_DO_ALL);
-	}
 	if (_answ) {
 		dlog.write_raw("  answer     :\n");
 		_answ->dump(vos::DNSQ_DO_ALL);
@@ -50,10 +40,9 @@ void NCR::dump()
  *	< 0	: success.
  *	< <0	: fail.
  */
-int NCR::INIT(NCR** o, const int type, const Buffer* name
-		, const Buffer* question, const Buffer* answer)
+int NCR::INIT(NCR** o, const Buffer* name, const Buffer* answer)
 {
-	if (!name || !question || !answer) {
+	if (!name || !answer) {
 		return -1;
 	}
 
@@ -69,16 +58,10 @@ int NCR::INIT(NCR** o, const int type, const Buffer* name
 		goto err;
 	}
 
-	s = DNSQuery::INIT(&(*o)->_qstn, question, type);
+	s = DNSQuery::INIT(&(*o)->_answ, answer, vos::BUFFER_IS_UDP);
 	if (s != 0) {
 		goto err;
 	}
-	s = DNSQuery::INIT(&(*o)->_answ, answer, type);
-	if (s != 0) {
-		goto err;
-	}
-
-	(*o)->_type = type;
 
 	return 0;
 err:

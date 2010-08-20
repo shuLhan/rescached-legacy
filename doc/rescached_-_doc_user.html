@@ -70,7 +70,7 @@ blockquote {
 <a href="http://www.kilabit.org" target="_blank"> .:: kilabit.org ::. </a>
 <br />
 <br />
-March 2010
+August 2010
 <br />
 <br />
 <br />
@@ -563,22 +563,24 @@ etc.) will always send the query to port 53.
 </li>
 
 
-<li><tt><a name="server.thread"> server.thread </a></tt></li>
+<li><tt><a name="server.timeout"> server.timeout </a></tt></li>
 
 <li style="list-style-type: none; list-style-image: none; list-style-position: outside;">
-<table summary="rescached server.thread option">
+<table summary="rescached server.timeout option">
 <tr><th> Value </th>
-    <td> Number of thread to process client queries. </td>
+    <td> Timeout value, in second, before cleaning queue.</td>
     </tr>
 <tr><th> Format </th>
-    <td> Any number between 2 and 16 </td>
+    <td> Any number between 300 to 2147483647. </td>
     </tr>
 <tr><th> Default </th>
-    <td> Number of processors on your system </td>
+    <td> 300 </td>
     </tr>
 <tr><th> Description </th>
     <td>
-This option set the number of process that will handle all client queries.
+This option set the server timeout value. If time out is reached, all the
+old queries (that is older than <tt>server.timeout</tt>) in queue that does
+not receipt a reply from parent server will be removed.
     </td>
     </tr>
 </table>

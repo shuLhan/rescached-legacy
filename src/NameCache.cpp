@@ -40,18 +40,13 @@ int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 	int	s		= 0;
 	Record*	name		= NULL;
 	Record*	stat		= NULL;
-	Record*	type		= NULL;
-	Record*	question	= NULL;
 	Record*	answer		= NULL;
 
 	name		= raw->get_column(0);
 	stat		= raw->get_column(1);
-	type		= raw->get_column(2);
-	question	= raw->get_column(3);
-	answer		= raw->get_column(4);
-	s		= (int) strtol(type->_v, 0, 10);
+	answer		= raw->get_column(2);
 
-	s = NCR::INIT(ncr, s, name, question, answer);
+	s = NCR::INIT(ncr, name, answer);
 	if (0 == s) {
 		(*ncr)->_stat = (int) strtol(stat->_v, 0, 10);
 	}
@@ -135,16 +130,8 @@ int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
 	if (ncr->_stat) {
 		row->set_column_number(1, ncr->_stat);
 	}
-	if (ncr->_type) {
-		row->set_column_number(2, ncr->_type);
-	} else {
-		row->set_column_number(2, vos::BUFFER_IS_UDP);
-	}
-	if (ncr->_qstn) {
-		row->set_column(3, ncr->_qstn);
-	}
 	if (ncr->_answ) {
-		row->set_column(4, ncr->_answ);
+		row->set_column(2, ncr->_answ);
 	}
 
 	return 0;
@@ -413,9 +400,7 @@ int NameCache::insert(NCR *record)
  *	< 0	: success.
  *	< -1	: fail.
  */
-int NameCache::insert_raw(const int type, const Buffer* name
-				, const Buffer* question
-				, const Buffer* answer)
+int NameCache::insert_raw(const Buffer* name, const Buffer* answer)
 {
 	if (!name) {
 		return 0;
@@ -426,11 +411,7 @@ int NameCache::insert_raw(const int type, const Buffer* name
 
 	lock();
 
-	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached::NameCach] inserting '%s'\n", name->_v);
-	}
-
-	s = NCR::INIT(&ncr, type, name, question, answer);
+	s = NCR::INIT(&ncr, name, answer);
 	if (s != 0) {
 		goto out;
 	}
@@ -438,6 +419,12 @@ int NameCache::insert_raw(const int type, const Buffer* name
 	s = insert(ncr);
 	if (s != 0) {
 		delete ncr;
+	}
+
+	if (DBG_LVL_IS_1) {
+		dlog.out(
+		"[rescached::NameCach] insert_raw: inserting '%s' (%ld)\n"
+			, name->_v, _n_cache);
 	}
 out:
 	unlock();

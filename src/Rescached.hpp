@@ -40,8 +40,6 @@ extern Dlogger	dlog;
 #define RESCACHED_MD	\
 ":name:::'|',"		\
 ":stat:::'|',"		\
-":type:::'|',"		\
-":question:::'|':BLOB,"	\
 ":answer:::'|':BLOB"
 
 } /* namespace::rescached */

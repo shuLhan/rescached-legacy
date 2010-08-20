@@ -192,11 +192,8 @@ static int rescached_load_config(const char* fconf)
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.timeout");
 	if (v) {
 		_rto = (int) strtol(v, 0, 0);
-		if (_rto <= 0) {
-			_rto = (int) sysconf(_SC_NPROCESSORS_CONF);
-			if (_rto <= 1) {
-				_rto = RESCACHED_DEF_TIMEOUT;
-			}
+		if (_rto <= RESCACHED_DEF_TIMEOUT) {
+			_rto = RESCACHED_DEF_TIMEOUT;
 		}
 	}
 
@@ -491,8 +488,21 @@ static int queue_send_answer(struct sockaddr_in* udp_client
 	return 0;
 }
 
+/**
+ * @method		: queue_process
+ * @param		:
+ *	> answer	: pointer to DNS packet reply from parent server.
+ * @return		:
+ *	< 0		: success.
+ *	< -1		: fail.
+ * @desc		: process queue using 'answer' DNS packet reply.
+ */
 static int queue_process(DNSQuery* answer)
 {
+	if (!answer) {
+		return -1;
+	}
+
 	int		s;
 	ResQueue* 	q = NULL;
 	ResQueue*	n = NULL;
@@ -503,9 +513,7 @@ static int queue_process(DNSQuery* answer)
 		if (q->_qstn && q->_qstn->_id == answer->_id) {
 			s = q->_qstn->_name.like(&answer->_name);
 			if (s == 0) {
-				s = _nc.insert_raw(answer->_bfr_type
-						, &answer->_name
-						, q->_qstn, answer);
+				s = _nc.insert_raw(&answer->_name, answer);
 
 				break;
 			}
@@ -520,9 +528,8 @@ static int queue_process(DNSQuery* answer)
 			if (q->_qstn) {
 				s = q->_qstn->_name.like(&answer->_name);
 				if (s == 0) {
-					s = _nc.insert_raw(answer->_bfr_type
-							, &answer->_name
-							, q->_qstn, answer);
+					s = _nc.insert_raw(&answer->_name
+							, answer);
 					break;
 				}
 			}
