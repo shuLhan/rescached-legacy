@@ -104,7 +104,7 @@ int NameCache::load(const char* fdata, const long int max)
 	while (s == 1 && (_n_cache < max || 0 == max)) {
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
-			s = insert(ncr);
+			s = insert(ncr, 0);
 			if (s != 0) {
 				delete ncr;
 			}
@@ -246,7 +246,7 @@ void NameCache::clean_by_threshold(const long int thr)
 		}
 
 		if (DBG_LVL_IS_1) {
-			dlog.er("[RESCACHED] removing '%s' - %d\n"
+			dlog.er("[rescached] removing '%s' - %d\n"
 				, p->_rec->_name->_v, p->_rec->_stat);
 		}
 
@@ -299,59 +299,64 @@ void NameCache::clean_by_threshold(const long int thr)
  *	< 0	: success.
  *	< -1	: fail.
  */
-int NameCache::insert(NCR *record)
+int NameCache::insert(NCR *record, const int do_cleanup)
 {
 	if (!record) {
 		return -1;
 	}
 	if (!record->_name) {
-		return 1;
+		return -1;
 	}
 	if (!record->_name->_i) {
-		return 1;
+		return -1;
 	}
 	if (!record->_stat) {
-		return 1;
+		return -1;
 	}
 	if (!record->_answ) {
-		return 1;
+		return -1;
 	}
 
 	int		s	= 0;
 	int		c	= 0;
-	long int	thr	= _cache_thr;
-	DNSQuery	*answer	= record->_answ;
-	NCR_List	*p_list	= NULL;
-	NCR_Tree	*p_tree	= NULL;
+	NCR_List*	p_list	= NULL;
+	NCR_Tree*	p_tree	= NULL;
 
-	/* remove authority and additional record */
-	if (answer->_rr_ans_p == NULL) {
-		s = answer->extract();
-		if (s != 0) {
-			return -1;
+	if (do_cleanup) {
+		long int	thr	= _cache_thr;
+		DNSQuery*	answer	= record->_answ;
+
+		/* remove authority and additional record */
+		if (answer->_rr_ans_p == NULL) {
+			s = answer->extract();
+			if (s != 0) {
+				return -1;
+			}
 		}
-	}
-	if (answer->_n_add) {
-		answer->remove_rr_add();
-	}
-	if (answer->_n_aut) {
-		answer->remove_rr_aut();
-	}
-	if (answer->_id) {
-		answer->set_id(0);
-	}
-
-	while (_cachel && _n_cache >= _cache_max) {
-		clean_by_threshold(thr);
-
-		if (_n_cache < _cache_max) {
-			break;
+		if (answer->_n_add) {
+			answer->remove_rr_add();
 		}
+		if (answer->_n_aut) {
+			answer->remove_rr_aut();
+		}
+		if (answer->_id) {
+			answer->set_id(0);
+		}
+		answer->set_rr_answer_ttl(UINT_MAX);
 
-		++thr;
-		if (DBG_LVL_IS_1) {
-			dlog.er("[RESCACHED] increasing threshold to %d\n",
-				thr);
+		while (_cachel && _n_cache >= _cache_max) {
+			clean_by_threshold(thr);
+
+			if (_n_cache < _cache_max) {
+				break;
+			}
+
+			++thr;
+			if (DBG_LVL_IS_1) {
+				dlog.er(
+				"[rescached] increasing threshold to %d\n"
+				, thr);
+			}
 		}
 	}
 
@@ -416,7 +421,7 @@ int NameCache::insert_raw(const Buffer* name, const Buffer* answer)
 		goto out;
 	}
 
-	s = insert(ncr);
+	s = insert(ncr, 1);
 	if (s != 0) {
 		delete ncr;
 	}

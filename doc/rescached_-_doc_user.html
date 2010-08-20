@@ -86,11 +86,12 @@ August 2010
   <li><a href="#intro_how_cache_in_rescached_work"> How Cache In rescached Work </a></li>
   </ul>
   </li>
-<li><a href="#install"> Installation </a></li>
+<li><a href="#installation"> Installation </a></li>
   <li style="list-style: none">
   <ul>
   <li><a href="#install_prerequisite"> Prerequisite </a></li>
   <li><a href="#install_compile"> Compiling From Source </a></li>
+  <li><a href="#install"> Installation </a></li>
   <li><a href="#install_post"> Post Installation Configuration </a></li>
   </ul>
   </li>
@@ -101,6 +102,7 @@ August 2010
   <li><a href="#config_startup"> rescached Startup Option </a></li>
   </ul>
   </li>
+<li><a href="#dev_notes"> Developer Notes </a></li>
 </ul>
 </div>
 
@@ -248,7 +250,7 @@ than <a href="#cache.threshold"><tt>cache.threshold</tt></a>.
 
 
 <h2>
-<a name="install">
+<a name="installation">
 Installation
 </a>
 </h2>
@@ -279,9 +281,75 @@ $ git clone http://www.github.com/shuLhan/libvos.git libvos.git
 $ cd rescached.git/src
 $ ln -s ../../libvos.git lib
 $ make
-$ sudo make install
 </pre>
 
+<h3><a name="install"> Installation </h3>
+
+<p>
+After program successfully build, you can install it manually or using make
+program.
+</p>
+<h4> Install using make program </h4>
+<p>
+Installing using make in linux system using <tt>init.d</tt> (I.e. OpenSuSE) use,
+<pre>
+$ sudo make install
+</pre>
+</p>
+
+<p>
+For Arch linux, which use <tt>rc.d</tt>, use,
+<pre>
+$ sudo make install-arch
+</pre>
+</p>
+
+
+<h4> Manual Installation </h4>
+<ul>
+<li> Copy rescached configuration to system directory. <br/>
+<p>
+Assume that we use directory "<tt>/etc/rescached</tt>" as configuration
+directory, then
+<pre>
+$ sudo mkdir /etc/rescached
+$ sudo cp rescached.cfg /etc/rescached
+</pre>
+</p>
+</li>
+
+<li> Create directory for cache file. <br/>
+<p>
+In example we use "<tt>/var/cache/rescached</tt>" as cache directory,
+</p>
+<pre>
+$ sudo mkdir /var/cache/rescached
+</pre>
+<p>
+If you use different cache directory, do not forget to change the
+configuration option.
+</p>
+</li>
+
+<li> Copy rescached program to your system path. <br/>
+<pre>
+$ sudo cp build/rescached /usr/sbin
+</pre>
+</li>
+
+<li> Create system startup script. </br>
+<p>
+If you want your program running each time the system is up you can create a
+system startup script. You can see an example for openSuSE startup script in
+file <tt>scripts/rescached.run</tt>, or <tt>scripts/rescached.arch</tt> for
+Arch Linux system.
+</p>
+<p>
+This step is really different between each system, consult your distribution
+forum or mailing-list for how to create system startup script.
+</p>
+</li>
+</ul>
 
 <h3>
 <a name="install_post">
@@ -360,6 +428,7 @@ $ sudo /sbin/rcrescached stop
 $ sudo /sbin/rcrescached status
 </pre>
   <br/>
+        <b>NOTE:</b> status option is not available in Arch Linux system.
   </li>
 </ul>
 
@@ -684,8 +753,31 @@ This option only used by developer for debugging program.
     </tr>
 </table>
 -->
-
 </ul>
+
+
+<h2><a name="dev_notes"> Developer Notes </a></h2>
+<p>
+There is a problem with DNS caching. Sometimes domain name change their IP
+address with a new IP address. Since old IP address is already cached in
+rescached program, and your program still use an old IP address, program
+cannot connect to the specific domain name. You can notice this happen when
+the program staled (loading infinitely) or failed to connect.
+</p>
+<p>
+There is only two solution.
+</p>
+<p>
+First, stop rescached program, delete the cache file and start the rescached
+program back. This will start the program to with an empty cache.
+</p>
+<p>
+Second, stop rescached program, edit cache file, delete specific record based
+on the domain name that have the problem, and restart the rescached program
+back. Be careful when doing this, make sure you really delete one record (you
+can see in cache file that each record start with "domain.name" and end with
+character "|").
+</p>
 
 </body>
 </html>

@@ -108,7 +108,7 @@ static int rescached_load_config(const char* fconf)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.it("[RESCACHED] loading config    > %s\n", fconf);
+		dlog.it("[rescached] loading config    > %s\n", fconf);
 	}
 
 	cfg.load(fconf);
@@ -248,17 +248,17 @@ static int rescached_init(const char* fconf)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[RESCACHED] cache file        > %s\n", _file_data._v);
-		dlog.er("[RESCACHED] cache file backup > %s\n", _file_data_bak._v);
-		dlog.er("[RESCACHED] pid file          > %s\n", _file_pid._v);
-		dlog.er("[RESCACHED] log file          > %s\n", _file_log._v);
-		dlog.er("[RESCACHED] parent address    > %s\n", _srvr_parent._v);
-		dlog.er("[RESCACHED] listening on      > %s\n", _srvr_listen._v);
-		dlog.er("[RESCACHED] listening on port > %d\n", _srvr_port);
-		dlog.er("[RESCACHED] timeout           > %d\n", _rto);
-		dlog.er("[RESCACHED] cache maximum     > %ld\n", _cache_max);
-		dlog.er("[RESCACHED] cache threshold   > %ld\n", _cache_thr);
-		dlog.er("[RESCACHED] debug level       > %d\n", _debug_lvl);
+		dlog.er("[rescached] cache file        > %s\n", _file_data._v);
+		dlog.er("[rescached] cache file backup > %s\n", _file_data_bak._v);
+		dlog.er("[rescached] pid file          > %s\n", _file_pid._v);
+		dlog.er("[rescached] log file          > %s\n", _file_log._v);
+		dlog.er("[rescached] parent address    > %s\n", _srvr_parent._v);
+		dlog.er("[rescached] listening on      > %s\n", _srvr_listen._v);
+		dlog.er("[rescached] listening on port > %d\n", _srvr_port);
+		dlog.er("[rescached] timeout           > %d\n", _rto);
+		dlog.er("[rescached] cache maximum     > %ld\n", _cache_max);
+		dlog.er("[rescached] cache threshold   > %ld\n", _cache_thr);
+		dlog.er("[rescached] debug level       > %d\n", _debug_lvl);
 	}
 
 	s = _srvr_udp.create_udp();
@@ -281,7 +281,7 @@ static int rescached_init(const char* fconf)
 		return s;
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[RESCACHED] loading caches    >\n");
+		dlog.er("[rescached] loading caches    >\n");
 	}
 
 	/**
@@ -300,7 +300,7 @@ static int rescached_init(const char* fconf)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[RESCACHED] %d record loaded\n", _nc._n_cache);
+		dlog.er("[rescached] %d record loaded\n", _nc._n_cache);
 		if (DBG_LVL_IS_2) {
 			_nc.dump();
 		}
@@ -477,7 +477,7 @@ static int queue_send_answer(struct sockaddr_in* udp_client
 						, answer->_i - 2);
 		}
 	} else {
-		dlog.er("[RESCACHED] queue_send_answer: no client connected!\n");
+		dlog.er("[rescached] queue_send_answer: no client connected!\n");
 		return -1;
 	}
 
@@ -581,7 +581,7 @@ static int process_client(struct sockaddr_in* udp_client
 	question->extract_header();
 	question->extract_question();
 
-	dlog.out("[RESCACHED] process_client: '%s'\n", question->_name.v());
+	dlog.out("[rescached] process_client: '%s'\n", question->_name.v());
 
 	idx = _nc.get_answer_from_cache(&node, &question->_name);
 
@@ -597,7 +597,7 @@ static int process_client(struct sockaddr_in* udp_client
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[RESCACHED] process_client: got one on cache ...\n");
+		dlog.er("[rescached] process_client: got one on cache ...\n");
 	}
 
 	_nc.increase_stat_and_rebuild((NCR_List *) node->_p_list);
@@ -731,7 +731,7 @@ static int rescached_server()
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[RESCACHED] udp server exit ...\n");
+		dlog.er("[rescached] udp server exit ...\n");
 	}
 
 	return s;
@@ -740,7 +740,7 @@ static int rescached_server()
 static void rescached_exit()
 {
 	if (DBG_LVL_IS_1) {
-		dlog.er("\n[RESCACHED] saving %d records ...\n", _nc._n_cache);
+		dlog.er("\n[rescached] saving %d records ...\n", _nc._n_cache);
 	}
 	if (_file_pid._v) {
 		unlink(_file_pid._v);
