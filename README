@@ -1,0 +1,99 @@
+
+
+ RESCACHED
+=============================================================================
+
+Rescached is a daemon that act as a DNS server, serve the clients queries,
+but also caching all that queries for later use. Unlike any other
+name-service daemon, rescached save all of cache objects when program exit
+and loaded it back to memory when started back.
+
+For non-technical explanation you can read it here [1].
+For user documentation you can read it here [2].
+
+
+ Installation
+=============================================================================
+
+A quick note on how to install this program,
+
+ Prerequisite
+-----------------------------------------------------------------------------
+ * GNU make
+ * GCC c++ compiler
+ * git SCM
+
+ Compiling from source
+-----------------------------------------------------------------------------
+
+	$ git clone git://github.com/shuLhan/rescached.git rescached.git
+	$ git clone git://github.com/shuLhan/libvos.git libvos.git
+	$ cd rescached.git/src
+	$ ln -s ../../libvos.git lib
+	$ make
+
+
+ Installing program and service
+-----------------------------------------------------------------------------
+
+If you use Linux system with "init.d" as init script (i.e. openSuSE), then
+install with,
+
+	$ sudo make install
+
+If you use Arch Linux system, which use "rc.d," then install with,
+
+	$ sudo make install-arch
+
+If both of install process does not work, then do it manually,
+
+(assume that we still in rescached source directory)
+
+	$ sudo mkdir -p /var/cache/rescached/
+	$ sudo mkdir -p /etc/rescached/
+	$ sudo cp rescached.cfg /etc/rescached/
+	$ sudo cp build/rescached /usr/sbin/rescached
+
+
+ Configuration
+-----------------------------------------------------------------------------
+
+* Edit file "/etc/rescached/rescached.cfg" based on your needs.
+
+* Set 127.0.0.1 as a nameserver
+
+WARNING: this action will replace all content in "/etc/resolv.conf".
+
+	$ sudo echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+
+ Running
+-----------------------------------------------------------------------------
+
+Run rescached program using system service,
+
+	$ sudo /usr/sbin/rcrescached start
+
+or manually,
+
+	$ sudo /usr/sbin/rescached /etc/rescached/rescached.cfg
+
+
+ References
+=============================================================================
+
+[1] http://journal.kilabit.org/rescached-is-here
+[2] http://www.kilabit.org/projects/rescached/doc/rescached_-_doc_user.html
+
+
+	---	---	---	---	---	---	---
+
+	TT  TT   II  BB          AAAA     LLLLLL  II  KKKKKKKK
+	TT TT    II  BB         AA  AA   LL   LL  II     KK
+	TTTT     II  BB        AA    AA   LL  LL  II     KK
+	TT TT    II  BB        AAAAAAAA   LLLLLL  II     KK
+	TT  TT   II  BB        AA    AA  LL   LL  II     KK
+	TT   TT  II  BBBBBBBB  AA    AA   LLLLLL  II     KK
+
+Website: http://www.kilabit.org
+Contact: ms@kilabit.org
