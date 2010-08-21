@@ -5,11 +5,14 @@
 ##
 SRC_D		=.
 BLD_D		=build
-SCRIPTS_D		=$(SRC_D)/scripts
+SCRIPTS_D	=$(SRC_D)/scripts
+DATA_D		=..
+DESTDIR		=
 
-INSTALL_BIN_D	=/usr/sbin
-INSTALL_CFG_D	=/etc/rescached
-INSTALL_CACHE_D	=/var/cache/rescached
+INSTALL_BIN_D	=$(DESTDIR)/usr/sbin
+INSTALL_CFG_D	=$(DESTDIR)/etc/rescached
+INSTALL_CACHE_D	=$(DESTDIR)/var/cache/rescached
+INSTALL_DATA_D	=$(DESTDIR)/usr/share/rescached
 
 LIBVOS_D	=lib
 
@@ -76,6 +79,7 @@ do-install:
 	$(call do_mkdir,$(INSTALL_CFG_D))				\
 	$(call do_mkdir,$(INSTALL_SVC_D))				\
 	$(call do_mkdir,$(INSTALL_CACHE_D))				\
+	$(call do_mkdir,$(INSTALL_DATA_D))				\
 	echo "";							\
 	echo " >> Installing program and configuration ...";		\
 	$(call do_install,$(TARGET),$(INSTALL_BIN_D))			\
@@ -85,29 +89,45 @@ do-install:
 	echo "";							\
 	echo " >> Installing service ...";				\
 	$(call do_install,$(RESCACHED_SVC),$(SYSTEM_SVC))		\
-	$(call do_link,$(SYSTEM_SVC),$(INSTALL_BIN_D)/rcrescached)
+	$(call do_link,$(SYSTEM_SVC),$(INSTALL_BIN_D)/rcrescached)	\
+	echo "";							\
+	echo " >> Installing data ...";					\
+	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
+	$(call do_install,$(DATA_D)/README,$(INSTALL_DATA_D))		\
+	$(call do_install_dir,$(DATA_D)/doc,$(INSTALL_DATA_D))
 
 
-install: INSTALL_SVC_D=/etc/init.d
+do-uninstall:
+	@if [[ $${UID} != 0 ]]; then					\
+		echo " >> User root needed for installation!";		\
+		exit 1;							\
+	fi;								\
+	$(call do_rm,$(INSTALL_BIN_D)/rcrescached)			\
+	$(call do_rm,$(SYSTEM_SVC))					\
+	$(call do_rm,$(INSTALL_CFG_D)/rescached.cfg)			\
+	$(call do_rm,$(INSTALL_BIN_D)/rescached)			\
+	$(call do_rmdir,$(INSTALL_CACHE_D))				\
+	$(call do_rmdir,$(INSTALL_CFG_D))				\
+	$(call do_rmdir,$(INSTALL_DATA_D))
+
+
+install: INSTALL_SVC_D=$(DESTDIR)/etc/init.d
 install: RESCACHED_SVC=$(SCRIPTS_D)/rescached.run
 install: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 install: do-install
 
-install-arch: INSTALL_SVC_D=/etc/rc.d
+install-arch: INSTALL_SVC_D=$(DESTDIR)/etc/rc.d
 install-arch: RESCACHED_SVC=$(SCRIPTS_D)/rescached.arch
 install-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 install-arch: do-install
 
-uninstall:
-	@if [[ $$(UID) != 0 ]]; then					\
-		echo " >> User root needed for installation!";		\
-		exit 1;							\
-	fi;								\
-	rm -f $(INSTALL_BIN_D)/rcrescached;				\
-	rm -f $(RESCACHED_SVC);						\
-	rm -f $(INSTALL_CFG_D)/rescached.cfg;				\
-	rm -f $(INSTALL_BIN_D)/rescached;				\
-	rmdir $(INSTALL_CFG_D);
+uninstall: INSTALL_SVC_D=$(DESTDIR)/etc/init.d
+uninstall: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+uninstall: do-uninstall
+
+uninstall-arch: INSTALL_SVC_D=$(DESTDIR)/etc/rc.d
+uninstall-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+uninstall-arch: do-uninstall
 
 clean:
 	@$(call do_rmdir,$(BLD_D))
