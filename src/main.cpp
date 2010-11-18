@@ -292,10 +292,9 @@ static int rescached_init(const char* fconf)
 	if (s != 0 || _nc._n_cache == 0) {
 		s = _nc.load(_file_data_bak._v, _cache_max);
 		if (s != 0) {
-			if (ENOENT == errno) {
-				return 0;
+			if (ENOENT != errno) {
+				return -1;
 			}
-			return -1;
 		}
 	}
 
@@ -581,7 +580,10 @@ static int process_client(struct sockaddr_in* udp_client
 	question->extract_header();
 	question->extract_question();
 
-	dlog.out("[rescached] process_client: '%s'\n", question->_name.v());
+	if (DBG_LVL_IS_1) {
+		dlog.out("[rescached] process_client: '%s'\n"
+			, question->_name.v());
+	}
 
 	idx = _nc.get_answer_from_cache(&node, &question->_name);
 
