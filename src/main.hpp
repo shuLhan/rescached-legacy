@@ -10,13 +10,6 @@
 #include <pthread.h>
 #include <signal.h>
 #include "libvos.hpp"
-#include "Config.hpp"
-#include "SockServer.hpp"
-#include "Resolver.hpp"
-#include "NCR.hpp"
-#include "NCR_List.hpp"
-#include "NameCache.hpp"
-#include "ResQueue.hpp"
 #include "Rescached.hpp"
 
 #endif

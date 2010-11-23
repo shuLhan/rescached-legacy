@@ -9,10 +9,12 @@
 namespace rescached {
 
 NameCache::NameCache() :
-	_n_cache(0),
-	_lock(),
-	_buckets(NULL),
-	_cachel(NULL)
+	_n_cache(0)
+,	_cache_max(0)
+,	_cache_thr(0)
+,	_lock()
+,	_buckets(NULL)
+,	_cachel(NULL)
 {
 	pthread_mutex_init(&_lock, NULL);
 }
@@ -56,17 +58,16 @@ int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 }
 
 /**
- * @method		: NameCache::load
- * @param		:
- *	> fdata		: file where cache resided.
- *	> fmetadata	: meta-data, how the data is saved in the file.
- * @return		:
- *	< 0		: success.
- *	< -1		: fail.
- * @desc		: load cache from file 'fdata' using 'fmetadata' as
+ * @method	: NameCache::load
+ * @param	:
+ *	> fdata	: file where cache resided.
+ * @return	:
+ *	< 0	: success.
+ *	< -1	: fail.
+ * @desc	: load cache from file 'fdata' using 'fmetadata' as
  * meta-data.
  */
-int NameCache::load(const char* fdata, const long int max)
+int NameCache::load(const char* fdata)
 {
 	int		s;
 	Reader		R;
@@ -101,7 +102,7 @@ int NameCache::load(const char* fdata, const long int max)
 	}
 
 	s = R.read(row, rmd);
-	while (s == 1 && (_n_cache < max || 0 == max)) {
+	while (s == 1 && (_n_cache < _cache_max || 0 == _cache_max)) {
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
 			s = insert(ncr, 0);
@@ -187,9 +188,14 @@ int NameCache::save(const char* fdata)
 }
 
 /**
+ * @method	: NameCache::get_answer_from_cache
+ * @param	:
+ *	> node	: return value, pointer to DNS answer in tree.
+ *	> name	: hostname that will be search in the tree.
  * @return	:
  *	< >=0	: success, return index of buckets tree.
  *	< -1	: fail, name not found.
+ * @desc	: search for 'name' in the tree, return pointer to 'node'.
  */
 int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
 {
@@ -223,14 +229,13 @@ int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
 }
 
 /**
- * @desc	: remove cache object where status <= threshold.
- *
+ * @method	: NameCache::clean_by_threshold()
  * @param	:
  *	> thr	: threshold value.
- *
  * @return	:
  *	< 0	: success.
  *	< <0	: fail.
+ * @desc	: remove cache object where status <= threshold.
  */
 void NameCache::clean_by_threshold(const long int thr)
 {

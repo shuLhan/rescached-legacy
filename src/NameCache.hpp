@@ -17,6 +17,11 @@ using vos::RecordMD;
 using vos::Reader;
 using vos::Writer;
 
+#define RESCACHED_MD	\
+":name:::'|',"		\
+":stat:::'|',"		\
+":answer:::'|':BLOB"
+
 #define	CACHET_IDX_SIZE		43	/* size of bucket tree, 0-Z + others */
 #define	CACHET_IDX_FIRST	'0'
 
@@ -35,7 +40,7 @@ public:
 	void unlock();
 
 	int raw_to_ncrecord(Record* raw, NCR** ncr);
-	int load(const char* fdata, const long int max);
+	int load(const char* fdata);
 
 	int ncrecord_to_record(const NCR* ncr, Record* row);
 	int save(const char* fdata);
@@ -54,6 +59,8 @@ public:
 	void dump_r();
 
 	long int	_n_cache;
+	long int	_cache_max;
+	long int	_cache_thr;
 	pthread_mutex_t	_lock;
 	NCR_Bucket*	_buckets;
 	NCR_List*	_cachel;

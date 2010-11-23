@@ -28,6 +28,7 @@ SYSTEM_SVC	=
 
 TARGET_OBJS	=					\
 			$(BLD_D)/main.oo		\
+			$(BLD_D)/common.oo		\
 			$(BLD_D)/Rescached.oo		\
 			$(BLD_D)/ResQueue.oo		\
 			$(BLD_D)/NameCache.oo		\
