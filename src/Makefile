@@ -26,6 +26,12 @@ RESCACHED_SVC	=
 INSTALL_SVC_D	=
 SYSTEM_SVC	=
 
+##
+## METADATA_CHANGE: If set to non-zero, old cache file will be removed on
+## installation due to change in cache metadata format.
+##
+METADATA_CHANGE	=1
+
 TARGET_OBJS	=					\
 			$(BLD_D)/main.oo		\
 			$(BLD_D)/common.oo		\
@@ -74,6 +80,12 @@ do-install:
 		echo " >> User root needed for installation!";		\
 		exit 1;							\
 	fi;								\
+	if [[ ${METADATA_CHANGE} != 0 ]]; then				\
+		echo "";						\
+		echo " >> removing old caches ...";			\
+		$(call do_rm,$(INSTALL_CACHE_D)/rescached.vos)		\
+		$(call do_rm,$(INSTALL_CACHE_D)/rescached.vos.bak)	\
+	fi;								\
 	echo "";							\
 	echo " >> Creating directories ...";				\
 	$(call do_mkdir,$(INSTALL_BIN_D))				\
@@ -115,12 +127,12 @@ do-uninstall:
 install: INSTALL_SVC_D=$(DESTDIR)/etc/init.d
 install: RESCACHED_SVC=$(SCRIPTS_D)/rescached.run
 install: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
-install: do-install
+install: all do-install
 
 install-arch: INSTALL_SVC_D=$(DESTDIR)/etc/rc.d
 install-arch: RESCACHED_SVC=$(SCRIPTS_D)/rescached.arch
 install-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
-install-arch: do-install
+install-arch: all do-install
 
 uninstall: INSTALL_SVC_D=$(DESTDIR)/etc/init.d
 uninstall: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
