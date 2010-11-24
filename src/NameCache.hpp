@@ -20,6 +20,7 @@ using vos::Writer;
 #define RESCACHED_MD	\
 ":name:::'|',"		\
 ":stat:::'|',"		\
+":ttl:::'|',"		\
 ":answer:::'|':BLOB"
 
 #define	CACHET_IDX_SIZE		43	/* size of bucket tree, 0-Z + others */

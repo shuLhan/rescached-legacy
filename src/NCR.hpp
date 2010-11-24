@@ -21,6 +21,7 @@ namespace rescached {
  *	- _stat	: number of times this record is queried.
  *	- _name	: domain name this record represent.
  *	- _answ	: pointer to Answer packet.
+ *	- _ttl	: time to live.
  * @desc	: Name Cache Record. This class represent a domain name and
  * their DNS packet with number of times the same name is queried by clients. 
  */
@@ -34,6 +35,7 @@ public:
 	int		_stat;
 	Buffer*		_name;
 	DNSQuery*	_answ;
+	time_t		_ttl;
 
 	static int INIT(NCR** o, const Buffer* name, const Buffer* answer);
 private:

@@ -259,6 +259,8 @@ static NCR_Tree* RBT_INSERT_FIXUP(NCR_Tree* root, NCR_Tree* node)
  *	< 0	: success, or node is nil.
  *	< 1	: node already exist.
  * @desc	: Insert a new node to the tree.
+ * If record with the same name already exist in tree, replace node answer
+ * with a new one.
  */
 int NCR_Tree::RBT_INSERT(NCR_Tree** root, NCR_Tree* node)
 {
@@ -281,6 +283,19 @@ int NCR_Tree::RBT_INSERT(NCR_Tree** root, NCR_Tree* node)
 		top	= p;
 		s	= name->like(p->_rec->_name);
 		if (s == 0) {
+			delete p->_rec->_answ;
+			p->_rec->_answ		= NULL;
+
+			if (DBG_LVL_IS_1) {
+				dlog.out(
+"[rescached] NCR_Tree::RBT_INSERT: '%s' replace old cache with new one\n"
+, name->_v);
+			}
+
+			p->_rec->_answ		= node->_rec->_answ;
+			p->_rec->_ttl		= node->_rec->_ttl;
+
+			node->_rec->_answ	= NULL;
 			return 1;
 		}
 		if (s < 0) {

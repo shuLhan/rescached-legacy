@@ -42,15 +42,18 @@ int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 	int	s		= 0;
 	Record*	name		= NULL;
 	Record*	stat		= NULL;
+	Record* ttl		= NULL;
 	Record*	answer		= NULL;
 
 	name		= raw->get_column(0);
 	stat		= raw->get_column(1);
-	answer		= raw->get_column(2);
+	ttl		= raw->get_column(2);
+	answer		= raw->get_column(3);
 
 	s = NCR::INIT(ncr, name, answer);
 	if (0 == s) {
-		(*ncr)->_stat = (int) strtol(stat->_v, 0, 10);
+		(*ncr)->_stat	= (int) strtol(stat->_v, 0, 10);
+		(*ncr)->_ttl	= (time_t) strtoul(ttl->_v, 0, 10);
 	}
 	raw->columns_reset();
 
@@ -131,8 +134,11 @@ int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
 	if (ncr->_stat) {
 		row->set_column_number(1, ncr->_stat);
 	}
+	if (ncr->_ttl >= 0) {
+		row->set_column_ulong(2, ncr->_ttl);
+	}
 	if (ncr->_answ) {
-		row->set_column(2, ncr->_answ);
+		row->set_column(3, ncr->_answ);
 	}
 
 	return 0;
@@ -347,7 +353,12 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 		if (answer->_id) {
 			answer->set_id(0);
 		}
-		answer->set_rr_answer_ttl(UINT_MAX);
+		if (_cache_mode == CACHE_IS_PERMANENT) {
+			answer->set_rr_answer_ttl(UINT_MAX);
+			record->_ttl = UINT_MAX;
+		} else {
+			record->_ttl = time(NULL) + answer->_ans_ttl_max;
+		}
 
 		while (_cachel && _n_cache >= _cache_max) {
 			clean_by_threshold(thr);
@@ -429,12 +440,12 @@ int NameCache::insert_raw(const Buffer* name, const Buffer* answer)
 	s = insert(ncr, 1);
 	if (s != 0) {
 		delete ncr;
-	}
-
-	if (DBG_LVL_IS_1) {
-		dlog.out(
-		"[rescached::NameCach] insert_raw: inserting '%s' (%ld)\n"
-			, name->_v, _n_cache);
+	} else {
+		if (DBG_LVL_IS_1) {
+			dlog.out(
+"[rescached] NameCache::insert_raw: inserting '%s' (%ld)\n"
+, name->_v, _n_cache);
+		}
 	}
 out:
 	unlock();
@@ -482,7 +493,7 @@ void NameCache::dump()
 	int i;
 
 	if (_cachel) {
-		dlog.write_raw("\n[rescached::NameCach] >> LIST\n");
+		dlog.write_raw("\n[rescached] NameCache::dump >> LIST\n");
 		_cachel->dump();
 	}
 
@@ -490,7 +501,7 @@ void NameCache::dump()
 		return;
 	}
 
-	dlog.write_raw("\n[rescached::NameCach] >> TREE\n");
+	dlog.write_raw("\n[rescached] NameCache::dump >> TREE\n");
 	for (i = 0; i < CACHET_IDX_SIZE; ++i) {
 		if (!_buckets[i]._v) {
 			continue;

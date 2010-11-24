@@ -162,6 +162,12 @@ int Rescached::load_config(const char* fconf)
 		_nc._cache_thr = RESCACHED_DEF_THRESHOLD;
 	}
 
+	_cache_mode = (int) cfg.get_number(RESCACHED_CONF_HEAD, "cache.mode"
+					, RESCACHED_DEF_MODE);
+	if (_cache_mode <= 0) {
+		_cache_mode = RESCACHED_DEF_MODE;
+	}
+
 	_dbg = (int) cfg.get_number(RESCACHED_CONF_HEAD, "debug"
 					, RESCACHED_DEF_DEBUG);
 	if (_dbg < 0) {
@@ -559,6 +565,32 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 		queue_push(udp_client, tcp_client, question);
 		return 0;
+	}
+	if (_cache_mode == CACHE_IS_TEMPORARY) {
+		time_t	now	= time(NULL);
+		double	diff	= difftime(now, node->_rec->_ttl);
+
+		if (DBG_LVL_IS_2) {
+			dlog.out(
+"[rescached] process_client: %ld - %ld = %f\n", now, node->_rec->_ttl
+, diff);
+		}
+
+		if (diff > 0) {
+			if (DBG_LVL_IS_2) {
+				dlog.out(
+"[rescached] process_client: '%s' cache is old, renewed...\n"
+, question->_name.v());
+			}
+
+			s = _resolver.send_udp(question);
+			if (s < 0) {
+				return -1;
+			}
+
+			queue_push(udp_client, tcp_client, question);
+			return 0;
+		}
 	}
 
 	if (DBG_LVL_IS_1) {

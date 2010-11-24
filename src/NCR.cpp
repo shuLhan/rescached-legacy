@@ -12,6 +12,7 @@ NCR::NCR() :
 	_stat(1)
 ,	_name(NULL)
 ,	_answ(NULL)
+,	_ttl(0)
 {}
 
 NCR::~NCR()
@@ -26,7 +27,7 @@ NCR::~NCR()
 
 void NCR::dump()
 {
-	dlog.writes("[rescached::NCR_Tree] %s\n"
+	dlog.writes("[rescached] NCR::dump: %s\n"
 		"  accessed : %d times\n", _name ? _name->v() : "\0", _stat);
 
 	if (_answ) {

@@ -9,6 +9,7 @@
 namespace rescached {
 
 Dlogger dlog;
-int	_dbg = 0;
+int	_dbg		= 0;
+int	_cache_mode	= CACHE_IS_TEMPORARY;
 
 } /* namespace::rescached */
