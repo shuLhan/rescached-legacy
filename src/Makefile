@@ -80,12 +80,20 @@ do-install:
 		echo " >> User root needed for installation!";		\
 		exit 1;							\
 	fi;								\
-	if [[ ${METADATA_CHANGE} != 0 ]]; then				\
+									\
+	if [[ -f $(SYSTEM_SVC) ]]; then					\
+		echo "";						\
+		echo " >> stopping rescached service ...";		\
+		$(SYSTEM_SVC) stop;					\
+	fi;								\
+									\
+	if [[ $(METADATA_CHANGE) != 0 ]]; then				\
 		echo "";						\
 		echo " >> removing old caches ...";			\
 		$(call do_rm,$(INSTALL_CACHE_D)/rescached.vos)		\
 		$(call do_rm,$(INSTALL_CACHE_D)/rescached.vos.bak)	\
 	fi;								\
+									\
 	echo "";							\
 	echo " >> Creating directories ...";				\
 	$(call do_mkdir,$(INSTALL_BIN_D))				\
@@ -93,21 +101,28 @@ do-install:
 	$(call do_mkdir,$(INSTALL_SVC_D))				\
 	$(call do_mkdir,$(INSTALL_CACHE_D))				\
 	$(call do_mkdir,$(INSTALL_DATA_D))				\
+									\
 	echo "";							\
 	echo " >> Installing program and configuration ...";		\
 	$(call do_install,$(TARGET),$(INSTALL_BIN_D))			\
 	if [ ! -f $(INSTALL_CFG_D)/$(RESCACHED_CFG) ]; then		\
 		$(call do_install,$(RESCACHED_CFG),$(INSTALL_CFG_D))	\
 	fi;								\
+									\
 	echo "";							\
 	echo " >> Installing service ...";				\
 	$(call do_install,$(RESCACHED_SVC),$(SYSTEM_SVC))		\
 	$(call do_link,$(SYSTEM_SVC),$(INSTALL_BIN_D)/rcrescached)	\
+									\
 	echo "";							\
 	echo " >> Installing data ...";					\
 	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
 	$(call do_install,$(DATA_D)/README,$(INSTALL_DATA_D))		\
-	$(call do_install_dir,$(DATA_D)/doc,$(INSTALL_DATA_D))
+	$(call do_install_dir,$(DATA_D)/doc,$(INSTALL_DATA_D))		\
+									\
+	echo "";							\
+	echo " >> starting rescached service ...";			\
+	$(SYSTEM_SVC) start;
 
 
 do-uninstall:
@@ -115,6 +130,13 @@ do-uninstall:
 		echo " >> User root needed for installation!";		\
 		exit 1;							\
 	fi;								\
+									\
+	if [[ -f $(SYSTEM_SVC) ]]; then					\
+		echo "";						\
+		echo " >> stopping rescached service ...";		\
+		$(SYSTEM_SVC) stop;					\
+	fi;								\
+									\
 	$(call do_rm,$(INSTALL_BIN_D)/rcrescached)			\
 	$(call do_rm,$(SYSTEM_SVC))					\
 	$(call do_rm,$(INSTALL_CFG_D)/rescached.cfg)			\
