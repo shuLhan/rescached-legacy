@@ -708,6 +708,35 @@ is less than <tt>cache.threshold</tt>.
 <br />
 </li>
 
+<li><tt><a name="cache.mode"> cache.mode </a></tt></li>
+
+<li style="list-style-type: none; list-style-image: none; list-style-position: outside;">
+<table summary="rescached cache.mode option">
+<tr><th> Value </th>
+    <td> cache mode, affect how the cache will be saved in disk/memory. </td>
+    </tr>
+<tr><th> Format </th>
+    <td> Number between 1 and 2. </td>
+    </tr>
+<tr><th> Default </th>
+    <td> 2 </td>
+    </tr>
+<tr><th> Description </th>
+    <td>
+If <tt>cache.mode</tt> is set to 1, all DNS record will be keep forever, no
+possible query or renewed DNS record happen until the specific DNS record
+removed from cache.
+<br/><br/>
+If <tt>cache.mode</tt> is set to 2 (default), all DNS record will be keep
+only after the specific time, based on maximum TTL value in DNS record. If
+TTL is reached, hostname will be queried again to the DNS parent server, and
+old cache and TTL value will be replaced with a new one.
+</p>
+    </td>
+    </tr>
+</table>
+<br />
+</li>
 
 <li><tt><a name="debug"> debug </a></tt></li>
 
@@ -754,30 +783,6 @@ This option only used by developer for debugging program.
 </table>
 -->
 </ul>
-
-
-<h2><a name="dev_notes"> Developer Notes </a></h2>
-<p>
-There is a problem with DNS caching. Sometimes domain name change their IP
-address with a new IP address. Since old IP address is already cached in
-rescached program, and your program still use an old IP address, program
-cannot connect to the specific domain name. You can notice this happen when
-the program staled (loading infinitely) or failed to connect.
-</p>
-<p>
-There is only two solution.
-</p>
-<p>
-First, stop rescached program, delete the cache file and start the rescached
-program back. This will start the program to with an empty cache.
-</p>
-<p>
-Second, stop rescached program, edit cache file, delete specific record based
-on the domain name that have the problem, and restart the rescached program
-back. Be careful when doing this, make sure you really delete one record (you
-can see in cache file that each record start with "domain.name" and end with
-character "|").
-</p>
 
 </body>
 </html>
