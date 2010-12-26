@@ -33,9 +33,9 @@ public:
 	void dump();
 
 	int		_stat;
+	time_t		_ttl;
 	Buffer*		_name;
 	DNSQuery*	_answ;
-	time_t		_ttl;
 
 	static int INIT(NCR** o, const Buffer* name, const Buffer* answer);
 private:

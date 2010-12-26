@@ -1,0 +1,214 @@
+ rescached Developer Documentation
+==============================================================================
+
+This documentation cover the details on how the rescached program works
+internally.
+
++ Record Format
++ How The Cache Works
+	- Cache Tree
+	- Cache List
+	- Maximum Cache and Threshold
+
+
+ Record Format
+==============================================================================
+
+(This record is represented by NCR class.)
+
+
+	rescached record format:
+
+	+-------------------+
+	| host-name         |
+	+-------------------+
+	| statistic         |
+	+-------------------+
+	| TTL               |
+	+-------------------+
+	| DNS answer packet |
+	+-------------------+
+
+
+- host-name
+
+	host-name is the string that client queried to the rescached program.
+	Example of host-name is: reddit.com, google.com, etc.
+
+- record statistic
+
+	Record statistic is a counter for record. This field track how many
+	times the host-name has been queried by client.
+
+- TTL (Time To Live), and
+
+	TTL value, in second, is used to define how long the record will be
+	keep on cache before it was renewed again.
+
+- DNS answer packet
+
+	This is a binary data, an answer packet from DNS parent server,
+	contains query section and answer section.
+
+rescached save all record in DSV format in file. Each field is separated by
+pipe character ('|'). Example of rescached record on disk,
+
+	reddit.com|246|5621|*|
+
+
+ How The Cache Works
+==============================================================================
+
+ Cache Tree
+------------------------------------------------------------------------------
+
+(Cache Tree is represented by NCR_Tree class.)
+
+
+Cache Tree is used for searching. Cache Tree is saved in bucket-tree mode.
+
+Each of the record is saved in bucket. rescached have 37 buckets, first
+bucket is for a host-name that start with number zero (0) character, the last
+bucket is for a host-name that start with any character except digit and
+alphabet (the only character that allowed in host-name is underscore
+, '_').
+
+
+	rescached bucket visualized:
+
+[0|1|2|3|4|5|6|7|8|9|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|*]
+
+
+Each of bucket is a root of a tree. rescached use a binary tree, and
+normalized using Red-Black Tree algorithm.
+
+
+	rescached tree node format:
+
+	+--------+
+	| color  |
+	+--------+
+	| record |
+	+--------+
+	| left   |
+	+--------+
+	| right  |
+	+--------+
+	| top    |
+	+--------+
+	| list   |
+	+--------+
+
+- color	: used for balancing tree in Red-Black Tree algorithm.
+- record: pointer to rescached record object.
+- left	: pointer to the left node in the tree.
+- right	: pointer to the right node in the tree.
+- top	: pointer to the top node in the tree.
+- list	: pointer to list object in Cache List.
+
+
+In example: if we have three DNS record started with 'A' character: a.com,
+ab.com, and az.com, then the bucket and tree would be like:
+
+
+	rescached tree:
+
+      [...|A|...]
+           |
+        ab.com
+        /    \
+    a.com    az.com
+
+
+ Cache List
+------------------------------------------------------------------------------
+
+(Cache List is represented by NCR_List class.)
+
+
+The Cache List is a stack of all record ordered in ascending by the value of
+statistic in each record. The top stack is the most queried host-name and the
+bottom stack is the new or less queried host-name in the cache.
+
+
+	rescached list format:
+
+	+--------+
+	| record |
+	+--------+
+	| up     |
+	+--------+
+	| down   |
+	+--------+
+	| last   |
+	+--------+
+	| tree   |
+	+--------+
+
+- record: pointer to rescached record object.
+- up	: pointer to the above record in the stack.
+- down	: pointer to the below record in the stack.
+- last	: pointer to the last record in the stack.
+- tree	: pointer to the record node in the tree (Cache Tree).
+
+
+In example: if we have three DNS record with their statistic value started
+with 'A' character: a.com (354), ab.com (572), and az.com (621), then the
+stack would be like:
+
+	+--------+ 
+	| az.com |
+	+--------+
+	| ab.com |
+	+--------+
+	| a.com  |
+	+--------+
+
+Cache Tree and Cache List use the same record object.
+
+
+ Maximum Cache and Threshold
+------------------------------------------------------------------------------
+
+rescached has a maximum record that it can keep in memory. Threshold in
+rescached is the minimum value, for statistic, to allow record to be keep in
+the memory after the maximum cache is reached. Both of this value can be
+set by user.
+
+In example: Lets say we set rescached maximum cache is 5, and the threshold
+value is 1. After some times the cache will grow and full.
+
+	+------------------------+
+	| host-name | statistic  |
+	+------------------------+
+	| az.com    | 10         |
+	+------------------------+
+	| ab.com    | 9          |
+	+------------------------+
+	| a.com     | 3          |
+	+------------------------+
+	| x.net     | 1          |
+	+------------------------+
+	| y.net     | 1          |
+	+------------------------+
+
+When the client queried another host-name, 'z.com', rescached will check if
+current cache is reached its maximum value. Since the cache is full,
+rescached will remove any record that have the statistic value less-equal
+that the threshold value, and insert 'z.com' to the bottom of stack.
+
+	+------------------------+
+	| host-name | statistic  |
+	+------------------------+
+	| az.com    | 10         |
+	+------------------------+
+	| ab.com    | 9          |
+	+------------------------+
+	| a.com     | 3          |
+	+------------------------+
+	| z.com     | 1          |
+	+------------------------+
+
+If no record have a statistic value less-equal than threshold value,
+rescached will increase threshold value by one and re-check the Cache
+List until current cache size less than maximum cache.

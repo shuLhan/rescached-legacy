@@ -10,9 +10,9 @@ namespace rescached {
 
 NCR::NCR() :
 	_stat(1)
+,	_ttl(0)
 ,	_name(NULL)
 ,	_answ(NULL)
-,	_ttl(0)
 {}
 
 NCR::~NCR()

@@ -23,7 +23,7 @@ using vos::Writer;
 ":ttl:::'|',"		\
 ":answer:::'|':BLOB"
 
-#define	CACHET_IDX_SIZE		43	/* size of bucket tree, 0-Z + others */
+#define	CACHET_IDX_SIZE		37	/* size of bucket tree, 0-Z + others */
 #define	CACHET_IDX_FIRST	'0'
 
 namespace rescached {

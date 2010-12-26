@@ -214,7 +214,9 @@ int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
 	int c = 0;
 
 	c = toupper(name->_v[0]);
-	if (isalnum(c)) {
+	if (isalpha(c)) {
+		c = (c - 'A') + 10;
+	} else if (isdigit(c)) {
 		c = c - CACHET_IDX_FIRST;
 	} else {
 		c = CACHET_IDX_SIZE;
@@ -262,7 +264,9 @@ void NameCache::clean_by_threshold(const long int thr)
 		}
 
 		c = toupper(p->_rec->_name->_v[0]);
-		if (isalnum(c)) {
+		if (isalpha(c)) {
+			c = (c - 'A') + 10;
+		} else if (isdigit(c)) {
 			c = c - CACHET_IDX_FIRST;
 		} else {
 			c = CACHET_IDX_SIZE;
@@ -344,12 +348,6 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 				return -1;
 			}
 		}
-		if (answer->_n_add) {
-			answer->remove_rr_add();
-		}
-		if (answer->_n_aut) {
-			answer->remove_rr_aut();
-		}
 		if (answer->_id) {
 			answer->set_id(0);
 		}
@@ -376,6 +374,15 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 		}
 	}
 
+	c = toupper(record->_name->_v[0]);
+	if (isalpha(c)) {
+		c = (c - 'A') + 10;
+	} else if (isdigit(c)) {
+		c = c - CACHET_IDX_FIRST;
+	} else {
+		c = CACHET_IDX_SIZE;
+	}
+
 	/* add to tree */
 	p_tree = new NCR_Tree();
 	if (!p_tree) {
@@ -383,13 +390,6 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 	}
 
 	p_tree->_rec = record;
-
-	c = toupper(record->_name->_v[0]);
-	if (isalnum(c)) {
-		c = c - CACHET_IDX_FIRST;
-	} else {
-		c = CACHET_IDX_SIZE;
-	}
 
 	s = NCR_Tree::RBT_INSERT(&_buckets[c]._v, p_tree);
 	if (s != 0) {
