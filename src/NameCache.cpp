@@ -74,6 +74,7 @@ int NameCache::load(const char* fdata)
 {
 	int		s;
 	Reader		R;
+	time_t		time_now= time(NULL);
 	NCR*		ncr	= NULL;
 	Record*		row	= NULL;
 	RecordMD*	rmd	= NULL;
@@ -108,6 +109,11 @@ int NameCache::load(const char* fdata)
 	while (s == 1 && (_n_cache < _cache_max || 0 == _cache_max)) {
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
+			if (_cache_mode == CACHE_IS_TEMPORARY
+			&& (ncr->_ttl == 0 || ncr->_ttl == UINT_MAX)) {
+				ncr->_ttl = time_now;
+			}
+
 			s = insert(ncr, 0);
 			if (s != 0) {
 				delete ncr;
@@ -134,9 +140,9 @@ int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
 	if (ncr->_stat) {
 		row->set_column_number(1, ncr->_stat);
 	}
-	if (ncr->_ttl >= 0) {
-		row->set_column_ulong(2, ncr->_ttl);
-	}
+
+	row->set_column_ulong(2, ncr->_ttl);
+
 	if (ncr->_answ) {
 		row->set_column(3, ncr->_answ);
 	}

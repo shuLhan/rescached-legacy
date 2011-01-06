@@ -189,6 +189,7 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] timeout           > %d\n", _rto);
 		dlog.er("[rescached] cache maximum     > %ld\n", _nc._cache_max);
 		dlog.er("[rescached] cache threshold   > %ld\n", _nc._cache_thr);
+		dlog.er("[rescached] cache mode        > %d\n", _cache_mode);
 		dlog.er("[rescached] debug level       > %d\n", _dbg);
 	}
 
@@ -572,11 +573,11 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 		if (DBG_LVL_IS_2) {
 			dlog.out(
-"[rescached] process_client: %ld - %ld = %f\n", now, node->_rec->_ttl
+"[rescached] process_client: %lu - %lu = %f\n", now, node->_rec->_ttl
 , diff);
 		}
 
-		if (diff > 0) {
+		if (diff >= 0) {
 			if (DBG_LVL_IS_2) {
 				dlog.out(
 "[rescached] process_client: '%s' cache is old, renewed...\n"
