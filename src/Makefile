@@ -59,6 +59,7 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/libvos.oo
 
 PRE_TARGET	+= $(BLD_D)
+LIBVOS_OPTS	+=NO_DEFAULT_LIBS
 
 .PHONY: all debug clean install install-arch uninstall
 

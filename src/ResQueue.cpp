@@ -38,6 +38,24 @@ ResQueue::~ResQueue()
 	_prev = NULL;
 }
 
+ResQueue* ResQueue::NEW()
+{
+	ResQueue* o;
+
+	o = (ResQueue*) calloc(1, sizeof(ResQueue));
+	if (o) {
+		o->_timeout	= 0;
+		o->_udp_client	= NULL;
+		o->_tcp_client	= NULL;
+		o->_qstn	= NULL;
+		o->_next	= NULL;
+		o->_prev	= NULL;
+		o->_last	= o;
+	}
+
+	return o;
+}
+
 /**
  * @desc	: push a new node to queue.
  * @param	:

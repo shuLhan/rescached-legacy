@@ -20,26 +20,26 @@ static void rescached_interrupted(int sig_num)
 		break;
 	case SIGSEGV:
 		if (_SIG_lock_) {
-			raise(sig_num);
+			::raise(sig_num);
 		}
 		_SIG_lock_	= 1;
 		_got_signal_	= sig_num;
 		R.exit();
 		_SIG_lock_	= 0;
 
-		signal(sig_num, SIG_DFL);
+		::signal(sig_num, SIG_DFL);
 		break;
 	case SIGTERM:
 	case SIGINT:
 	case SIGQUIT:
 		if (_SIG_lock_) {
-			raise(sig_num);
+			::raise(sig_num);
 		}
 		_SIG_lock_	= 1;
 		_got_signal_ 	= sig_num;
 		R.exit();
 		_SIG_lock_	= 0;
-		exit(0);
+		::exit(0);
                 break;
         }
 }

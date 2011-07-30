@@ -345,8 +345,6 @@ int Rescached::run()
 		}
 
 		if (FD_ISSET(_resolver._d, &_fd_read)) {
-			answer.reset(vos::DNSQ_DO_ALL);
-
 			s = _resolver.recv_udp(&answer);
 			if (s >= 0) {
 				s = queue_process(&answer);
@@ -446,7 +444,8 @@ int Rescached::queue_process(DNSQuery* answer)
 		if (q->_qstn && q->_qstn->_id == answer->_id) {
 			s = q->_qstn->_name.like(&answer->_name);
 			if (s == 0) {
-				s = _nc.insert_raw(&answer->_name, answer);
+				s = _nc.insert_raw(&answer->_name
+						, (Buffer*) answer);
 				break;
 			}
 		}
@@ -460,7 +459,7 @@ int Rescached::queue_process(DNSQuery* answer)
 				s = q->_qstn->_name.like(&answer->_name);
 				if (s == 0) {
 					s = _nc.insert_raw(&answer->_name
-								, answer);
+							, (Buffer*) answer);
 					break;
 				}
 			}
@@ -672,7 +671,7 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 {
 	ResQueue* obj = NULL;
 
-	obj = new ResQueue();
+	obj = ResQueue::NEW();
 	if (!obj) {
 		return -1;
 	}

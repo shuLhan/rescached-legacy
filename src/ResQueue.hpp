@@ -28,6 +28,7 @@ public:
 	ResQueue*		_prev;
 	ResQueue*		_last;
 
+	static ResQueue* NEW();
 	static void PUSH(ResQueue** head, ResQueue* node);
 	static void REMOVE(ResQueue** head, ResQueue* node);
 private:
