@@ -62,7 +62,7 @@ static void rescached_set_signal_handle()
 
 int main(int argc, char *argv[])
 {
-	int s = 0;
+	int s = -1;
 
 	if (argc == 1) {
 		s = R.init(NULL);
@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
 		s = R.init(argv[1]);
 	} else {
 		dlog.er("\n Usage: rescached <rescached-config>\n ");
-		s = -1;
 	}
 	if (s != 0) {
 		goto err;

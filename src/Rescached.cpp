@@ -54,7 +54,7 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = write_pid();
+	s = File::WRITE_PID (_fpid.v());
 	if (s != 0) {
 		return -1;
 	}
@@ -191,33 +191,6 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] cache threshold   > %ld\n", _nc._cache_thr);
 		dlog.er("[rescached] cache mode        > %d\n", _cache_mode);
 		dlog.er("[rescached] debug level       > %d\n", _dbg);
-	}
-
-	return 0;
-}
-
-/**
- * @method	: Rescached::write_pid
- * @return	:
- *	< 0	: success.
- *	< -1	: fail.
- * @desc	: create rescached PID file.
- */
-int Rescached::write_pid()
-{
-	int	s;
-	File	fpid;
-
-	s = fpid.open_wo(_fpid._v);
-	if (s != 0) {
-		return -1;
-	}
-
-	s = getpid();
-
-	s = fpid.appendi(s);
-	if (s != 0) {
-		return -1;
 	}
 
 	return 0;

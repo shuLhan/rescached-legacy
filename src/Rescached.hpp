@@ -49,7 +49,6 @@ public:
 
 	int init(const char* fconf);
 	int load_config(const char* fconf);
-	int write_pid();
 	int bind();
 	int load_cache();
 

@@ -118,6 +118,11 @@ int NameCache::load(const char* fdata)
 			if (s != 0) {
 				delete ncr;
 			}
+
+			if (DBG_LVL_IS_1) {
+				dlog.er("[rescached] NameCache::load: %s\n"
+					, ncr->_name->_v);
+			}
 		}
 		s = R.read(row, rmd);
 		ncr = NULL;
