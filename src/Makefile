@@ -1,7 +1,7 @@
 ##
-# Copyright (C) 2010 kilabit.org
-# Author:
-#	- m.shulhan (ms@kilabit.org)
+## Copyright (C) 2011 kilabit.org
+## Author:
+##	- m.shulhan (ms@kilabit.org)
 ##
 SRC_D		=.
 BLD_D		=build
@@ -23,6 +23,7 @@ SERVICE_NAME	=rescached
 TARGET		=$(BLD_D)/rescached
 RESCACHED_CFG	=$(SRC_D)/rescached.cfg
 RESCACHED_SVC	=
+SVC_D		=
 INSTALL_SVC_D	=
 SYSTEM_SVC	=
 
@@ -113,17 +114,13 @@ do-install:
 	echo "";							\
 	echo " >> Installing service ...";				\
 	$(call do_install,$(RESCACHED_SVC),$(SYSTEM_SVC))		\
-	$(call do_link,$(SYSTEM_SVC),$(INSTALL_BIN_D)/rcrescached)	\
+	$(call do_link,$(SVC_D)/$(SERVICE_NAME),$(INSTALL_BIN_D)/rcrescached)	\
 									\
 	echo "";							\
 	echo " >> Installing data ...";					\
 	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
 	$(call do_install,$(DATA_D)/README,$(INSTALL_DATA_D))		\
-	$(call do_install_dir,$(DATA_D)/doc,$(INSTALL_DATA_D))		\
-									\
-	echo "";							\
-	echo " >> starting rescached service ...";			\
-	$(SYSTEM_SVC) start;
+	$(call do_install_dir,$(DATA_D)/doc,$(INSTALL_DATA_D))
 
 
 do-uninstall:
@@ -147,21 +144,25 @@ do-uninstall:
 	$(call do_rmdir,$(INSTALL_DATA_D))
 
 
-install: INSTALL_SVC_D=$(DESTDIR)/etc/init.d
+install: SVC_D=/etc/init.d
+install: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 install: RESCACHED_SVC=$(SCRIPTS_D)/rescached.run
 install: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 install: all do-install
 
-install-arch: INSTALL_SVC_D=$(DESTDIR)/etc/rc.d
+install-arch: SVC_D=/etc/rc.d
+install-arch: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 install-arch: RESCACHED_SVC=$(SCRIPTS_D)/rescached.arch
 install-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 install-arch: all do-install
 
-uninstall: INSTALL_SVC_D=$(DESTDIR)/etc/init.d
+uninstall: SVC_D=/etc/init.d
+uninstall: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 uninstall: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 uninstall: do-uninstall
 
-uninstall-arch: INSTALL_SVC_D=$(DESTDIR)/etc/rc.d
+uninstall-arch: SVC_D=/etc/rc.d
+uninstall-arch: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 uninstall-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 uninstall-arch: do-uninstall
 
