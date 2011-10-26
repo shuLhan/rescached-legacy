@@ -110,7 +110,8 @@ int NameCache::load(const char* fdata)
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
 			if (_cache_mode == CACHE_IS_TEMPORARY
-			&& (ncr->_ttl == 0 || ncr->_ttl == UINT_MAX)) {
+			&& (ncr->_ttl == 0 || ncr->_ttl == -INT_MAX
+			||  ncr->_ttl == (time_t) UINT_MAX)) {
 				ncr->_ttl = time_now;
 			}
 
