@@ -1,0 +1,11 @@
+[Unit]
+Description=Resolver Cache Daemon
+After=syslog.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rescached /etc/rescached/rescached.cfg
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

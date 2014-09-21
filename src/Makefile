@@ -1,7 +1,7 @@
 ##
-## Copyright (C) 2011 kilabit.org
+## Copyright (C) 2014 kilabit.info
 ## Author:
-##	- m.shulhan (ms@kilabit.org)
+##	- m.shulhan (ms@kilabit.info)
 ##
 SRC_D		=.
 BLD_D		=build
@@ -9,7 +9,7 @@ SCRIPTS_D	=$(SRC_D)/scripts
 DATA_D		=..
 DESTDIR		=
 
-INSTALL_BIN_D	=$(DESTDIR)/usr/sbin
+INSTALL_BIN_D	=$(DESTDIR)/usr/bin
 INSTALL_CFG_D	=$(DESTDIR)/etc/rescached
 INSTALL_CACHE_D	=$(DESTDIR)/var/cache/rescached
 INSTALL_DATA_D	=$(DESTDIR)/usr/share/rescached
@@ -23,6 +23,8 @@ SERVICE_NAME	=rescached
 TARGET		=$(BLD_D)/rescached
 RESCACHED_CFG	=$(SRC_D)/rescached.cfg
 RESCACHED_SVC	=
+SVC_INIT_D	=/etc/init.d
+SVC_SYSTEMD	=/etc/systemd/system
 SVC_D		=
 INSTALL_SVC_D	=
 SYSTEM_SVC	=
@@ -114,7 +116,6 @@ do-install:
 	echo "";							\
 	echo " >> Installing service ...";				\
 	$(call do_install,$(RESCACHED_SVC),$(SYSTEM_SVC))		\
-	$(call do_link,$(SVC_D)/$(SERVICE_NAME),$(INSTALL_BIN_D)/rcrescached)	\
 									\
 	echo "";							\
 	echo " >> Installing data ...";					\
@@ -144,27 +145,27 @@ do-uninstall:
 	$(call do_rmdir,$(INSTALL_DATA_D))
 
 
-install: SVC_D=/etc/init.d
+install: SVC_D=$(SVC_SYSTEMD)
 install: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
-install: RESCACHED_SVC=$(SCRIPTS_D)/rescached.run
-install: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+install: RESCACHED_SVC=$(SCRIPTS_D)/rescached.service
+install: SYSTEM_SVC=$(INSTALL_SVC_D)/rescached.service
 install: all do-install
 
-install-arch: SVC_D=/etc/rc.d
-install-arch: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
-install-arch: RESCACHED_SVC=$(SCRIPTS_D)/rescached.arch
-install-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
-install-arch: all do-install
+install-init: SVC_D=$(SVC_INIT_D)
+install-init: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
+install-init: RESCACHED_SVC=$(SCRIPTS_D)/rescached.run
+install-init: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+install-init: all do-install
 
-uninstall: SVC_D=/etc/init.d
+uninstall: SVC_D=$(SVC_SYSTEMD)
 uninstall: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
-uninstall: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+uninstall: SYSTEM_SVC=$(INSTALL_SVC_D)/rescached.service
 uninstall: do-uninstall
 
-uninstall-arch: SVC_D=/etc/rc.d
-uninstall-arch: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
-uninstall-arch: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
-uninstall-arch: do-uninstall
+uninstall-init: SVC_D=$(SVC_INIT_D)
+uninstall-init: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
+uninstall-init: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
+uninstall-init: do-uninstall
 
 clean:
 	@$(call do_rmdir,$(BLD_D))
