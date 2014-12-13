@@ -18,10 +18,7 @@ NCR_List::NCR_List() :
 
 NCR_List::~NCR_List()
 {
-	if (_rec) {
-		delete _rec;
-		_rec = NULL;
-	}
+	_rec	= NULL;
 	_up	= NULL;
 	_down	= NULL;
 	_last	= NULL;
@@ -139,6 +136,7 @@ void NCR_List::DETACH(NCR_List** top, NCR_List* node)
 		if ((*top)) {
 			(*top)->_last	= node->_last;
 			(*top)->_up	= NULL;
+			node->_last	= NULL;
 		}
 	} else if ((*top)->_last == node) {
 		(*top)->_last		= node->_up;
