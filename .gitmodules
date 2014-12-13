@@ -1,0 +1,3 @@
+[submodule "libvos"]
+	path = src/lib
+	url = git@github.com:shuLhan/libvos.git
