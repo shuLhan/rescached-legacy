@@ -27,25 +27,21 @@ A quick note on how to install this program,
 -----------------------------------------------------------------------------
 
 	$ git clone git://github.com/shuLhan/rescached.git rescached.git
-	$ git clone git://github.com/shuLhan/libvos.git libvos.git
-	$ cd rescached.git/src
-	$ ln -s ../../libvos.git lib
+	$ cd rescached.git
+	$ git submodule update --init
+	$ cd src
 	$ make
-
 
  Installing program and service
 -----------------------------------------------------------------------------
 
-If you use Linux system with "init.d" as init script (i.e. openSuSE), then
+If you use Linux system with "systemd" as init script, then
 install with,
 
 	$ sudo make install
 
-If you use Arch Linux system, which use "rc.d," then install with,
-
-	$ sudo make install-arch
-
-If both of install process does not work, then do it manually,
+If you use non-systemd init or install process does not work, then do it
+manually,
 
 (assume that we still in rescached source directory)
 
@@ -72,7 +68,8 @@ WARNING: this action will replace all content in "/etc/resolv.conf".
 
 Run rescached program using system service,
 
-	$ sudo /usr/sbin/rcrescached start
+	$ sudo systemctl enable rescached.service
+	$ sudo systemctl start rescached.service
 
 or manually,
 
@@ -82,8 +79,8 @@ or manually,
  References
 =============================================================================
 
-[1] http://kilabit.org/journal/2009/12/04__rescached_is_here/index.html
-[2] http://kilabit.org/projects/rescached/doc/rescached_-_doc_user.html
+[1] http://kilabit.info/journal/2009/12/04__rescached_is_here/index.html
+[2] http://kilabit.info/projects/rescached/doc/rescached_-_doc_user.html
 
 
 	---	---	---	---	---	---	---
@@ -95,5 +92,5 @@ or manually,
 	TT  TT   II  BB        AA    AA  LL   LL  II     KK
 	TT   TT  II  BBBBBBBB  AA    AA   LLLLLL  II     KK
 
-Website: http://kilabit.org
-Contact: ms@kilabit.org
+Website: http://kilabit.info
+Contact: ms@kilabit.info
