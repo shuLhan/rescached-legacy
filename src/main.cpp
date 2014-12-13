@@ -37,9 +37,8 @@ static void rescached_interrupted(int sig_num)
 		}
 		_SIG_lock_	= 1;
 		_got_signal_ 	= sig_num;
-		R.exit();
+		R._running	= 0;
 		_SIG_lock_	= 0;
-		::exit(0);
                 break;
         }
 }
