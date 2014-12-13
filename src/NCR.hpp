@@ -33,7 +33,7 @@ public:
 	void dump();
 
 	int		_stat;
-	time_t		_ttl;
+	int32_t		_ttl;
 	Buffer*		_name;
 	DNSQuery*	_answ;
 

@@ -19,9 +19,11 @@ NCR::~NCR()
 {
 	if (_name) {
 		delete _name;
+		_name = NULL;
 	}
 	if (_answ) {
 		delete _answ;
+		_answ = NULL;
 	}
 }
 
