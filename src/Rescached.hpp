@@ -61,10 +61,10 @@ public:
 				, DNSQuery* answer);
 	int process_client(struct sockaddr_in* udp_client
 				, Socket* tcp_client
-				, DNSQuery* question);
+				, DNSQuery** question);
 	int process_tcp_client();
 	int queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
-			, DNSQuery* question);
+			, DNSQuery** question);
 
 	void exit();
 	int create_backup();

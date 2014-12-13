@@ -297,7 +297,7 @@ int Rescached::run()
 {
 	int			s		= 0;
 	struct timeval		timeout;
-	DNSQuery		answer;
+	DNSQuery*		answer		= new DNSQuery ();
 	DNSQuery*		question	= NULL;
 	Socket*			client		= NULL;
 	struct sockaddr_in*	addr		= NULL;
@@ -318,9 +318,9 @@ int Rescached::run()
 		}
 
 		if (FD_ISSET(_resolver._d, &_fd_read)) {
-			s = _resolver.recv_udp(&answer);
+			s = _resolver.recv_udp (answer);
 			if (s >= 0) {
-				s = queue_process(&answer);
+				s = queue_process (answer);
 			}
 		} else if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
 			addr = (struct sockaddr_in*) calloc(1
@@ -332,16 +332,26 @@ int Rescached::run()
 			s = (int) _srvr_udp.recv_udp(addr);
 			if (s <= 0) {
 				free(addr);
+				addr = NULL;
 				continue;
 			}
 
 			s = DNSQuery::INIT(&question, &_srvr_udp);
 			if (s < 0) {
 				free(addr);
+				addr = NULL;
 				continue;
 			}
 
-			s = process_client(addr, NULL, question);
+			s = process_client(addr, NULL, &question);
+			if (s != 0) {
+				delete question;
+				question = NULL;
+			}
+			if (addr) {
+				free (addr);
+				addr = NULL;
+			}
 		} else if (FD_ISSET(_srvr_tcp._d, &_fd_read)) {
 			client = _srvr_tcp.accept_conn();
 			if (! client) {
@@ -365,6 +375,8 @@ int Rescached::run()
 	if (DBG_LVL_IS_1) {
 		dlog.er("[rescached] service stopped ...\n");
 	}
+
+	delete answer;
 
 	return s;
 }
@@ -509,9 +521,9 @@ int Rescached::queue_send_answer(struct sockaddr_in* udp_client
 
 int Rescached::process_client(struct sockaddr_in* udp_client
 				, Socket* tcp_client
-				, DNSQuery* question)
+				, DNSQuery** question)
 {
-	if (!question) {
+	if (!(*question)) {
 		return -1;
 	}
 
@@ -520,18 +532,24 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	NCR_Tree*	node	= NULL;
 	DNSQuery*	answer	= NULL;
 
-	question->extract_header();
-	question->extract_question();
+	(*question)->extract_header();
+	(*question)->extract_question();
+
+	/* Reject IPv6 */
+	switch ((*question)->_q_type) {
+	case 0x1c:
+		return -1;
+	}
 
 	if (DBG_LVL_IS_1) {
 		dlog.out("[rescached] process_client: '%s'\n"
-			, question->_name.v());
+			, (*question)->_name.v());
 	}
 
-	idx = _nc.get_answer_from_cache(&node, &question->_name);
+	idx = _nc.get_answer_from_cache(&node, &(*question)->_name);
 
 	if (idx < 0) {
-		s = _resolver.send_udp(question);
+		s = _resolver.send_udp((*question));
 		if (s < 0) {
 			return -1;
 		}
@@ -553,10 +571,10 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 			if (DBG_LVL_IS_2) {
 				dlog.out(
 "[rescached] process_client: '%s' cache is old, renewed...\n"
-, question->_name.v());
+, (*question)->_name.v());
 			}
 
-			s = _resolver.send_udp(question);
+			s = _resolver.send_udp((*question));
 			if (s < 0) {
 				return -1;
 			}
@@ -570,15 +588,13 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		dlog.er("[rescached] process_client: got one on cache ...\n");
 	}
 
-	_nc.increase_stat_and_rebuild((NCR_List *) node->_p_list);
+	_nc.increase_stat_and_rebuild ((NCR_List *) node->_p_list);
 	answer = node->_rec->_answ;
 
-	s = queue_send_answer(udp_client, tcp_client, question, answer);
+	s = queue_send_answer(udp_client, tcp_client, (*question), answer);
 
-	if (udp_client) {
-		free(udp_client);
-	}
-	delete question;
+	delete (*question);
+	(*question) = NULL;
 
 	return s;
 }
@@ -616,7 +632,7 @@ int Rescached::process_tcp_client()
 				continue;
 			}
 
-			process_client(NULL, client, question);
+			process_client(NULL, client, &question);
 
 			question = NULL;
 		}
@@ -640,7 +656,7 @@ int Rescached::process_tcp_client()
  * @desc		: add client question to queue.
  */
 int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
-			, DNSQuery* question)
+			, DNSQuery** question)
 {
 	ResQueue* obj = NULL;
 
@@ -649,9 +665,11 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 		return -1;
 	}
 
-	obj->_udp_client	= udp_client;
+	obj->_udp_client	= (struct sockaddr_in *) calloc (1
+						, SockAddr::IN_SIZE);
+	memcpy (obj->_udp_client, udp_client, SockAddr::IN_SIZE);
 	obj->_tcp_client	= tcp_client;
-	obj->_qstn		= question;
+	obj->_qstn		= (*question);
 
 	ResQueue::PUSH(&_queue, obj);
 
@@ -668,6 +686,8 @@ void Rescached::exit()
 		dlog.er("\n[rescached] saving %d records ...\n", _nc._n_cache);
 	}
 
+	_running = 0;
+
 	if (_fdata._v) {
 		_nc.save(_fdata._v);
 	}
@@ -681,8 +701,6 @@ void Rescached::exit()
 	if (_fpid._v) {
 		unlink(_fpid._v);
 	}
-
-	_running = 0;
 }
 
 /**
