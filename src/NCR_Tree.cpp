@@ -25,12 +25,13 @@ NCR_Tree::~NCR_Tree()
 	}
 	if (_rec) {
 		delete _rec;
-		_p_list = NULL;
+		_rec = NULL;
 	}
 	if (_right) {
 		delete _right;
 		_right = NULL;
 	}
+	_p_list = NULL;
 }
 
 /**
@@ -90,11 +91,15 @@ void NCR_Tree::prune()
 	if (_left) {
 		_left->prune();
 	}
-	_rec	= NULL;
-	_p_list	= NULL;
+	if (_rec) {
+		delete _rec;
+		_rec = NULL;
+	}
 	if (_right) {
 		_right->prune();
 	}
+	_top = NULL;
+	_p_list	= NULL;
 }
 
 /**
@@ -358,23 +363,27 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 				w	= x->_top->_right;
 			}
 
-			if (w && w->_left->_color == RBT_IS_BLACK
-			&&  w->_right->_color == RBT_IS_BLACK) {
-				w->_color	= RBT_IS_RED;
-				x		= x->_top;
-			} else {
-				if (w->_right->_color == RBT_IS_BLACK) {
-					w->_left->_color	= RBT_IS_BLACK;
-					w->_color		= RBT_IS_RED;
-					root	= tree_rotate_right(root, w);
-					w	= x->_top->_right;
-				}
+			if (w) {
+				if (w->_left && w->_right) {
+					if (w->_left->_color == RBT_IS_BLACK
+					&&  w->_right->_color == RBT_IS_BLACK) {
+						w->_color	= RBT_IS_RED;
+						x		= x->_top;
+					}
+				} else {
+					if (w->_right->_color == RBT_IS_BLACK) {
+						w->_left->_color	= RBT_IS_BLACK;
+						w->_color		= RBT_IS_RED;
+						root	= tree_rotate_right(root, w);
+						w	= x->_top->_right;
+					}
 
-				w->_color		= x->_top->_color;
-				x->_top->_color		= RBT_IS_BLACK;
-				w->_right->_color	= RBT_IS_BLACK;
-				root	= tree_rotate_left(root, x->_top);
-				x	= root;
+					w->_color		= x->_top->_color;
+					x->_top->_color		= RBT_IS_BLACK;
+					w->_right->_color	= RBT_IS_BLACK;
+					root	= tree_rotate_left(root, x->_top);
+					x	= root;
+				}
 			}
 		} else {
 			w = x->_top->_left;
@@ -386,23 +395,27 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 				w	= x->_top->_left;
 			}
 
-			if (w && w->_right->_color == RBT_IS_BLACK
-			&&  w->_left->_color == RBT_IS_BLACK) {
-				w->_color	= RBT_IS_RED;
-				x		= x->_top;
-			} else {
-				if (w->_left->_color == RBT_IS_BLACK) {
-					w->_right->_color	= RBT_IS_BLACK;
-					w->_color		= RBT_IS_RED;
-					root	= tree_rotate_left(root, w);
-					w	= x->_top->_left;
-				}
+			if (w) {
+				if (w->_left && w->_right) {
+					if (w->_right->_color == RBT_IS_BLACK
+					&&  w->_left->_color == RBT_IS_BLACK) {
+						w->_color	= RBT_IS_RED;
+						x		= x->_top;
+					}
+				} else {
+					if (w->_left->_color == RBT_IS_BLACK) {
+						w->_right->_color	= RBT_IS_BLACK;
+						w->_color		= RBT_IS_RED;
+						root	= tree_rotate_left(root, w);
+						w	= x->_top->_left;
+					}
 
-				w->_color		= x->_top->_color;
-				x->_top->_color		= RBT_IS_BLACK;
-				w->_left->_color	= RBT_IS_BLACK;
-				root	= tree_rotate_right(root, x->_top);
-				x	= root;
+					w->_color		= x->_top->_color;
+					x->_top->_color		= RBT_IS_BLACK;
+					w->_left->_color	= RBT_IS_BLACK;
+					root	= tree_rotate_right(root, x->_top);
+					x	= root;
+				}
 			}
 		}
 	}
@@ -457,8 +470,14 @@ NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 	}
 
 	if (y != node) {
+		NCR* node_rec		= node->_rec;
+		void* node_p_list	= node->_p_list;
+
 		node->_rec	= y->_rec;
 		node->_p_list	= y->_p_list;
+
+		y->_rec 	= node_rec;
+		y->_p_list	= node_p_list;
 	}
 	if (x && y->_color == RBT_IS_BLACK) {
 		(*root) = RBT_REMOVE_FIXUP((*root), x);
