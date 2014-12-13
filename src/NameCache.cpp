@@ -53,7 +53,7 @@ int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 	s = NCR::INIT(ncr, name, answer);
 	if (0 == s) {
 		(*ncr)->_stat	= (int) strtol(stat->_v, 0, 10);
-		(*ncr)->_ttl	= (time_t) strtoul(ttl->_v, 0, 10);
+		(*ncr)->_ttl	= (int32_t) strtol(ttl->_v, 0, 10);
 	}
 	raw->columns_reset();
 
@@ -111,18 +111,18 @@ int NameCache::load(const char* fdata)
 		if (0 == s) {
 			if (_cache_mode == CACHE_IS_TEMPORARY
 			&& (ncr->_ttl == 0 || ncr->_ttl == -INT_MAX
-			||  ncr->_ttl == (time_t) UINT_MAX)) {
+			||  ncr->_ttl == INT_MAX)) {
 				ncr->_ttl = time_now;
 			}
 
-			s = insert(ncr, 0);
+			s = insert (&ncr, 0);
 			if (s != 0) {
 				delete ncr;
-			}
-
-			if (DBG_LVL_IS_1) {
-				dlog.er("[rescached] NameCache::load: %s\n"
-					, ncr->_name->_v);
+			} else {
+				if (ncr && DBG_LVL_IS_1) {
+					dlog.er("[rescached] NameCache::load: %s\n"
+						, ncr->_name->_v);
+				}
 			}
 		}
 		s = R.read(row, rmd);
@@ -147,7 +147,7 @@ int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
 		row->set_column_number(1, ncr->_stat);
 	}
 
-	row->set_column_ulong(2, ncr->_ttl);
+	row->set_column_number (2, ncr->_ttl);
 
 	if (ncr->_answ) {
 		row->set_column(3, ncr->_answ);
@@ -288,9 +288,9 @@ void NameCache::clean_by_threshold(const long int thr)
 			node = (NCR_Tree *) p->_p_tree;
 			node = NCR_Tree::RBT_REMOVE(&_buckets[c]._v, node);
 			if (node) {
-				node->_rec	= NULL;
 				node->_p_list	= NULL;
 				delete node;
+				node = NULL;
 			}
 		}
 
@@ -307,6 +307,7 @@ void NameCache::clean_by_threshold(const long int thr)
 
 		p->_up		= NULL;
 		p->_p_tree	= NULL;
+		p->_rec		= NULL;
 
 		delete p;
 		--_n_cache;
@@ -326,21 +327,21 @@ void NameCache::clean_by_threshold(const long int thr)
  *	< 0	: success.
  *	< -1	: fail.
  */
-int NameCache::insert(NCR *record, const int do_cleanup)
+int NameCache::insert(NCR** record, const int do_cleanup)
 {
-	if (!record) {
+	if (! (*record)) {
 		return -1;
 	}
-	if (!record->_name) {
+	if (! (*record)->_name) {
 		return -1;
 	}
-	if (!record->_name->_i) {
+	if (! (*record)->_name->_i) {
 		return -1;
 	}
-	if (!record->_stat) {
+	if (! (*record)->_stat) {
 		return -1;
 	}
-	if (!record->_answ) {
+	if (! (*record)->_answ) {
 		return -1;
 	}
 
@@ -351,7 +352,7 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 
 	if (do_cleanup) {
 		long int	thr	= _cache_thr;
-		DNSQuery*	answer	= record->_answ;
+		DNSQuery*	answer	= (*record)->_answ;
 
 		/* remove authority and additional record */
 		if (answer->_rr_ans_p == NULL) {
@@ -364,10 +365,10 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 			answer->set_id(0);
 		}
 		if (_cache_mode == CACHE_IS_PERMANENT) {
-			answer->set_rr_answer_ttl(UINT_MAX);
-			record->_ttl = UINT_MAX;
+			answer->set_rr_answer_ttl(INT_MAX);
+			(*record)->_ttl = INT_MAX;
 		} else {
-			record->_ttl = time(NULL) + answer->_ans_ttl_max;
+			(*record)->_ttl = time(NULL) + answer->_ans_ttl_max;
 		}
 
 		while (_cachel && _n_cache >= _cache_max) {
@@ -386,7 +387,7 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 		}
 	}
 
-	c = toupper(record->_name->_v[0]);
+	c = toupper ((*record)->_name->_v[0]);
 	if (isalpha(c)) {
 		c = (c - 'A') + 10;
 	} else if (isdigit(c)) {
@@ -401,7 +402,7 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 		return -1;
 	}
 
-	p_tree->_rec = record;
+	p_tree->_rec = (*record);
 
 	s = NCR_Tree::RBT_INSERT(&_buckets[c]._v, p_tree);
 	if (s != 0) {
@@ -416,7 +417,7 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 		return -1;
 	}
 
-	p_list->_rec	= record;
+	p_list->_rec	= (*record);
 	p_list->_p_tree	= p_tree;
 	p_tree->_p_list	= p_list;
 
@@ -424,7 +425,7 @@ int NameCache::insert(NCR *record, const int do_cleanup)
 
 	++_n_cache;
 
-	return s;
+	return 0;
 }
 
 /**
@@ -449,9 +450,10 @@ int NameCache::insert_raw(const Buffer* name, const Buffer* answer)
 		goto out;
 	}
 
-	s = insert(ncr, 1);
+	s = insert (&ncr, 1);
 	if (s != 0) {
 		delete ncr;
+		ncr = NULL;
 	} else {
 		if (DBG_LVL_IS_1) {
 			dlog.out(
