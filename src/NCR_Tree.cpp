@@ -363,13 +363,11 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 				w	= x->_top->_right;
 			}
 
-			if (w) {
-				if (w->_left && w->_right) {
-					if (w->_left->_color == RBT_IS_BLACK
-					&&  w->_right->_color == RBT_IS_BLACK) {
-						w->_color	= RBT_IS_RED;
-						x		= x->_top;
-					}
+			if (w->_left && w->_right) {
+				if (w->_left->_color == RBT_IS_BLACK
+				&&  w->_right->_color == RBT_IS_BLACK) {
+					w->_color	= RBT_IS_RED;
+					x		= x->_top;
 				} else {
 					if (w->_right->_color == RBT_IS_BLACK) {
 						w->_left->_color	= RBT_IS_BLACK;
@@ -395,13 +393,11 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 				w	= x->_top->_left;
 			}
 
-			if (w) {
-				if (w->_left && w->_right) {
-					if (w->_right->_color == RBT_IS_BLACK
-					&&  w->_left->_color == RBT_IS_BLACK) {
-						w->_color	= RBT_IS_RED;
-						x		= x->_top;
-					}
+			if (w->_left && w->_right) {
+				if (w->_right->_color == RBT_IS_BLACK
+				&&  w->_left->_color == RBT_IS_BLACK) {
+					w->_color	= RBT_IS_RED;
+					x		= x->_top;
 				} else {
 					if (w->_left->_color == RBT_IS_BLACK) {
 						w->_right->_color	= RBT_IS_BLACK;
