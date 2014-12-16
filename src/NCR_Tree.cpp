@@ -5,6 +5,7 @@
  */
 
 #include "NCR_Tree.hpp"
+#include "NCR_List.hpp"
 
 namespace rescached {
 
@@ -356,6 +357,10 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 		if (x == x->_top->_left) {
 			w = x->_top->_right;
 
+			if (! w) {
+				break;
+			}
+
 			if (w->_color == RBT_IS_RED) {
 				w->_color	= RBT_IS_BLACK;
 				x->_top->_color	= RBT_IS_RED;
@@ -382,9 +387,15 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 					root	= tree_rotate_left(root, x->_top);
 					x	= root;
 				}
+			} else {
+				x = root;
 			}
 		} else {
 			w = x->_top->_left;
+
+			if (! w) {
+				break;
+			}
 
 			if (w->_color == RBT_IS_RED) {
 				w->_color	= RBT_IS_BLACK;
@@ -412,6 +423,8 @@ NCR_Tree* RBT_REMOVE_FIXUP(NCR_Tree* root, NCR_Tree* x)
 					root	= tree_rotate_right(root, x->_top);
 					x	= root;
 				}
+			} else {
+				x = root;
 			}
 		}
 	}
@@ -468,12 +481,15 @@ NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 	if (y != node) {
 		NCR* node_rec		= node->_rec;
 		void* node_p_list	= node->_p_list;
+		NCR_List* r_list	= (NCR_List*) y->_p_list;
 
 		node->_rec	= y->_rec;
 		node->_p_list	= y->_p_list;
 
 		y->_rec 	= node_rec;
 		y->_p_list	= node_p_list;
+
+		r_list->_p_tree	= node;
 	}
 	if (x && y->_color == RBT_IS_BLACK) {
 		(*root) = RBT_REMOVE_FIXUP((*root), x);
