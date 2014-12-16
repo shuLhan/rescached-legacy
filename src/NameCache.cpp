@@ -263,6 +263,7 @@ void NameCache::clean_by_threshold(const long int thr)
 	NCR_List*	p	= NULL;
 	NCR_List*	up	= NULL;
 	NCR_Tree*	node	= NULL;
+	NCR_Tree*	ndel	= NULL;
 
 	p = _cachel->_last;
 	while (p) {
@@ -286,11 +287,11 @@ void NameCache::clean_by_threshold(const long int thr)
 
 		if (_buckets[c]._v) {
 			node = (NCR_Tree *) p->_p_tree;
-			node = NCR_Tree::RBT_REMOVE(&_buckets[c]._v, node);
-			if (node) {
-				node->_p_list	= NULL;
-				delete node;
-				node = NULL;
+			ndel = NCR_Tree::RBT_REMOVE(&_buckets[c]._v, node);
+			if (ndel) {
+				ndel->_p_list	= NULL;
+				delete ndel;
+				ndel = NULL;
 			}
 		}
 
