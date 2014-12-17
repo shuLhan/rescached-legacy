@@ -489,7 +489,9 @@ NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 		y->_rec 	= node_rec;
 		y->_p_list	= node_p_list;
 
-		r_list->_p_tree	= node;
+		if (r_list) {
+			r_list->_p_tree	= node;
+		}
 	}
 	if (x && y->_color == RBT_IS_BLACK) {
 		(*root) = RBT_REMOVE_FIXUP((*root), x);
