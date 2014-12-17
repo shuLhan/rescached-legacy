@@ -41,6 +41,7 @@ public:
 	void unlock();
 
 	int raw_to_ncrecord(Record* raw, NCR** ncr);
+	int bucket_init ();
 	int load(const char* fdata);
 
 	int ncrecord_to_record(const NCR* ncr, Record* row);
@@ -50,8 +51,10 @@ public:
 
 	void clean_by_threshold(const long int thr);
 
-	int insert (NCR** record, const int do_cleanup);
-	int insert_raw(const Buffer* name, const Buffer* answer);
+	int insert (NCR** record, const int do_cleanup
+			, const int skip_list);
+	int insert_raw(const Buffer* name, const Buffer* answer
+			, const int do_cleanup, const int skip_list);
 
 	void increase_stat_and_rebuild(NCR_List *list);
 

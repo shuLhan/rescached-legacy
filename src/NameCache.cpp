@@ -60,6 +60,22 @@ int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 	return s;
 }
 
+int NameCache::bucket_init ()
+{
+	int s = 0;
+
+	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
+	if (!_buckets) {
+		return -1;
+	}
+
+	for (; s <= CACHET_IDX_SIZE; ++s) {
+		_buckets[s]._v = NULL;
+	}
+
+	return 0;
+}
+
 /**
  * @method	: NameCache::load
  * @param	:
@@ -78,17 +94,6 @@ int NameCache::load(const char* fdata)
 	NCR*		ncr	= NULL;
 	Record*		row	= NULL;
 	RecordMD*	rmd	= NULL;
-
-	prune();
-
-	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
-	if (!_buckets) {
-		return -1;
-	}
-
-	for (s = 0; s <= CACHET_IDX_SIZE; ++s) {
-		_buckets[s]._v = NULL;
-	}
 
 	s = R.open_ro(fdata);
 	if (s != 0) {
@@ -115,7 +120,7 @@ int NameCache::load(const char* fdata)
 				ncr->_ttl = time_now;
 			}
 
-			s = insert (&ncr, 0);
+			s = insert (&ncr, 0, 0);
 			if (s != 0) {
 				delete ncr;
 			} else {
@@ -328,7 +333,8 @@ void NameCache::clean_by_threshold(const long int thr)
  *	< 0	: success.
  *	< -1	: fail.
  */
-int NameCache::insert(NCR** record, const int do_cleanup)
+int NameCache::insert (NCR** record, const int do_cleanup
+		, const int skip_list)
 {
 	if (! (*record)) {
 		return -1;
@@ -412,19 +418,21 @@ int NameCache::insert(NCR** record, const int do_cleanup)
 		return -1;
 	}
 
-	/* add to list */
-	p_list = new NCR_List();
-	if (!p_list) {
-		return -1;
+	if (! skip_list) {
+		/* add to list */
+		p_list = new NCR_List();
+		if (!p_list) {
+			return -1;
+		}
+
+		p_list->_rec	= (*record);
+		p_list->_p_tree	= p_tree;
+		p_tree->_p_list	= p_list;
+
+		NCR_List::ADD(&_cachel, NULL, p_list);
+
+		++_n_cache;
 	}
-
-	p_list->_rec	= (*record);
-	p_list->_p_tree	= p_tree;
-	p_tree->_p_list	= p_list;
-
-	NCR_List::ADD(&_cachel, NULL, p_list);
-
-	++_n_cache;
 
 	return 0;
 }
@@ -435,7 +443,9 @@ int NameCache::insert(NCR** record, const int do_cleanup)
  *	< 0	: success.
  *	< -1	: fail.
  */
-int NameCache::insert_raw(const Buffer* name, const Buffer* answer)
+int NameCache::insert_raw (const Buffer* name, const Buffer* answer
+		, const int do_cleanup
+		, const int skip_list)
 {
 	if (!name) {
 		return 0;
@@ -451,7 +461,7 @@ int NameCache::insert_raw(const Buffer* name, const Buffer* answer)
 		goto out;
 	}
 
-	s = insert (&ncr, 1);
+	s = insert (&ncr, do_cleanup, skip_list);
 	if (s != 0) {
 		delete ncr;
 		ncr = NULL;
