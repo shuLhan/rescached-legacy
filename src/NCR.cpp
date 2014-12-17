@@ -27,6 +27,26 @@ NCR::~NCR()
 	}
 }
 
+/**
+ * @method	: NCR::search_answer_by_type
+ * @desc	: search list answer by query type 'qtype'.
+ * @param qtype	: query type.
+ * @return q	: found.
+ * @return NULL	: not found
+ */
+DNSQuery* NCR::search_answer_by_type (uint16_t qtype)
+{
+	DNSQuery* p = _answ;
+
+	while (p) {
+		if (p->_q_type == qtype) {
+			return p;
+		}
+		p = _answ->_next;
+	}
+	return NULL;
+}
+
 void NCR::dump()
 {
 	dlog.writes("[rescached] NCR::dump: %s\n"
@@ -65,6 +85,9 @@ int NCR::INIT(NCR** o, const Buffer* name, const Buffer* answer)
 	if (s != 0) {
 		goto err;
 	}
+
+	(*o)->_answ->extract_header ();
+	(*o)->_answ->extract_question ();
 
 	return 0;
 err:
