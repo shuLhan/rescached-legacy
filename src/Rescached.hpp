@@ -10,6 +10,7 @@
 #include "lib/Config.hpp"
 #include "lib/Resolver.hpp"
 #include "lib/SockServer.hpp"
+#include "lib/SSVReader.hpp"
 #include "common.hpp"
 #include "NameCache.hpp"
 #include "NCR.hpp"
@@ -22,6 +23,7 @@ using vos::SockAddr;
 using vos::Socket;
 using vos::SockServer;
 using vos::Resolver;
+using vos::SSVReader;
 
 namespace rescached {
 
@@ -50,6 +52,7 @@ public:
 	int init(const char* fconf);
 	int load_config(const char* fconf);
 	int bind();
+	int load_hosts ();
 	int load_cache();
 
 	int run();

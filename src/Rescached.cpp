@@ -64,6 +64,16 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
+	s = _nc.bucket_init ();
+	if (s != 0) {
+		return -1;
+	}
+
+	s = load_hosts ();
+	if (s != 0) {
+		return -1;
+	}
+
 	s = load_cache();
 
 	return s;
@@ -254,6 +264,72 @@ int Rescached::bind()
 }
 
 /**
+ * @method	: Rescached::load_hosts
+ * @desc	: load host-ip address in hosts file.
+ * @return 1	: unsupported.
+ * @return 0	: success.
+ * @return -1	: fail to open and/or parse hosts file.
+ */
+int Rescached::load_hosts ()
+{
+	int		s = 0;
+	int		is_ipv4 = 0;
+	int		addr = 0;
+	int		cnt = 0;
+	char*		fhosts = NULL;
+
+#ifdef __unix
+	fhosts = strdup ("/etc/hosts");
+#endif
+	if (! fhosts) {
+		return 1;
+	}
+
+	SSVReader	reader;
+	DNSQuery	qanswer;
+	Record*		ip;
+	Record*		r;
+	Record*		c;
+
+	reader._comment_c = '#';
+
+	s = reader.load (fhosts);
+	if (s != 0) {
+		return -1;
+	}
+
+	r = reader._rows;
+	while (r) {
+		ip	= r;
+
+		is_ipv4	= inet_pton (AF_INET, ip->_v, &addr);
+		addr	= 0;
+
+		if (is_ipv4 == 1) {
+			c = ip->_next_col;
+			while (c) {
+				s = qanswer.create_answer (c->_v
+					, (uint16_t) vos::QUERY_T_ADDRESS
+					, (uint16_t) vos::QUERY_C_IN
+					, UINT_MAX
+					, (uint16_t) ip->_i, ip->_v);
+
+				if (s == 0) {
+					_nc.insert_raw (c, &qanswer, 0, 1);
+					cnt++;
+				}
+
+				c = c->_next_col;
+			}
+		}
+
+		r = r->_next_row;
+	}
+
+	return 0;
+}
+
+/**
  * @method	: Rescached::load_cache
  * @return	:
  *	< 0	: success.
@@ -430,7 +506,7 @@ int Rescached::queue_process(DNSQuery* answer)
 			s = q->_qstn->_name.like(&answer->_name);
 			if (s == 0) {
 				s = _nc.insert_raw(&answer->_name
-						, (Buffer*) answer);
+						, (Buffer*) answer, 1, 0);
 				break;
 			}
 		}
@@ -444,7 +520,7 @@ int Rescached::queue_process(DNSQuery* answer)
 				s = q->_qstn->_name.like(&answer->_name);
 				if (s == 0) {
 					s = _nc.insert_raw(&answer->_name
-							, (Buffer*) answer);
+							, (Buffer*) answer, 1, 0);
 					break;
 				}
 			}
