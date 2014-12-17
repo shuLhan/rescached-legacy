@@ -315,7 +315,7 @@ int Rescached::load_hosts ()
 					, (uint16_t) ip->_i, ip->_v);
 
 				if (s == 0) {
-					_nc.insert_raw (c, &qanswer, 0, 1);
+					_nc.insert_copy (&qanswer, 0, 1);
 					cnt++;
 				}
 
@@ -502,25 +502,29 @@ int Rescached::queue_process(DNSQuery* answer)
 	/* search queue by id and name only */
 	q = _queue;
 	while (q) {
-		if (q->_qstn && q->_qstn->_id == answer->_id) {
+		if (q->_qstn
+		&& q->_qstn->_id == answer->_id
+		&& q->_qstn->_q_type == answer->_q_type) {
 			s = q->_qstn->_name.like(&answer->_name);
 			if (s == 0) {
-				s = _nc.insert_raw(&answer->_name
-						, (Buffer*) answer, 1, 0);
+				s = _nc.insert_copy (answer, 1, 0);
 				break;
 			}
 		}
 		q = q->_next;
 	}
 	if (!q) {
-		/* search queue by name only */
+		return -1;
+	}
+/*
+	if (!q) {
+		// search queue by name only
 		q = _queue;
 		while (q) {
 			if (q->_qstn) {
 				s = q->_qstn->_name.like(&answer->_name);
 				if (s == 0) {
-					s = _nc.insert_raw(&answer->_name
-							, (Buffer*) answer, 1, 0);
+					s = _nc.insert_copy(answer, 1, 0);
 					break;
 				}
 			}
@@ -530,17 +534,18 @@ int Rescached::queue_process(DNSQuery* answer)
 			return 0;
 		}
 	}
-
+*/
 	s = queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn, answer);
 
 	ResQueue::REMOVE(&_queue, q);
 
-	/* send reply to all queue with the same name */
+	/* send reply to all queue with the same name and type */
 	q = _queue;
 	while (q) {
 		n = q->_next;
 
-		if (q->_qstn) {
+		if (q->_qstn
+		&& q->_qstn->_q_type == answer->_q_type) {
 			s = q->_qstn->_name.like(&answer->_name);
 			if (s == 0) {
 				s = queue_send_answer(q->_udp_client
@@ -612,17 +617,20 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	(*question)->extract_question();
 
 	/* Reject IPv6 */
+/*
 	switch ((*question)->_q_type) {
 	case 0x1c:
+		dlog.er ("[rescached] process_client: reject '%s'\n"
+			, (*question)->_name.v());
 		return -1;
 	}
-
+*/
 	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached] process_client: '%s'\n"
-			, (*question)->_name.v());
+		dlog.out("[rescached] process_client: %3d '%s'\n"
+			, (*question)->_q_type, (*question)->_name.v());
 	}
 
-	idx = _nc.get_answer_from_cache(&node, &(*question)->_name);
+	idx = _nc.get_answer_from_cache ((*question), &answer, &node);
 
 	if (idx < 0) {
 		s = _resolver.send_udp((*question));
@@ -665,7 +673,6 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	}
 
 	_nc.increase_stat_and_rebuild ((NCR_List *) node->_p_list);
-	answer = node->_rec->_answ;
 
 	s = queue_send_answer(udp_client, tcp_client, (*question), answer);
 
