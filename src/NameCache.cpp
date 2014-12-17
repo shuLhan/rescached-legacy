@@ -125,8 +125,8 @@ int NameCache::load(const char* fdata)
 				delete ncr;
 			} else {
 				if (ncr && DBG_LVL_IS_1) {
-					dlog.er("[rescached] NameCache::load: %s\n"
-						, ncr->_name->_v);
+					dlog.er("[rescached] NameCache::load: %3d %s\n"
+						, ncr->_answ->_q_type, ncr->_name->_v);
 				}
 			}
 		}
@@ -212,22 +212,27 @@ int NameCache::save(const char* fdata)
 
 /**
  * @method	: NameCache::get_answer_from_cache
- * @param	:
- *	> node	: return value, pointer to DNS answer in tree.
- *	> name	: hostname that will be search in the tree.
- * @return	:
- *	< >=0	: success, return index of buckets tree.
- *	< -1	: fail, name not found.
- * @desc	: search for 'name' in the tree, return pointer to 'node'.
+ * @param question	: hostname that will be search in the tree.
+ * @param answer	: return, query answer.
+ * @param node		: return value, pointer to DNS answer in tree.
+ * @return >=0	: success, return index of buckets tree.
+ * @return -1	: fail, name not found.
+ * @return -2	: fail, query type not found.
+ * @desc	: search for record with 'name' in the tree and
+ * 	with query type in answer, return node found in the tree
+ * 	and answer in the record.
  */
-int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
+int NameCache::get_answer_from_cache (const DNSQuery* question
+					, DNSQuery** answer
+					, NCR_Tree** node)
 {
-	if (!name) {
+	if (!question) {
 		return -1;
 	}
 
 	lock();
 
+	Buffer* name = (Buffer*) &question->_name;
 	int c = 0;
 
 	c = toupper(name->_v[0]);
@@ -243,6 +248,14 @@ int NameCache::get_answer_from_cache(NCR_Tree** node, Buffer* name)
 		(*node) = _buckets[c]._v->search_record_name(name);
 		if (!(*node)) {
 			c = -1;
+		} else {
+			/* find answer by type */
+			(*answer) = (*node)->_rec->search_answer_by_type (
+						question->_q_type);
+
+			if (! (*answer)) {
+				c = -2;
+			}
 		}
 	} else {
 		c = -1;
@@ -443,43 +456,70 @@ int NameCache::insert (NCR** record, const int do_cleanup
  *	< 0	: success.
  *	< -1	: fail.
  */
-int NameCache::insert_raw (const Buffer* name, const Buffer* answer
+int NameCache::insert_copy (DNSQuery* answer
 		, const int do_cleanup
 		, const int skip_list)
 {
-	if (!name) {
+	if (!answer) {
 		return 0;
 	}
 
-	int	s	= 0;
-	NCR*	ncr	= NULL;
+	int		s	= 0;
+	DNSQuery*	lanswer	= NULL;
+	NCR_Tree*	node	= NULL;
 
-	lock();
+	s = get_answer_from_cache (answer, &lanswer, &node);
+	if (s == -1) {
+		// name not found, create new node.
+		lock();
 
-	s = NCR::INIT(&ncr, name, answer);
-	if (s != 0) {
-		goto out;
-	}
+		Buffer*	name	= (Buffer*) &answer->_name;
+		NCR*	ncr	= NULL;
 
-	s = insert (&ncr, do_cleanup, skip_list);
-	if (s != 0) {
-		delete ncr;
-		ncr = NULL;
-	} else {
+		s = NCR::INIT(&ncr, name, answer);
+		if (s != 0) {
+			unlock();
+			return s;
+		}
+
+		s = insert (&ncr, do_cleanup, skip_list);
+		if (s != 0) {
+			delete ncr;
+			ncr = NULL;
+		} else {
+			if (DBG_LVL_IS_1) {
+				dlog.out(
+	"[rescached] NameCache::insert_copy: inserting %3d '%s' (%ld)\n"
+	, answer->_q_type, name->_v, _n_cache);
+			}
+		}
+		unlock();
+	} else if (s == -2) {
+		// name exist but no type found
+		DNSQuery* nu_answer = answer->duplicate ();
+
+		if (! nu_answer) {
+			return -1;
+		}
+
+		DNSQuery::ADD (&node->_rec->_answ, (DNSQuery*) nu_answer);
+
 		if (DBG_LVL_IS_1) {
-			dlog.out(
-"[rescached] NameCache::insert_raw: inserting '%s' (%ld)\n"
-, name->_v, _n_cache);
+			dlog.out("[rescached] NameCache::insert_copy: add %3d '%s' (%ld)\n"
+				, nu_answer->_q_type, nu_answer->_name.v(), _n_cache);
 		}
 	}
-out:
-	unlock();
 
 	return s;
 }
 
 void NameCache::increase_stat_and_rebuild(NCR_List* list)
 {
+	/* In case list is empty, i.e. node is from hosts */
+	if (! list) {
+		return;
+	}
+
 	lock();
 	list->_rec->_stat++;
 	NCR_List::REBUILD(&_cachel, list);

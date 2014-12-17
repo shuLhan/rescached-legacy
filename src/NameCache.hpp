@@ -47,13 +47,15 @@ public:
 	int ncrecord_to_record(const NCR* ncr, Record* row);
 	int save(const char* fdata);
 
-	int get_answer_from_cache(NCR_Tree** node, Buffer* name);
+	int get_answer_from_cache (const DNSQuery* question
+				, DNSQuery** answer
+				, NCR_Tree** node);
 
 	void clean_by_threshold(const long int thr);
 
 	int insert (NCR** record, const int do_cleanup
 			, const int skip_list);
-	int insert_raw(const Buffer* name, const Buffer* answer
+	int insert_copy (DNSQuery* answer
 			, const int do_cleanup, const int skip_list);
 
 	void increase_stat_and_rebuild(NCR_List *list);
