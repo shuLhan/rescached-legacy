@@ -597,9 +597,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	int		idx;
 	NCR_Tree*	node	= NULL;
 	DNSQuery*	answer	= NULL;
-
-	(*question)->extract_header();
-	(*question)->extract_question();
+	int		diff	= 0;
 
 	idx = _nc.get_answer_from_cache ((*question), &answer, &node);
 
@@ -614,19 +612,15 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	}
 	if (_cache_mode == CACHE_IS_TEMPORARY) {
 		time_t	now	= time(NULL);
-		double	diff	= difftime(now, node->_rec->_ttl);
 
-		if (DBG_LVL_IS_2) {
-			dlog.out(
-"[rescached]  process: %lu - %lu = %f\n", now, node->_rec->_ttl
-, diff);
-		}
+		diff = (int) difftime (now, node->_rec->_ttl);
 
 		if (diff >= 0) {
-			if (DBG_LVL_IS_2) {
-				dlog.out(
-"[rescached]  process: '%s' cache is old, renewed...\n"
-, (*question)->_name.v());
+			if (DBG_LVL_IS_1) {
+				dlog.out ("[rescached]    renew: %3d %6ds %s\n"
+					, (*question)->_q_type
+					, diff
+					, (*question)->_name.v());
 			}
 
 			s = _resolver.send_udp((*question));
@@ -640,8 +634,10 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached]  process: %3d %s +%d\n"
-			, (*question)->_q_type, (*question)->_name.v()
+		dlog.out("[rescached]   cached: %3d %6ds %s +%d\n"
+			, (*question)->_q_type
+			, diff
+			, (*question)->_name.v()
 			, node->_rec->_stat);
 	}
 
@@ -728,8 +724,8 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 	obj->_qstn		= (*question);
 
 	if (DBG_LVL_IS_1) {
-		dlog.out ("[rescached]    queue: %3d %s\n"
-			, (*question)->_q_type, (*question)->_name._v);
+		dlog.out ("[rescached]    queue: %3d %6ds %s\n"
+			, (*question)->_q_type, 0, (*question)->_name._v);
 	}
 
 	ResQueue::PUSH(&_queue, obj);
