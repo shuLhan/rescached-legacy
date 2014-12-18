@@ -94,6 +94,8 @@ int NameCache::load(const char* fdata)
 	NCR*		ncr	= NULL;
 	Record*		row	= NULL;
 	RecordMD*	rmd	= NULL;
+	DNSQuery*	lanswer	= NULL;
+	NCR_Tree*	node	= NULL;
 
 	s = R.open_ro(fdata);
 	if (s != 0) {
@@ -120,14 +122,36 @@ int NameCache::load(const char* fdata)
 				ncr->_ttl = time_now;
 			}
 
-			s = insert (&ncr, 0, 0);
-			if (s != 0) {
+			s = get_answer_from_cache (ncr->_answ, &lanswer, &node);
+
+			switch (s) {
+			case 0:
 				delete ncr;
-			} else {
-				if (ncr && DBG_LVL_IS_1) {
-					dlog.er("[rescached] NameCache::load: %3d %s\n"
-						, ncr->_answ->_q_type, ncr->_name->_v);
+				break;
+			// name not found
+			case -1:
+				s = insert (&ncr, 0, 0);
+				if (s != 0) {
+					delete ncr;
+				} else {
+					if (ncr && DBG_LVL_IS_1) {
+						dlog.er("[rescached]     load: %3d %s\n"
+							, ncr->_answ->_q_type, ncr->_name->_v);
+					}
 				}
+				break;
+			// name exist but no type found
+			case -2:
+				DNSQuery::ADD (&node->_rec->_answ, ncr->_answ);
+
+				if (DBG_LVL_IS_1) {
+					dlog.out("[rescached] load-add: %3d '%s')\n"
+						, ncr->_answ->_q_type, ncr->_answ->_name._v);
+				}
+
+				ncr->_answ = NULL;
+				delete ncr;
+				break;
 			}
 		}
 		s = R.read(row, rmd);
@@ -192,14 +216,19 @@ int NameCache::save(const char* fdata)
 	p = _cachel;
 	while (p) {
 		if (p->_rec && p->_rec->_name && p->_rec->_name->_i) {
-			ncrecord_to_record(p->_rec, row);
+			while (p->_rec->_answ) {
+				ncrecord_to_record (p->_rec, row);
 
-			s = W.write(row, rmd);
-			if (s != 0) {
-				break;
+				s = W.write(row, rmd);
+				if (s != 0) {
+					break;
+				}
+
+				row->columns_reset();
+
+				p->_rec->answer_pop ();
 			}
 
-			row->columns_reset();
 		}
 		p = p->_down;
 	}
@@ -290,7 +319,8 @@ void NameCache::clean_by_threshold(const long int thr)
 		}
 
 		if (DBG_LVL_IS_1) {
-			dlog.er("[rescached] removing '%s' - %d\n"
+			dlog.er("[rescached] removing: %3d %s -%d\n"
+				, p->_rec->_answ->_q_type
 				, p->_rec->_name->_v, p->_rec->_stat);
 		}
 
@@ -488,9 +518,8 @@ int NameCache::insert_copy (DNSQuery* answer
 			ncr = NULL;
 		} else {
 			if (DBG_LVL_IS_1) {
-				dlog.out(
-	"[rescached] NameCache::insert_copy: inserting %3d '%s' (%ld)\n"
-	, answer->_q_type, name->_v, _n_cache);
+				dlog.out ("[rescached]   insert: %3d %s (%ld)\n"
+					, answer->_q_type, name->_v, _n_cache);
 			}
 		}
 		unlock();
@@ -505,12 +534,12 @@ int NameCache::insert_copy (DNSQuery* answer
 		DNSQuery::ADD (&node->_rec->_answ, (DNSQuery*) nu_answer);
 
 		if (DBG_LVL_IS_1) {
-			dlog.out("[rescached] NameCache::insert_copy: add %3d '%s' (%ld)\n"
-				, nu_answer->_q_type, nu_answer->_name.v(), _n_cache);
+			dlog.out("[rescached]      add: %3d %s\n"
+				, nu_answer->_q_type, nu_answer->_name.v());
 		}
 	}
 
-	return s;
+	return 0;
 }
 
 void NameCache::increase_stat_and_rebuild(NCR_List* list)

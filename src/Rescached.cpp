@@ -616,20 +616,6 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	(*question)->extract_header();
 	(*question)->extract_question();
 
-	/* Reject IPv6 */
-/*
-	switch ((*question)->_q_type) {
-	case 0x1c:
-		dlog.er ("[rescached] process_client: reject '%s'\n"
-			, (*question)->_name.v());
-		return -1;
-	}
-*/
-	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached] process_client: %3d '%s'\n"
-			, (*question)->_q_type, (*question)->_name.v());
-	}
-
 	idx = _nc.get_answer_from_cache ((*question), &answer, &node);
 
 	if (idx < 0) {
@@ -647,14 +633,14 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 		if (DBG_LVL_IS_2) {
 			dlog.out(
-"[rescached] process_client: %lu - %lu = %f\n", now, node->_rec->_ttl
+"[rescached]  process: %lu - %lu = %f\n", now, node->_rec->_ttl
 , diff);
 		}
 
 		if (diff >= 0) {
 			if (DBG_LVL_IS_2) {
 				dlog.out(
-"[rescached] process_client: '%s' cache is old, renewed...\n"
+"[rescached]  process: '%s' cache is old, renewed...\n"
 , (*question)->_name.v());
 			}
 
@@ -669,7 +655,9 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[rescached] process_client: got one on cache ...\n");
+		dlog.out("[rescached]  process: %3d %s +%d\n"
+			, (*question)->_q_type, (*question)->_name.v()
+			, node->_rec->_stat);
 	}
 
 	_nc.increase_stat_and_rebuild ((NCR_List *) node->_p_list);
