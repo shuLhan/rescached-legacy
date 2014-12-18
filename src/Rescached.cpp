@@ -727,6 +727,11 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 	obj->_tcp_client	= tcp_client;
 	obj->_qstn		= (*question);
 
+	if (DBG_LVL_IS_1) {
+		dlog.out ("[rescached]    queue: %3d %s\n"
+			, (*question)->_q_type, (*question)->_name._v);
+	}
+
 	ResQueue::PUSH(&_queue, obj);
 
 	return 0;
