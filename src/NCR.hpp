@@ -31,6 +31,7 @@ public:
 	~NCR();
 
 	DNSQuery* search_answer_by_type (uint16_t type);
+	void answer_pop ();
 	void dump();
 
 	int		_stat;

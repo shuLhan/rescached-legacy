@@ -47,6 +47,18 @@ DNSQuery* NCR::search_answer_by_type (uint16_t qtype)
 	return NULL;
 }
 
+void NCR::answer_pop ()
+{
+	DNSQuery* p = NULL;
+
+	if (_answ) {
+		p = _answ->_next;
+	}
+	_answ->_next = NULL;
+	delete _answ;
+	_answ = p;
+}
+
 void NCR::dump()
 {
 	dlog.writes("[rescached] NCR::dump: %s\n"
