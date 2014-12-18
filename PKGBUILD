@@ -1,11 +1,11 @@
 # Maintainer: ms <ms@kilabit.info>
 _pkgname=rescached
 pkgname=rescached-git
-pkgver=r55.57b1070
+pkgver=20141219
 pkgrel=1
 pkgdesc="Resolver/DNS cache daemon"
 arch=('i686' 'x86_64')
-url="http://kilabit.info/projects/"
+url="https://github.com/shuLhan/rescached"
 license=('custom:BSD')
 makedepends=('git')
 source=("$_pkgname::git+https://github.com/shuLhan/rescached.git")
