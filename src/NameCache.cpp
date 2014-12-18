@@ -142,10 +142,12 @@ int NameCache::load(const char* fdata)
 				break;
 			// name exist but no type found
 			case -2:
-				DNSQuery::ADD (&node->_rec->_answ, ncr->_answ);
+				if (node && node->_rec) {
+					node->_rec->answer_push (ncr->_answ);
+				}
 
 				if (DBG_LVL_IS_1) {
-					dlog.out("[rescached] load-add: %3d '%s')\n"
+					dlog.out("[rescached] load-add: %3d %s\n"
 						, ncr->_answ->_q_type, ncr->_answ->_name._v);
 				}
 
@@ -421,10 +423,12 @@ int NameCache::insert (NCR** record, const int do_cleanup
 			(*record)->_ttl = time(NULL) + answer->_ans_ttl_max;
 		}
 
-		while (_cachel && _n_cache >= _cache_max) {
+		while (_cachel
+		&& ((_n_cache + ((thr * (thr + 1)) / 2)) >= _cache_max)) {
 			clean_by_threshold(thr);
 
-			if (_n_cache < _cache_max) {
+			// stop cleaning if (n + summation (thr)) < max
+			if ((_n_cache + ((thr * (thr + 1)) / 2)) < _cache_max) {
 				break;
 			}
 
@@ -531,7 +535,9 @@ int NameCache::insert_copy (DNSQuery* answer
 			return -1;
 		}
 
-		DNSQuery::ADD (&node->_rec->_answ, (DNSQuery*) nu_answer);
+		if (node && node->_rec) {
+			node->_rec->answer_push (nu_answer);
+		}
 
 		if (DBG_LVL_IS_1) {
 			dlog.out("[rescached]      add: %3d %s\n"
