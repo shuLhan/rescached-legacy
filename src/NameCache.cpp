@@ -37,6 +37,54 @@ void NameCache::unlock()
 		;
 }
 
+/**
+ * @method	: NameCache::bucket_init
+ * @desc	: Initialize buckets.
+ * @return 0	: success.
+ * @return -1	: fail.
+ */
+int NameCache::bucket_init ()
+{
+	int s = 0;
+
+	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
+	if (!_buckets) {
+		return -1;
+	}
+
+	for (; s <= CACHET_IDX_SIZE; ++s) {
+		_buckets[s]._v = NULL;
+	}
+
+	return 0;
+}
+
+/**
+ * @method	: NameCache::bucket_get_index
+ * @desc	: Get bucket index by character 'c'.
+ * @param c	: First character of data.
+ * @return >= 0	: Index of bucket of 'c'.
+ */
+NCR_Bucket* NameCache::bucket_get_by_index (int c)
+{
+	if (isalpha (c)) {
+		c = (c - 'A') + 10;
+	} else if (isdigit (c)) {
+		c = c - CACHET_IDX_FIRST;
+	} else {
+		c = CACHET_IDX_SIZE;
+	}
+	return &_buckets[c];
+}
+
+/**
+ * @method	: NameCache::raw_to_ncrecord
+ * @desc	: Convert from Record to NameCache Record.
+ * @param raw	: input.
+ * @param ncr	: output.
+ * @return 0	: success.
+ * @return !0	: fail.
+ */
 int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 {
 	int	s		= 0;
@@ -58,22 +106,6 @@ int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 	raw->columns_reset();
 
 	return s;
-}
-
-int NameCache::bucket_init ()
-{
-	int s = 0;
-
-	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
-	if (!_buckets) {
-		return -1;
-	}
-
-	for (; s <= CACHET_IDX_SIZE; ++s) {
-		_buckets[s]._v = NULL;
-	}
-
-	return 0;
 }
 
 /**
@@ -166,10 +198,18 @@ int NameCache::load(const char* fdata)
 	return 0;
 }
 
+/**
+ * @method	: NameCache::ncrecord_to_record
+ * @desc	: Convert from NCR to Record.
+ * @param NCR	: input.
+ * @param Record: output.
+ * @return 0	: success.
+ * @return 1	: input or output is null.
+ */
 int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
 {
 	if (!ncr || !row) {
-		return 0;
+		return 1;
 	}
 	if (ncr->_name) {
 		row->set_column(0, ncr->_name);
@@ -265,18 +305,10 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 
 	Buffer* name = (Buffer*) &question->_name;
 	int c = 0;
+	NCR_Bucket* bucket = bucket_get_by_index (toupper (name->_v[0]));
 
-	c = toupper(name->_v[0]);
-	if (isalpha(c)) {
-		c = (c - 'A') + 10;
-	} else if (isdigit(c)) {
-		c = c - CACHET_IDX_FIRST;
-	} else {
-		c = CACHET_IDX_SIZE;
-	}
-
-	if (_buckets[c]._v) {
-		(*node) = _buckets[c]._v->search_record_name(name);
+	if (bucket->_v) {
+		(*node) = bucket->_v->search_record_name (name);
 		if (!(*node)) {
 			c = -1;
 		} else {
@@ -308,11 +340,11 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
  */
 void NameCache::clean_by_threshold(const long int thr)
 {
-	int		c	= 0;
 	NCR_List*	p	= NULL;
 	NCR_List*	up	= NULL;
 	NCR_Tree*	node	= NULL;
 	NCR_Tree*	ndel	= NULL;
+	NCR_Bucket*	bucket	= NULL;
 
 	p = _cachel->_last;
 	while (p) {
@@ -326,18 +358,11 @@ void NameCache::clean_by_threshold(const long int thr)
 				, p->_rec->_name->_v, p->_rec->_stat);
 		}
 
-		c = toupper(p->_rec->_name->_v[0]);
-		if (isalpha(c)) {
-			c = (c - 'A') + 10;
-		} else if (isdigit(c)) {
-			c = c - CACHET_IDX_FIRST;
-		} else {
-			c = CACHET_IDX_SIZE;
-		}
+		bucket = bucket_get_by_index (toupper (p->_rec->_name->_v[0]));
 
-		if (_buckets[c]._v) {
+		if (bucket->_v) {
 			node = (NCR_Tree *) p->_p_tree;
-			ndel = NCR_Tree::RBT_REMOVE(&_buckets[c]._v, node);
+			ndel = NCR_Tree::RBT_REMOVE(&bucket->_v, node);
 			if (ndel) {
 				ndel->_p_list	= NULL;
 				delete ndel;
@@ -398,21 +423,14 @@ int NameCache::insert (NCR** record, const int do_cleanup
 	}
 
 	int		s	= 0;
-	int		c	= 0;
 	NCR_List*	p_list	= NULL;
 	NCR_Tree*	p_tree	= NULL;
+	NCR_Bucket*	bucket	= NULL;
 
 	if (do_cleanup) {
 		long int	thr	= _cache_thr;
 		DNSQuery*	answer	= (*record)->_answ;
 
-		/* remove authority and additional record */
-		if (answer->_rr_ans_p == NULL) {
-			s = answer->extract();
-			if (s != 0) {
-				return -1;
-			}
-		}
 		if (answer->_id) {
 			answer->set_id(0);
 		}
@@ -441,14 +459,7 @@ int NameCache::insert (NCR** record, const int do_cleanup
 		}
 	}
 
-	c = toupper ((*record)->_name->_v[0]);
-	if (isalpha(c)) {
-		c = (c - 'A') + 10;
-	} else if (isdigit(c)) {
-		c = c - CACHET_IDX_FIRST;
-	} else {
-		c = CACHET_IDX_SIZE;
-	}
+	bucket = bucket_get_by_index (toupper ((*record)->_name->_v[0]));
 
 	/* add to tree */
 	p_tree = new NCR_Tree();
@@ -458,7 +469,7 @@ int NameCache::insert (NCR** record, const int do_cleanup
 
 	p_tree->_rec = (*record);
 
-	s = NCR_Tree::RBT_INSERT(&_buckets[c]._v, p_tree);
+	s = NCR_Tree::RBT_INSERT(&bucket->_v, p_tree);
 	if (s != 0) {
 		p_tree->_rec = NULL;
 		delete p_tree;
@@ -563,11 +574,12 @@ void NameCache::increase_stat_and_rebuild(NCR_List* list)
 
 void NameCache::prune()
 {
+	int i = 0;
 	NCR_List* next = NULL;
 	NCR_List* node = NULL;
 
 	if (_buckets) {
-		for (int i = 0; i <= CACHET_IDX_SIZE; ++i) {
+		for (; i <= CACHET_IDX_SIZE; ++i) {
 			if (_buckets[i]._v) {
 				_buckets[i]._v->prune();
 				delete _buckets[i]._v;
@@ -590,7 +602,7 @@ void NameCache::prune()
 
 void NameCache::dump()
 {
-	int i;
+	int i = 0;
 
 	if (_cachel) {
 		dlog.write_raw("\n[rescached] NameCache::dump >> LIST\n");
@@ -602,7 +614,7 @@ void NameCache::dump()
 	}
 
 	dlog.write_raw("\n[rescached] NameCache::dump >> TREE\n");
-	for (i = 0; i < CACHET_IDX_SIZE; ++i) {
+	for (; i < CACHET_IDX_SIZE; ++i) {
 		if (!_buckets[i]._v) {
 			continue;
 		}

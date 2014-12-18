@@ -40,8 +40,10 @@ public:
 	void lock();
 	void unlock();
 
-	int raw_to_ncrecord(Record* raw, NCR** ncr);
 	int bucket_init ();
+	NCR_Bucket* bucket_get_by_index (int c);
+
+	int raw_to_ncrecord(Record* raw, NCR** ncr);
 	int load(const char* fdata);
 
 	int ncrecord_to_record(const NCR* ncr, Record* row);
