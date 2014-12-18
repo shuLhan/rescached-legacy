@@ -295,6 +295,7 @@ int Rescached::load_hosts ()
 
 	s = reader.load (fhosts);
 	if (s != 0) {
+		free (fhosts);
 		return -1;
 	}
 
@@ -325,6 +326,8 @@ int Rescached::load_hosts ()
 
 		r = r->_next_row;
 	}
+
+	free (fhosts);
 
 	return 0;
 }
@@ -516,25 +519,7 @@ int Rescached::queue_process(DNSQuery* answer)
 	if (!q) {
 		return -1;
 	}
-/*
-	if (!q) {
-		// search queue by name only
-		q = _queue;
-		while (q) {
-			if (q->_qstn) {
-				s = q->_qstn->_name.like(&answer->_name);
-				if (s == 0) {
-					s = _nc.insert_copy(answer, 1, 0);
-					break;
-				}
-			}
-			q = q->_next;
-		}
-		if (!q) {
-			return 0;
-		}
-	}
-*/
+
 	s = queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn, answer);
 
 	ResQueue::REMOVE(&_queue, q);
