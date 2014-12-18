@@ -149,14 +149,14 @@ int NameCache::load(const char* fdata)
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
 			if (_cache_mode == CACHE_IS_TEMPORARY
-			&& (ncr->_ttl == 0 || ncr->_ttl == -INT_MAX
-			||  ncr->_ttl == INT_MAX)) {
+			&& (ncr->_ttl == 0 || ncr->_ttl == UINT_MAX)) {
 				ncr->_ttl = time_now;
 			}
 
 			s = get_answer_from_cache (ncr->_answ, &lanswer, &node);
 
 			switch (s) {
+			// record with the same name and type already exist.
 			case 0:
 				delete ncr;
 				break;
@@ -167,8 +167,10 @@ int NameCache::load(const char* fdata)
 					delete ncr;
 				} else {
 					if (ncr && DBG_LVL_IS_1) {
-						dlog.er("[rescached]     load: %3d %s\n"
-							, ncr->_answ->_q_type, ncr->_name->_v);
+						dlog.er("[rescached]     load: %3d %6ds %s\n"
+							, ncr->_answ->_q_type
+							, ncr->_answ->_ans_ttl_max
+							, ncr->_name->_v);
 					}
 				}
 				break;
@@ -179,8 +181,10 @@ int NameCache::load(const char* fdata)
 				}
 
 				if (DBG_LVL_IS_1) {
-					dlog.out("[rescached] load-add: %3d %s\n"
-						, ncr->_answ->_q_type, ncr->_answ->_name._v);
+					dlog.out("[rescached] load-add: %3d %6ds %s\n"
+						, ncr->_answ->_q_type
+						, ncr->_answ->_ans_ttl_max
+						, ncr->_answ->_name._v);
 				}
 
 				ncr->_answ = NULL;
@@ -403,22 +407,22 @@ void NameCache::clean_by_threshold(const long int thr)
  *	< 0	: success.
  *	< -1	: fail.
  */
-int NameCache::insert (NCR** record, const int do_cleanup
+int NameCache::insert (NCR** ncr, const int do_cleanup
 		, const int skip_list)
 {
-	if (! (*record)) {
+	if (! (*ncr)) {
 		return -1;
 	}
-	if (! (*record)->_name) {
+	if (! (*ncr)->_name) {
 		return -1;
 	}
-	if (! (*record)->_name->_i) {
+	if (! (*ncr)->_name->_i) {
 		return -1;
 	}
-	if (! (*record)->_stat) {
+	if (! (*ncr)->_stat) {
 		return -1;
 	}
-	if (! (*record)->_answ) {
+	if (! (*ncr)->_answ) {
 		return -1;
 	}
 
@@ -426,20 +430,21 @@ int NameCache::insert (NCR** record, const int do_cleanup
 	NCR_List*	p_list	= NULL;
 	NCR_Tree*	p_tree	= NULL;
 	NCR_Bucket*	bucket	= NULL;
+	DNSQuery*	answer	= (*ncr)->_answ;
+
+	if (answer->_id) {
+		answer->set_id(0);
+	}
+
+	if (_cache_mode == CACHE_IS_PERMANENT) {
+		answer->set_rr_answer_ttl (UINT_MAX);
+		(*ncr)->_ttl = UINT_MAX;
+	} else {
+		(*ncr)->_ttl = time(NULL) + answer->_ans_ttl_max;
+	}
 
 	if (do_cleanup) {
 		long int	thr	= _cache_thr;
-		DNSQuery*	answer	= (*record)->_answ;
-
-		if (answer->_id) {
-			answer->set_id(0);
-		}
-		if (_cache_mode == CACHE_IS_PERMANENT) {
-			answer->set_rr_answer_ttl(INT_MAX);
-			(*record)->_ttl = INT_MAX;
-		} else {
-			(*record)->_ttl = time(NULL) + answer->_ans_ttl_max;
-		}
 
 		while (_cachel
 		&& ((_n_cache + ((thr * (thr + 1)) / 2)) >= _cache_max)) {
@@ -459,7 +464,7 @@ int NameCache::insert (NCR** record, const int do_cleanup
 		}
 	}
 
-	bucket = bucket_get_by_index (toupper ((*record)->_name->_v[0]));
+	bucket = bucket_get_by_index (toupper ((*ncr)->_name->_v[0]));
 
 	/* add to tree */
 	p_tree = new NCR_Tree();
@@ -467,7 +472,7 @@ int NameCache::insert (NCR** record, const int do_cleanup
 		return -1;
 	}
 
-	p_tree->_rec = (*record);
+	p_tree->_rec = (*ncr);
 
 	s = NCR_Tree::RBT_INSERT(&bucket->_v, p_tree);
 	if (s != 0) {
@@ -483,7 +488,7 @@ int NameCache::insert (NCR** record, const int do_cleanup
 			return -1;
 		}
 
-		p_list->_rec	= (*record);
+		p_list->_rec	= (*ncr);
 		p_list->_p_tree	= p_tree;
 		p_tree->_p_list	= p_list;
 
@@ -512,14 +517,30 @@ int NameCache::insert_copy (DNSQuery* answer
 	int		s	= 0;
 	DNSQuery*	lanswer	= NULL;
 	NCR_Tree*	node	= NULL;
+	Buffer*		name	= (Buffer*) &answer->_name;
+	NCR*		ncr	= NULL;
 
 	s = get_answer_from_cache (answer, &lanswer, &node);
-	if (s == -1) {
+	if (s == 0) {
+		// replace answer
+		lanswer->set (answer);
+		lanswer->extract (vos::DNSQ_EXTRACT_RR_AUTH);
+
+		// reset TTL in NCR
+		if (CACHE_IS_TEMPORARY == _cache_mode) {
+			node->_rec->_ttl = time (NULL) + answer->_ans_ttl_max;
+		}
+
+		if (DBG_LVL_IS_1) {
+			dlog.out ("[rescached]  renewed: %3d %6ds %s\n"
+				, answer->_q_type
+				, answer->_ans_ttl_max
+				, name->_v);
+		}
+
+	} else if (s == -1) {
 		// name not found, create new node.
 		lock();
-
-		Buffer*	name	= (Buffer*) &answer->_name;
-		NCR*	ncr	= NULL;
 
 		s = NCR::INIT(&ncr, name, answer);
 		if (s != 0) {
@@ -533,10 +554,13 @@ int NameCache::insert_copy (DNSQuery* answer
 			ncr = NULL;
 		} else {
 			if (DBG_LVL_IS_1) {
-				dlog.out ("[rescached]   insert: %3d %s (%ld)\n"
-					, answer->_q_type, name->_v, _n_cache);
+				dlog.out ("[rescached]   insert: %3d %6ds %s (%ld)\n"
+					, answer->_q_type
+					, answer->_ans_ttl_max
+					, name->_v, _n_cache);
 			}
 		}
+
 		unlock();
 	} else if (s == -2) {
 		// name exist but no type found
