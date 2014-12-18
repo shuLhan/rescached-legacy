@@ -3,7 +3,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 <title>rescached Documentation</title>
-<meta name="author"	content="M.Shulhan"/>
+<meta name="title"	content="Rescached-User-Documentation"/>
+<meta name="author"	content="Mhd Sulhan"/>
 <meta name="copyright"	content="kilabit.info"/>
 <meta name="keywords"	content="rescached,resolver,dns,cache"/>
 <style type="text/css">
@@ -283,7 +284,7 @@ $ ln -s ../../libvos.git lib
 $ make
 </pre>
 
-<h3><a name="install"> Installation </h3>
+<h3><a name="install"> Installation </a></h3>
 
 <p>
 After program successfully build, you can install it manually or using make
@@ -337,7 +338,7 @@ $ sudo cp build/rescached /usr/sbin
 </pre>
 </li>
 
-<li> Create system startup script. </br>
+<li> Create system startup script. <br/>
 <p>
 If you want your program running each time the system is up you can create a
 system startup script. You can see an example for openSuSE startup script in
@@ -731,7 +732,6 @@ If <tt>cache.mode</tt> is set to 2 (default), all DNS record will be keep
 only after the specific time, based on maximum TTL value in DNS record. If
 TTL is reached, hostname will be queried again to the DNS parent server, and
 old cache and TTL value will be replaced with a new one.
-</p>
     </td>
     </tr>
 </table>
