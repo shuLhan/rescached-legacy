@@ -36,7 +36,7 @@ public:
 	void dump();
 
 	int		_stat;
-	int32_t		_ttl;
+	uint32_t	_ttl;
 	Buffer*		_name;
 	DNSQuery*	_answ;
 

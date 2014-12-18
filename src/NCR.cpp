@@ -113,10 +113,9 @@ int NCR::INIT(NCR** o, const Buffer* name, const Buffer* answer)
 		goto err;
 	}
 
-	(*o)->_answ->extract_header ();
-	(*o)->_answ->extract_question ();
+	s = (*o)->_answ->extract (vos::DNSQ_EXTRACT_RR_AUTH);
 
-	return 0;
+	return s;
 err:
 	delete (*o);
 	(*o) = NULL;
