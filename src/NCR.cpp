@@ -47,6 +47,21 @@ DNSQuery* NCR::search_answer_by_type (uint16_t qtype)
 	return NULL;
 }
 
+/**
+ * @method	: NCR::answer_push
+ * @desc	: Add 'answer' to the list of answer '_answ'.
+ * @param answer: DNS answer.
+ */
+void NCR::answer_push (DNSQuery* answer)
+{
+	DNSQuery::ADD (&_answ, answer);
+}
+
+/**
+ * @method	: NCR::answer_pop
+ * @desc	: Remove the first answer from the list '_answ' and use
+ * next answer as head.
+ */
 void NCR::answer_pop ()
 {
 	DNSQuery* p = NULL;
