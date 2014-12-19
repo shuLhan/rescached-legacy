@@ -71,7 +71,7 @@ blockquote {
 <a href="http://www.kilabit.info" target="_blank"> .:: kilabit.info ::. </a>
 <br />
 <br />
-August 2010
+December 2014
 <br />
 <br />
 <br />
@@ -99,7 +99,6 @@ August 2010
 <li><a href="#config"> Configuration </a></li>
   <li style="list-style: none">
   <ul>
-  <li><a href="#config_service"> Controlling rescached service </a></li>
   <li><a href="#config_startup"> rescached Startup Option </a></li>
   </ul>
   </li>
@@ -134,6 +133,7 @@ Features,
 <ul>
   <li> Enable to handle UDP and TCP connections. </li>
   <li> Saving/loading cache to/from disk </li>
+  <li> Load and serve address and hostname in <tt>/etc/hosts</tt> </li>
 </ul>
 
 Limitations,
@@ -145,7 +145,13 @@ Limitations,
     <li> A : a host address </li>
     <li> NS : an authoritative name server </li>
     <li> CNAME : a canonical name for an alias </li>
+    <li> SOA : zone authority </li>
+    <li> PTR : a domain name pointer </li>
+    <li> HINFO : host information </li>
     <li> MX : mail exchange </li>
+    <li> TXT : text string </li>
+    <li> SRV : location of services </li>
+    <li> AAAA : a host address for IPv6 </li>
     </ul>
   </li>
   <li> Only run and tested in Unix system </li>
@@ -203,8 +209,8 @@ memory and any later request of the same address will be answered directly by
 </pre>
 
 <p>
-The only request that send to your DNS server is the one that does not already
-exist in <tt>rescached</tt>.
+The only request that will be send to your DNS server is the one that
+does not already exist in <tt>rescached</tt>.
 </p>
 
 
@@ -267,7 +273,7 @@ Prerequisite
 <li> c++ compiler </li>
 <li> make tools </li>
 <li> git SCM </li>
-<li> system V init tool for service. </li>
+<li> systemd or system V init tool for service. </li>
 </ul>
 
 <h3>
@@ -278,9 +284,9 @@ Compiling From Source
 
 <pre>
 $ git clone http://www.github.com/shuLhan/rescached.git rescached.git
-$ git clone http://www.github.com/shuLhan/libvos.git libvos.git
 $ cd rescached.git/src
-$ ln -s ../../libvos.git lib
+$ git submodule init
+$ git submodule update
 $ make
 </pre>
 
@@ -292,16 +298,16 @@ program.
 </p>
 <h4> Install using make program </h4>
 <p>
-Installing using make in linux system using <tt>init.d</tt> (I.e. OpenSuSE) use,
+Installing using make in Linux system using <tt>init.d</tt> use,
 <pre>
-$ sudo make install
+$ sudo make install-init
 </pre>
 </p>
 
 <p>
-For Arch linux, which use <tt>rc.d</tt>, use,
+For Linux system with systemd, use,
 <pre>
-$ sudo make install-arch
+$ sudo make install
 </pre>
 </p>
 
@@ -313,7 +319,7 @@ $ sudo make install-arch
 Assume that we use directory "<tt>/etc/rescached</tt>" as configuration
 directory, then
 <pre>
-$ sudo mkdir /etc/rescached
+$ sudo mkdir -p /etc/rescached
 $ sudo cp rescached.cfg /etc/rescached
 </pre>
 </p>
@@ -324,7 +330,7 @@ $ sudo cp rescached.cfg /etc/rescached
 In example we use "<tt>/var/cache/rescached</tt>" as cache directory,
 </p>
 <pre>
-$ sudo mkdir /var/cache/rescached
+$ sudo mkdir -p /var/cache/rescached
 </pre>
 <p>
 If you use different cache directory, do not forget to change the
@@ -341,9 +347,8 @@ $ sudo cp build/rescached /usr/sbin
 <li> Create system startup script. <br/>
 <p>
 If you want your program running each time the system is up you can create a
-system startup script. You can see an example for openSuSE startup script in
-file <tt>scripts/rescached.run</tt>, or <tt>scripts/rescached.arch</tt> for
-Arch Linux system.
+system startup script. You can see an example for init.d startup script in
+file <tt>scripts/rescached.run</tt> or <tt>scripts/rescached.arch</tt>.
 </p>
 <p>
 This step is really different between each system, consult your distribution
@@ -385,6 +390,16 @@ $ sudo mv /etc/resolv.conf /etc/resolv.conf.org
 $ sudo echo "nameserver 127.0.0.1" &gt; /etc/resolv.conf
     </pre>
     </li>
+<li> If you use systemd as service, run <tt>rescached</tt> service by invoking, </li>
+	<pre>
+$ sudo systemctl start rescached.service
+	</pre>
+
+<p> if you want the service run when system startup, enable it by invoking,
+	<pre>
+$ sudo systemctl enable rescached.service
+	</pre>
+</p>
 </ul>
 
 
@@ -393,45 +408,6 @@ $ sudo echo "nameserver 127.0.0.1" &gt; /etc/resolv.conf
 Configuration
 </a>
 </h2>
-
-
-<h3>
-<a name="config_service">
-Controlling rescached Service
-</a>
-</h3>
-
-<p>
-After <tt>rescached</tt> has been installed you can start, stop, and view
-status of <tt>rescached</tt> service using <tt>/sbin/rcrescached</tt>.
-</p>
-
-<ul>
-  <li> Starting rescached service. </li>
-  <li style="list-style-type: none;">
-  <pre>
-$ sudo /sbin/rcrescached start
-</pre>
-  <br/>
-  </li>
-
-  <li> Stopping rescached service. </li>
-  <li style="list-style-type: none;">
-  <pre>
-$ sudo /sbin/rcrescached stop
-</pre>
-  <br/>
-  </li>
-
-  <li> View status of service. </li>
-  <li style="list-style-type: none;">
-  <pre>
-$ sudo /sbin/rcrescached status
-</pre>
-  <br/>
-        <b>NOTE:</b> status option is not available in Arch Linux system.
-  </li>
-</ul>
 
 <h3>
 <a name="config_startup">
