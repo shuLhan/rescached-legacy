@@ -92,12 +92,6 @@ do-install:
 		exit 1;							\
 	fi;								\
 									\
-	if [[ -f $(SYSTEM_SVC) ]]; then					\
-		echo "";						\
-		echo " >> stopping rescached service ...";		\
-		$(SYSTEM_SVC) stop;					\
-	fi;								\
-									\
 	if [[ $(METADATA_CHANGE) != 0 ]]; then				\
 		echo "";						\
 		echo " >> removing old caches ...";			\
@@ -117,7 +111,7 @@ do-install:
 									\
 	echo "";							\
 	echo " >> Installing program and configuration ...";		\
-	$(call do_install,$(TARGET),$(INSTALL_BIN_D))			\
+	$(call do_install,$(BLD_D)/rescached,$(INSTALL_BIN_D))		\
 	if [ ! -f $(INSTALL_CFG_D)/$(RESCACHED_CFG) ]; then		\
 		$(call do_install,$(RESCACHED_CFG),$(INSTALL_CFG_D))	\
 	fi;								\
@@ -138,12 +132,6 @@ do-uninstall:
 	@if [[ $${UID} != 0 ]]; then					\
 		echo " >> User root needed for installation!";		\
 		exit 1;							\
-	fi;								\
-									\
-	if [[ -f $(SYSTEM_SVC) ]]; then					\
-		echo "";						\
-		echo " >> stopping rescached service ...";		\
-		$(SYSTEM_SVC) stop;					\
 	fi;								\
 									\
 	$(call do_rm,$(INSTALL_BIN_D)/rcrescached)			\
