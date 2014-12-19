@@ -1,0 +1,339 @@
+RESCACHED(1)
+============
+:doctype: manpage
+
+
+== NAME
+
+rescached - domain name service cache.
+
+
+== SYNOPSIS
+
++rescached+ ['rescached.cfg']
+
+
+== OPTIONS
+
+If invoking +rescached+ without paramter, it will read configuration from +/etc/rescached/rescached.cfg+.
+
+
+== DESCRIPTION
+
++rescached+ is a daemon that caching internet name and address on local memory when running and in local disk when not running.
+
++rescached+ is not a reimplementation of DNS server like BIND. +rescached+ primary goal is only to caching DNS queries and answers, used by personal or small group of users, to minimize unneeded traffic to outside network.
+
+=== Features
+
+* Enable to handle request from UDP and TCP connections.
+* Saving/loading cache to/from disk
+* Load and serve addresses and hostnames in +/etc/hosts+
+
+
+=== Behind The DNS
+
+When you open a website, let say 'www.reddit.com', in a browser, the first thing that browser do is to translate name address 'www.reddit.com' into an internet address (i.e.: 219.83.126.10) so browser can make a connection to 'www.reddit.com' server.
+
+How browser do that ? First, it will send query to one of DNS server listed in your system configuration (+/etc/resolv.conf+ in Linux). Then, if your DNS server also "caching" the name that you requested, it will reply the answer (internet address) directly, if it is not then it will ask their parent DNS server.
+
+----
++----+      +----------------+      +------------------+
+| PC | <==> | ISP DNS Server | <==> | Other DNS Server | <==> ...
++----+      +----------------+      +------------------+
+----
+
+If you browsing frequently on the same site, hitting the refresh button, opening another page on the same website, etc; this procedures will always repeated every times, not including all external links like ads, social media button, or javascripts from an other server.
+
+To make this repetitive procedures less occurred, you can run +rescached+ in your personal computer. The first time the answer is received in your local computer, +rescached+ will saved it in computer memory and any later request of the same address will be answered directly by +rescached+.
+
+----
++----+      +----------------+      +------------------+
+| PC |      | ISP DNS Server | <==> | Other DNS Server | <==> ...
++----+      +----------------+      +------------------+
+  ^^             ^^
+  ||             ||
+  vv             ||
++-----------+    ||
+| rescached | <==//
++-----------+
+----
+
+The only request that will be send to your DNS server is the one that does not already exist in +rescached+ cache.
+
+
+=== How Cache in +rescached+ Works
+
+Each of query and answer data in cache have a number of accessed field, which defined how the cache will be ordered in memory. The frequently queried host-name will be at the top of cache list, and less queried host-name will at the bottom of cache list. This, obviously, will make a cache list based on user habit (frequently accessed host-name), which effect on the search time on cache list: fast reply.
+
+----
++-----+------------------+
+| #   | host-name        |
++-----+------------------+
+| 529 | www.reddit.com   |
++-----+------------------+
+| 233 | www.google.com   |
++-----+------------------+
+| ... |        ...       |
++-----+------------------+
+| 1   | www.kilabit.info |
++-----+------------------+
+----
+
+The number of cache that +rescached+ can hold in memory is depend on the value of <<cache.max>> in configuration file. When the number of cache in memory reached it <<cache.max>> value, it will remove all cache data that has the number of frequently accessed less than <<cache.threshold>>.
+
+== Installation
+
+=== Prerequisites
+
+* GNU C++ compiler
+* GNU make
+* git SCM
+* systemd or system V init tool for service.
+
+=== Compiling From Source
+
+To build +rescached+ from the source, follow this procedures bellow,
+
+	$ git clone http://www.github.com/shuLhan/rescached.git rescached.git
+	$ cd rescached.git/src
+	$ git submodule init
+	$ git submodule update
+	$ make
+
+=== Installation
+
+After program successfully build, you can install it manually or using GNU +make+ program.
+
+==== Install Using GNU +make+ Program
+
+Installing using GNU +make+ tool in Linux system using init.d use,
+
+	$ sudo make install-init
+
+For Linux system with systemd use,
+
+	$ sudo make install
+
+==== Manual Installation
+
+* Copy rescached configuration to system directory. Assume that we use directory "/etc/rescached" as configuration directory, then
++
+	$ sudo mkdir -p /etc/rescached
+	$ sudo cp rescached.cfg /etc/rescached
+
+* Create directory for cache file. In example we use "/var/cache/rescached" as cache directory,
++
+	$ sudo mkdir -p /var/cache/rescached
++
+If you use different cache directory, do not forget to change the configuration option.
+
+* Copy rescached program to your system path.
++
+	$ sudo cp build/rescached /usr/sbin
+
+* Create system startup script.
++
+If you want your program running each time the system is starting up you can create a system startup script (or system service). You can see an example for init.d startup script in file +scripts/rescached.run+ or +scripts/rescached.arch+.
++
+This step is really different between each system, consult your distribution wiki, forum or mailing-list for how to create system startup script.
+
+==== Post Installation Configuration
+
+* Set your parent DNS server.
++
+Edit rescached configuration, +/etc/rescached/rescached.cfg+, change the value of +<<server.parent,server.parent>>+ based on your preferred DNS server.
+
+* Set maximum caches.
++
+Edit rescached configuration, +/etc/rescached/rescached.cfg+, change the value of <<cache.max>> and/or <<cache.threshold>> to match your needs.
+
+* Set your system DNS server to point to rescached.
++
+In Linux,
++
+	$ sudo mv /etc/resolv.conf /etc/resolv.conf.org
+	$ sudo echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+* If you use systemd as service, run +rescached+ service by invoking,
++
+	$ sudo systemctl start rescached.service
++	
+or if you want +rescached+ service run when system startup, enable it by invoking,
++
+	$ sudo systemctl enable rescached.service
+
+== CONFIGURATION
+
+All rescached startup option located in file +/etc/rescached/rescached.cfg+. In this file you can see some comment for any option and some possible value. This section will explain more about each option and how they effect +rescached+.
+
+[[file.data]]
+=== +file.data+
+
+Value::		A path to a cache file.
+Format:: 	/any/path/to/file
+Default::	rescached.vos
+Description:: 	This file contain all DNS answers that rescached collected while running. When +rescached+ stopped it will saved all DNS answer in this file, so when +rescached+ is started again it will load all data in this file to memory again. If not set, then +rescached+ will load/save the cache to the file named +rescached.vos+ in current directory where user running +rescached+.
+
+[[file.data.backup]]
+=== +file.data.backup+
+
+Value:: 	A name of of backup file, with or without path.
+Format:: 	/any/path/to/file
+Default:: 	<<file.data>> + ".bak"
+Description:: 	This file is a backup of +file.data+, it will be created only if +rescached+ program exit successfully without error. If not set then it will have the same name with the value in +file.data+ but with additional suffix, +.bak+.
+
+[[file.pid]]
+=== +file.pid+
+
+Value:: 	A path to process id file.
+Format:: 	/any/path/to/file
+Default:: 	rescached.pid
+Description:: 	When +rescached+ started, it will create this file as a mediator to any system service. Content of this file is the process ID (PID) of +rescached+ in system. If not set then the default name will be used, and it will be saved in current directory where user running +rescached+.
+
+[[file.log]]
+=== +file.log+
+
+[horizontal]
+Value:: 	A name of rescached log file.
+Format:: 	/any/path/to/file
+Default:: 	rescached.log
+Description:: 	This file contain log of program when running. Verbosity of log output is depend on value of +debug+ option.
+
+[[server.parent]]
+=== +server.parent+
+
+Value:: 	List of parent DNS servers, separated by commas.
+Format:: 	IP-ADDRESS:PORT, IP-ADDRESS:PORT, ...
+Default::
+* Address: 8.8.8.8, 8.8.4.4
+* Port: 53
+Description:: 	When +rescached+ receive a query from client and when it does not have a cached address of query, it will pass the query to those parent server. +rescached+ use a Google DNS public server as a default parent address if not set. The reason for this is that Google DNS public server use a simple and small size of response/answer. Please, do not use OpenDNS server, because OpenDNS will reply with its own address, instead of replying with no answer, if certain host-name not found (i.e. typo in host-name), this will make +rescached+ caching a false data.
+To check if your parent server reply the unknown host-name with no answer, use +dig+ tool.
+
+[[server.listen]]
+=== +server.listen+
+
+Value:: 	Local IP address that +rescached+ will listening for client request.
+Format:: 	<IP-ADDRESS>
+Default:: 	127.0.0.1
+Description:: 	Address in local network where +rescached+ will listening for query from client. If you want rescached to serve a query from another host in your local network, change this value to +0.0.0.0+.
+
+[[server.listen.port]]
+=== +server.listen.port+
+
+Value:: 	Port for listening for client request.
+Format:: 	Any integer number between 1 to 65535.
+Default:: 	53
+Description:: 	Beside the +server.listen+ address, +rescached+ also need to known which port it will opening for receiving client queries. You should not change this value, because technically every client (browser, email client, etc.) will always send the query to port 53.
+
+[[server.timeout]]
+=== +server.timeout+
+
+Value:: 	Timeout value, in second, before cleaning queue.
+Format:: 	Any integer number between 300 to 2147483647.
+Default:: 	300
+Description:: 	This option set the server timeout value. If time out is reached, all the old queries (that is older than +server.timeout+) in queue that does not receipt a reply from parent server will be removed.
+
+[[cache.max]]
+=== +cache.max+
+
+Value:: 	Maximum number of host-name and address that will keep in memory.
+Format:: 	Any number between 1 and 2147483647.
+Default:: 	100000
+Description:: 	When +rescached+ running it will keep all queries and answers in memory as much as +cache.max+. The bigger the +cache.max+ value, then the more rescached will use memory.
+
+[[cache.threshold]]
+=== +cache.threshold+
+
+Value:: 	Minimum value for cache status.
+Format:: 	Any integer number between 1 and 2147483647.
+Default:: 	1
+Description:: 	When +rescached+ cache all the queries and answers, until long enough it will reached its own maximum value (+cache.max+), when it happen +rescached+ will remove all cache that has number-of-queried value is less than +cache.threshold+.
+
+[[cache.mode]]
+=== +cache.mode+
+
+Value:: 	cache mode, affect how the cache will be saved in disk/memory.
+Format:: 	Number (1 or 2).
+Default:: 	2
+Description:: 	If +cache.mode+ is set to 1, all DNS record will be keep forever, no possible query or renewed of DNS record will happen until the specific DNS record removed from cache. If +cache.mode+ is set to 2 (default), all DNS record will be keep only after the specific time, based on maximum TTL value in DNS record. If TTL is reached, hostname will be queried again to the DNS parent server, and old cache and TTL value will be replaced with a new one.
+
+[[debug]]
+=== +debug+
+
+Value::
+0::: log nothing.
+1::: log startup, request, response, and exit status.
+2::: log startup, request, response, caches, and exit status.
+Format:: 	Number (0, 1, or 2).
+Default:: 	0
+Description:: 	This option only used by developer for debugging program or if user want to monitor what kind of traffic goes out, set this option to 1.
+
+
+== EXIT STATUS
+
+Upon success, +rescached+ will return 0, or not 0 if fail.
+
+
+== ENVIRONMENT
+
+'LIBVOS_DEBUG'::
+
+If the value is set to non zero before running, +rescached+ will print debug output to screen and log file. The output of debug is different from <<debug>> option.
+
+
+== FILES
+
+'/etc/rescached/rescached.cfg'::
+
+The +rescached+ main configuration. This configuration will be read when program started.
+
+'/etc/hosts'::
+
+System hostname to address mapping. This configuration will be read when program started.
+
+'/var/cache/rescached.vos'::
+
+The cache file. This file will be read when program started and written when program exit.
+
+'/var/cache/rescached.vos.bak'::
+
+Backup of cache file.
+
+
+== NOTES
+
+This program developed with reference to,
+
+'RFC1034':: Domain Names - Concepts and Facilities.
+'RFC1035':: Domain Names - Implementation and Specification.
+'RFC1886':: DNS Extensions to support IP version 6.
+'RFC2782':: A DNS RR for specifying the location of services (DNS SRV)
+
+== BUGS
+
+* +rescached+ only know specific DNS record type,
+[horizontal]
+A:: a host address
+NS:: an authoritative name server
+CNAME:: a canonical name for an alias
+SOA:: zone authority
+PTR:: a domain name pointer
+HINFO:: host information
+MX:: mail exchange
+TXT:: text string
+SRV:: location of services
+AAAA:: a host address for IPv6
+
+* +rescached+ only run and tested in Linux system. Technically, if it can compiled, it will run in any UNIX system.
+
+For request of features and/or bugs report please submitted through web at https://github.com/shuLhan/rescached/issues.
+
+== AUTHOR
+
++rescached+ is developed by Mhd Sulhan (ms@kilabit.info).
+
+== SEE ALSO
+
+*pdnsd*(1), *djbdnsd*(1)

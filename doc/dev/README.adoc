@@ -1,21 +1,14 @@
- rescached Developer Documentation
-==============================================================================
+rescached Developer Documentation
+=================================
 
 This documentation cover the details on how the rescached program works
 internally.
 
-+ Record Format
-+ How The Cache Works
-	- Cache Tree
-	- Cache List
-	- Maximum Cache and Threshold
+:toc:
 
+== Record Format
 
- Record Format
-==============================================================================
-
-(This record is represented by NCR class.)
-
+This record is represented by NCR class.
 
 	rescached record format:
 
@@ -30,40 +23,25 @@ internally.
 	+-------------------+
 
 
-- host-name
+- host-name. +host-name+ is the string that client queried to the rescached program.  Example of host-name is: reddit.com, google.com, etc.
 
-	host-name is the string that client queried to the rescached program.
-	Example of host-name is: reddit.com, google.com, etc.
+- statistic. Record statistic is a counter for record. This field track how many times the host-name has been queried by client.
 
-- record statistic
+- TTL (Time To Live). TTL value, in second, is used to define how long the record will be keep on cache before it was renewed again.
 
-	Record statistic is a counter for record. This field track how many
-	times the host-name has been queried by client.
+- DNS answer packet.  This is a binary data, an answer packet from DNS parent server, contains query section and answer section.
 
-- TTL (Time To Live), and
-
-	TTL value, in second, is used to define how long the record will be
-	keep on cache before it was renewed again.
-
-- DNS answer packet
-
-	This is a binary data, an answer packet from DNS parent server,
-	contains query section and answer section.
-
-rescached save all record in DSV format in file. Each field is separated by
++rescached+ save all record in DSV format in file. Each field is separated by
 pipe character ('|'). Example of rescached record on disk,
 
 	reddit.com|246|5621|*|
 
 
- How The Cache Works
-==============================================================================
+== How The Cache Works
 
- Cache Tree
-------------------------------------------------------------------------------
+=== Cache Tree
 
-(Cache Tree is represented by NCR_Tree class.)
-
+Cache Tree is represented by NCR_Tree class.
 
 Cache Tree is used for searching. Cache Tree is saved in bucket-tree mode.
 
@@ -76,8 +54,9 @@ alphabet (the only character that allowed in host-name is underscore
 
 	rescached bucket visualized:
 
+----
 [0|1|2|3|4|5|6|7|8|9|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|*]
-
+----
 
 Each of bucket is a root of a tree. rescached use a binary tree, and
 normalized using Red-Black Tree algorithm.
@@ -120,11 +99,9 @@ ab.com, and az.com, then the bucket and tree would be like:
     a.com    az.com
 
 
- Cache List
-------------------------------------------------------------------------------
+=== Cache List
 
-(Cache List is represented by NCR_List class.)
-
+Cache List is represented by NCR_List class.
 
 The Cache List is a stack of all record ordered in ascending by the value of
 statistic in each record. The top stack is the most queried host-name and the
@@ -167,8 +144,7 @@ stack would be like:
 Cache Tree and Cache List use the same record object.
 
 
- Maximum Cache and Threshold
-------------------------------------------------------------------------------
+=== Maximum Cache and Threshold
 
 rescached has a maximum record that it can keep in memory. Threshold in
 rescached is the minimum value, for statistic, to allow record to be keep in

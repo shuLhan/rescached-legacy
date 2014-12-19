@@ -13,6 +13,7 @@ INSTALL_BIN_D	=$(DESTDIR)/usr/bin
 INSTALL_CFG_D	=$(DESTDIR)/etc/rescached
 INSTALL_CACHE_D	=$(DESTDIR)/var/cache/rescached
 INSTALL_DATA_D	=$(DESTDIR)/usr/share/rescached
+INSTALL_MAN_D	=$(DESTDIR)/usr/share/man/man1
 
 LIBVOS_D	=lib
 
@@ -21,6 +22,7 @@ include $(LIBVOS_D)/Makefile
 SERVICE_NAME	=rescached
 
 TARGET		=$(BLD_D)/rescached
+TARGET		+=$(BLD_D)/rescached.1.gz
 RESCACHED_CFG	=$(SRC_D)/rescached.cfg
 RESCACHED_SVC	=
 SVC_INIT_D	=/etc/init.d
@@ -33,7 +35,7 @@ SYSTEM_SVC	=
 ## METADATA_CHANGE: If set to non-zero, old cache file will be removed on
 ## installation due to change in cache metadata format.
 ##
-METADATA_CHANGE	=1
+METADATA_CHANGE	=0
 
 TARGET_OBJS	=					\
 			$(BLD_D)/main.oo		\
@@ -77,6 +79,10 @@ $(BLD_D):
 $(BLD_D)/rescached: $(TARGET_OBJS)
 	@$(do_build)
 
+$(BLD_D)/rescached.1.gz: $(DATA_D)/README.adoc
+	@a2x --doctype manpage --format manpage -D $(BLD_D) $< 2>/dev/null
+	@gzip $(BLD_D)/rescached.1
+
 $(BLD_D)/%.oo: $(SRC_D)/%.cpp $(SRC_D)/%.hpp
 	@$(do_compile)
 
@@ -105,7 +111,9 @@ do-install:
 	$(call do_mkdir,$(INSTALL_CFG_D))				\
 	$(call do_mkdir,$(INSTALL_SVC_D))				\
 	$(call do_mkdir,$(INSTALL_CACHE_D))				\
+	$(call do_rmdir,$(INSTALL_DATA_D))				\
 	$(call do_mkdir,$(INSTALL_DATA_D))				\
+	$(call do_mkdir,$(INSTALL_MAN_D))				\
 									\
 	echo "";							\
 	echo " >> Installing program and configuration ...";		\
@@ -121,8 +129,9 @@ do-install:
 	echo "";							\
 	echo " >> Installing data ...";					\
 	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
-	$(call do_install,$(DATA_D)/README,$(INSTALL_DATA_D))		\
-	$(call do_install_dir,$(DATA_D)/doc,$(INSTALL_DATA_D))
+	$(call do_install,$(DATA_D)/README.adoc,$(INSTALL_DATA_D))	\
+	$(call do_install_dir,$(DATA_D)/doc/dev,$(INSTALL_DATA_D))	\
+	$(call do_install,$(BLD_D)/rescached.1.gz,$(INSTALL_MAN_D))
 
 
 do-uninstall:
