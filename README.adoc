@@ -335,6 +335,10 @@ For request of features and/or bugs report please submitted through web at https
 
 +rescached+ is developed by Mhd Sulhan (ms@kilabit.info).
 
+== CREDITS
+
+'pgl.yoyo.org' for ad server list for use with hosts files to block ads.
+
 == SEE ALSO
 
 *pdnsd*(1), *djbdnsd*(1)
