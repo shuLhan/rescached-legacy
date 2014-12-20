@@ -4,8 +4,10 @@ After=syslog.service
 
 [Service]
 Type=simple
+PIDFile=/var/run/rescached.pid
 ExecStart=/usr/bin/rescached /etc/rescached/rescached.cfg
-Restart=on-abort
+Restart=on-failure
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
