@@ -42,7 +42,7 @@ DNSQuery* NCR::search_answer_by_type (uint16_t qtype)
 		if (p->_q_type == qtype) {
 			return p;
 		}
-		p = _answ->_next;
+		p = p->_next;
 	}
 	return NULL;
 }
