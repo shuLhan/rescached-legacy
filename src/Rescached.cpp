@@ -69,8 +69,13 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = load_hosts ();
-	if (s != 0) {
+	s = load_hosts (NULL);
+	if (s < 0) {
+		return -1;
+	}
+
+	s = load_hosts_ads ();
+	if (s < 0) {
 		return -1;
 	}
 
@@ -266,22 +271,27 @@ int Rescached::bind()
 /**
  * @method	: Rescached::load_hosts
  * @desc	: load host-ip address in hosts file.
- * @return 1	: unsupported.
+ * @return 1	: unsupported, can not find hosts file in the system.
  * @return 0	: success.
  * @return -1	: fail to open and/or parse hosts file.
  */
-int Rescached::load_hosts ()
+int Rescached::load_hosts (const char* file)
 {
-	int		s = 0;
-	int		is_ipv4 = 0;
-	int		addr = 0;
-	int		cnt = 0;
-	char*		fhosts = NULL;
+	int	s	= 0;
+	int	is_ipv4	= 0;
+	int	addr	= 0;
+	int	cnt	= 0;
+	Buffer	fhosts;
 
 #ifdef __unix
-	fhosts = strdup ("/etc/hosts");
+	if (! file) {
+		fhosts.copy_raw ("/etc/hosts");
+	} else {
+		fhosts.copy_raw (file);
+	}
 #endif
-	if (! fhosts) {
+
+	if (fhosts.is_empty ()) {
 		return 1;
 	}
 
@@ -293,9 +303,8 @@ int Rescached::load_hosts ()
 
 	reader._comment_c = '#';
 
-	s = reader.load (fhosts);
+	s = reader.load (fhosts._v);
 	if (s != 0) {
-		free (fhosts);
 		return -1;
 	}
 
@@ -312,7 +321,7 @@ int Rescached::load_hosts ()
 				s = qanswer.create_answer (c->_v
 					, (uint16_t) vos::QUERY_T_ADDRESS
 					, (uint16_t) vos::QUERY_C_IN
-					, UINT_MAX
+					, INT_MAX
 					, (uint16_t) ip->_i, ip->_v);
 
 				if (s == 0) {
@@ -327,7 +336,35 @@ int Rescached::load_hosts ()
 		r = r->_next_row;
 	}
 
-	free (fhosts);
+	return 0;
+}
+
+int Rescached::load_hosts_ads ()
+{
+	int s = 0;
+	const char* path_unix = "/etc/rescached/";
+	Buffer path;
+
+	// Check hosts ads in current directory.
+	s = File::IS_EXIST (RESCACHED_HOSTS_ADS);
+
+	if (s) {
+		dlog.out ("[rescached] hosts ads: %s", RESCACHED_HOSTS_ADS);
+		return load_hosts (RESCACHED_HOSTS_ADS);
+	}
+
+	// Check hosts for UNIX system.
+#ifdef __unix
+	path.concat (path_unix, RESCACHED_HOSTS_ADS, NULL);
+#endif
+
+	if (! path.is_empty ()) {
+		s = File::IS_EXIST (path._v);
+
+		if (s) {
+			return load_hosts (path._v);
+		}
+	}
 
 	return 0;
 }
@@ -601,6 +638,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 	idx = _nc.get_answer_from_cache ((*question), &answer, &node);
 
+	// Question is not found in cache
 	if (idx < 0) {
 		s = _resolver.send_udp((*question));
 		if (s < 0) {
@@ -610,7 +648,10 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		queue_push(udp_client, tcp_client, question);
 		return 0;
 	}
-	if (_cache_mode == CACHE_IS_TEMPORARY) {
+
+	// Check TTL
+	if (_cache_mode == CACHE_IS_TEMPORARY
+	&&  answer->_is_local == 0) {
 		time_t	now	= time(NULL);
 
 		diff = (int) difftime (now, node->_rec->_ttl);

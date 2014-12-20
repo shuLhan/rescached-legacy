@@ -35,6 +35,7 @@ namespace rescached {
 #define	RESCACHED_LOG		"rescached.log"
 #define	RESCACHED_PID		"rescached.pid"
 #define	RESCACHED_CACHE_MAX	100000
+#define	RESCACHED_HOSTS_ADS	"hosts.ads"
 
 #define	RESCACHED_DEF_PARENT	"8.8.8.8, 8.8.4.4"
 #define	RESCACHED_DEF_LISTEN	"127.0.0.1"
@@ -52,7 +53,8 @@ public:
 	int init(const char* fconf);
 	int load_config(const char* fconf);
 	int bind();
-	int load_hosts ();
+	int load_hosts (const char* hosts_file);
+	int load_hosts_ads ();
 	int load_cache();
 
 	int run();
