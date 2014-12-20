@@ -1,4 +1,4 @@
-# Maintainer: ms <ms@kilabit.info>
+# Maintainer: sulhan <ms@kilabit.info>
 _pkgname=rescached
 pkgname=rescached-git
 pkgver=20141219
@@ -8,8 +8,9 @@ arch=('i686' 'x86_64')
 url="https://github.com/shuLhan/rescached"
 license=('custom:BSD')
 makedepends=('git' 'asciidoc')
-source=("$_pkgname::git+https://github.com/shuLhan/rescached.git")
-sha1sums=('SKIP')
+source=("$_pkgname::git+https://github.com/shuLhan/rescached.git"
+	"libvos::git+https://github.com/shuLhan/libvos.git")
+sha1sums=('SKIP' 'SKIP')
 
 pkgver() {
 	cd "$srcdir/$_pkgname/src"
@@ -19,6 +20,7 @@ pkgver() {
 prepare() {
 	cd "$srcdir/$_pkgname/src"
 	git submodule init
+	git config submodule.libvos.url $srcdir/$_pkgname/src/lib
 	git submodule update
 }
 
