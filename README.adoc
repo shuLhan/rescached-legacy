@@ -10,12 +10,12 @@ rescached - domain name service cache.
 
 == SYNOPSIS
 
-+rescached+ ['rescached.cfg']
++rescached+ 'rescached.cfg'
 
 
 == OPTIONS
 
-If invoking +rescached+ without paramter, it will read configuration from +/etc/rescached/rescached.cfg+.
+'rescached.cfg' is rescached configuration, usually it reside in /etc/rescached/rescached.cfg.
 
 
 == DESCRIPTION
@@ -290,6 +290,10 @@ If the value is set to non zero before running, +rescached+ will print debug out
 
 The +rescached+ main configuration. This configuration will be read when program started.
 
+'/etc/rescached/hosts.ads'::
+
+List of ads server hostname that will blocked by the +rescached+. This configuration will be read when program started.
+
 '/etc/hosts'::
 
 System hostname to address mapping. This configuration will be read when program started.
@@ -337,7 +341,7 @@ For request of features and/or bugs report please submitted through web at https
 
 == CREDITS
 
-'pgl.yoyo.org' for ad server list for use with hosts files to block ads.
+'pgl.yoyo.org' for ads server list for use with hosts files to block ads.
 
 == SEE ALSO
 
