@@ -18,10 +18,11 @@ pkgver() {
 }
 
 prepare() {
-	cd "$srcdir/$_pkgname/src"
+	cd "$srcdir/$_pkgname"
 	git submodule init
-	git config submodule.libvos.url $srcdir/$_pkgname/src/lib
+	git config submodule.libvos.url $srcdir/libvos
 	git submodule update
+	cd "src"
 }
 
 build() {
