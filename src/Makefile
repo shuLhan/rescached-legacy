@@ -81,7 +81,7 @@ $(BLD_D)/rescached: $(TARGET_OBJS)
 
 $(BLD_D)/rescached.1.gz: $(DATA_D)/README.adoc
 	@a2x --doctype manpage --format manpage -D $(BLD_D) $< 2>/dev/null
-	@gzip $(BLD_D)/rescached.1
+	@gzip -f $(BLD_D)/rescached.1
 
 $(BLD_D)/%.oo: $(SRC_D)/%.cpp $(SRC_D)/%.hpp
 	@$(do_compile)
