@@ -86,9 +86,10 @@ The number of cache that +rescached+ can hold in memory is depend on the value o
 
 === Prerequisites
 
-* GNU C++ compiler
-* GNU make
-* git SCM
+* GNU C++ compiler.
+* GNU make.
+* git SCM.
+* asciidoc, for generate manual page.
 * systemd or system V init tool for service.
 
 === Compiling From Source

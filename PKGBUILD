@@ -7,7 +7,7 @@ pkgdesc="Resolver/DNS cache daemon"
 arch=('i686' 'x86_64')
 url="https://github.com/shuLhan/rescached"
 license=('custom:BSD')
-makedepends=('git')
+makedepends=('git' 'asciidoc')
 source=("$_pkgname::git+https://github.com/shuLhan/rescached.git")
 sha1sums=('SKIP')
 
