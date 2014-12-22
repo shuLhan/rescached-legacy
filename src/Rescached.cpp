@@ -49,7 +49,8 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = dlog.open(_flog._v);
+	// Open log file with maximum size to 2MB
+	s = dlog.open(_flog._v, 2048000);
 	if (s != 0) {
 		return -1;
 	}
