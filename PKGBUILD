@@ -8,6 +8,7 @@ arch=('i686' 'x86_64')
 url="https://github.com/shuLhan/rescached"
 license=('custom:BSD')
 makedepends=('git' 'asciidoc')
+backup=('etc/rescached/rescached.cfg')
 source=("$_pkgname::git+https://github.com/shuLhan/rescached.git"
 	"libvos::git+https://github.com/shuLhan/libvos.git")
 sha1sums=('SKIP' 'SKIP')
