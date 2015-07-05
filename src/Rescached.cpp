@@ -322,6 +322,8 @@ int Rescached::load_hosts (const char* file)
 		return 1;
 	}
 
+	dlog.out ("[rescached] loading '%s'...\n", fhosts._v);
+
 	SSVReader	reader;
 	DNSQuery	qanswer;
 	Record*		ip;
@@ -362,6 +364,8 @@ int Rescached::load_hosts (const char* file)
 
 		r = r->_next_row;
 	}
+
+	dlog.out ("[rescached] %d addresses loaded.\n", cnt);
 
 	return 0;
 }
@@ -409,6 +413,8 @@ int Rescached::load_cache()
 {
 	register int s;
 
+	dlog.out("[rescached] loading cache ...\n");
+
 	s = _nc.load(_fdata._v);
 	if (s != 0 || _nc._n_cache == 0) {
 		s = _nc.load(_fdatabak._v);
@@ -419,11 +425,10 @@ int Rescached::load_cache()
 		}
 	}
 
-	if (DBG_LVL_IS_1) {
-		dlog.er("[rescached] %d record loaded\n", _nc._n_cache);
-		if (DBG_LVL_IS_3) {
-			_nc.dump();
-		}
+	dlog.out("[rescached] %d records loaded.\n", _nc._n_cache);
+
+	if (DBG_LVL_IS_3) {
+		_nc.dump();
 	}
 
 	return 0;
