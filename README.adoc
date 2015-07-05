@@ -212,6 +212,14 @@ Default::
 Description:: 	When +rescached+ receive a query from client and when it does not have a cached address of query, it will pass the query to those parent server. +rescached+ use a Google DNS public server as a default parent address if not set. The reason for this is that Google DNS public server use a simple and small size of response/answer. Please, do not use OpenDNS server, because OpenDNS will reply with its own address, instead of replying with no answer, if certain host-name not found (i.e. typo in host-name), this will make +rescached+ caching a false data.
 To check if your parent server reply the unknown host-name with no answer, use +dig+ tool.
 
+[[server.parent.connection]]
+=== +server.parent.connection+
+
+Value:: Request to parent server using specific protocol.
+Format:: String ("udp" or "tcp", without quotes)
+Default:: udp
+Description:: Type of protocol that will be used to send request to +server.parent+. When +rescached+ receive query from client it will forward the query to the +server.parent+ using default protocol, UDP. In case UDP is blocked, you can set this variable to "tcp".
+
 [[server.listen]]
 === +server.listen+
 
