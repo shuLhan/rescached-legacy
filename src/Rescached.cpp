@@ -14,15 +14,16 @@ Rescached::Rescached() :
 ,	_flog()
 ,	_fpid()
 ,	_dns_parent()
+,	_dns_conn()
 ,	_listen_addr()
 ,	_listen_port(RESCACHED_DEF_PORT)
 ,	_rto(RESCACHED_DEF_TIMEOUT)
+,	_dns_conn_t (RESCACHED_DEF_CONN_T)
 ,	_resolver()
 ,	_srvr_udp()
 ,	_srvr_tcp()
 ,	_fd_all()
 ,	_fd_read()
-,	_maxfds(0)
 ,	_running(1)
 ,	_nc()
 ,	_queue(NULL)
@@ -146,6 +147,17 @@ int Rescached::load_config(const char* fconf)
 		return -1;
 	}
 
+	v = cfg.get (RESCACHED_CONF_HEAD, "server.parent.connection"
+			, RESCACHED_DEF_PARENT_CONN);
+	s = _dns_conn.copy_raw (v);
+	if (s != 0) {
+		return -1;
+	}
+
+	if (_dns_conn.like_raw ("tcp") == 0) {
+		_dns_conn_t = 1;
+	}
+
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen"
 			, RESCACHED_DEF_LISTEN);
 	s = _listen_addr.copy_raw(v);
@@ -200,6 +212,7 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] pid file          > %s\n", _fpid._v);
 		dlog.er("[rescached] log file          > %s\n", _flog._v);
 		dlog.er("[rescached] parent address    > %s\n", _dns_parent._v);
+		dlog.er("[rescached] parent connection > %s\n", _dns_conn._v);
 		dlog.er("[rescached] listening on      > %s\n", _listen_addr._v);
 		dlog.er("[rescached] listening on port > %d\n", _listen_port);
 		dlog.er("[rescached] timeout           > %d\n", _rto);
@@ -219,22 +232,34 @@ int Rescached::load_config(const char* fconf)
  *	< -1	: fail.
  * @desc	: initialize Resolver object and start listening to client
  * connections.
+ *
+ * (1) Add server list.
+ * (2) Create resolver object based on type.
+ * (3) Create server for UDP.
+ * (4) Create server for TCP.
+ * (5) Initialize open fd.
  */
 int Rescached::bind()
 {
 	register int s;
 
-	/* start Resolver first */
-	s = _resolver.init();
-	if (s < 0) {
-		return -1;
-	}
-
+	// (1)
 	s = _resolver.set_server(_dns_parent._v);
 	if (s < 0) {
 		return -1;
 	}
 
+	// (2)
+	if (_dns_conn_t == 0) {
+		s = _resolver.init (SOCK_DGRAM);
+	} else {
+		s = _resolver.init (SOCK_STREAM);
+	}
+	if (s < 0) {
+		return -1;
+	}
+
+	// (3)
 	s = _srvr_udp.create_udp();
 	if (s != 0) {
 		return -1;
@@ -245,6 +270,7 @@ int Rescached::bind()
 		return -1;
 	}
 
+	// (4)
 	s = _srvr_tcp.create();
 	if (s != 0) {
 		return -1;
@@ -255,16 +281,16 @@ int Rescached::bind()
 		return -1;
 	}
 
+	// (5)
 	FD_ZERO(&_fd_all);
 	FD_ZERO(&_fd_read);
 
 	FD_SET(_srvr_udp._d, &_fd_all);
 	FD_SET(_srvr_tcp._d, &_fd_all);
-	FD_SET(_resolver._d, &_fd_all);
 
-	_maxfds = (_srvr_udp._d > _srvr_tcp._d ? _srvr_udp._d : _srvr_tcp._d);
-	_maxfds = (_maxfds > _resolver._d ? _maxfds : _resolver._d);
-	_maxfds++;
+	if (0 == _dns_conn_t) {
+		FD_SET(_resolver._d, &_fd_all);
+	}
 
 	return 0;
 }
@@ -350,7 +376,7 @@ int Rescached::load_hosts_ads ()
 	s = File::IS_EXIST (RESCACHED_HOSTS_ADS);
 
 	if (s) {
-		dlog.out ("[rescached] hosts ads: %s", RESCACHED_HOSTS_ADS);
+		dlog.out ("[rescached] hosts ads: %s\n", RESCACHED_HOSTS_ADS);
 		return load_hosts (RESCACHED_HOSTS_ADS);
 	}
 
@@ -395,7 +421,7 @@ int Rescached::load_cache()
 
 	if (DBG_LVL_IS_1) {
 		dlog.er("[rescached] %d record loaded\n", _nc._n_cache);
-		if (DBG_LVL_IS_2) {
+		if (DBG_LVL_IS_3) {
 			_nc.dump();
 		}
 	}
@@ -420,11 +446,20 @@ int Rescached::run()
 	struct sockaddr_in*	addr		= NULL;
 
 	while (_running) {
+		// TCP: if resolver connection is open, add it to selector.
+		if (1 == _dns_conn_t && _resolver._status > 0) {
+			FD_SET (_resolver._d, &_fd_all);
+
+			if (DBG_LVL_IS_2) {
+				dlog.out ("[rescached] adding open resolver.\n");
+			}
+		}
+
 		_fd_read	= _fd_all;
 		timeout.tv_sec	= _rto;
 		timeout.tv_usec	= 0;
 
-		s = select(_maxfds, &_fd_read, NULL, NULL, &timeout);
+		s = select(FD_SETSIZE, &_fd_read, NULL, NULL, &timeout);
 		if (s <= 0) {
 			if (EINTR == errno) {
 				s = 0;
@@ -435,19 +470,50 @@ int Rescached::run()
 		}
 
 		if (FD_ISSET(_resolver._d, &_fd_read)) {
-			s = _resolver.recv_udp (answer);
-			if (s >= 0) {
+			if (_dns_conn_t == 0) {
+				if (DBG_LVL_IS_2) {
+					dlog.out("[rescached] read resolver udp.\n");
+				}
+
+				s = _resolver.recv_udp (answer);
+			} else {
+				if (DBG_LVL_IS_2) {
+					dlog.out("[rescached] read resolver tcp.\n");
+				}
+
+				s = _resolver.recv_tcp (answer);
+
+				if (s <= 0) {
+					FD_CLR (_resolver._d, &_fd_all);
+					_resolver.close();
+				} else {
+					// convert answer to UDP.
+					answer->to_udp ();
+				}
+			}
+
+			if (DBG_LVL_IS_2) {
+				dlog.out("[rescached] read resolver status %d.\n", s);
+			}
+
+			if (s > 0) {
 				s = queue_process (answer);
 			}
 		} else if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
+			if (DBG_LVL_IS_2) {
+				dlog.out("[rescached] read server udp.\n");
+			}
+
 			addr = (struct sockaddr_in*) calloc(1
 							, SockAddr::IN_SIZE);
 			if (!addr) {
+				dlog.er("[rescached] error at allocating new address!\n");
 				continue;
 			}
 
 			s = (int) _srvr_udp.recv_udp(addr);
 			if (s <= 0) {
+				dlog.er ("[rescached] error at receiving UDP packet!\n");
 				free(addr);
 				addr = NULL;
 				continue;
@@ -455,6 +521,7 @@ int Rescached::run()
 
 			s = DNSQuery::INIT(&question, &_srvr_udp);
 			if (s < 0) {
+				dlog.er("[rescached] error at initializing dnsquery!\n");
 				free(addr);
 				addr = NULL;
 				continue;
@@ -462,6 +529,7 @@ int Rescached::run()
 
 			s = process_client(addr, NULL, &question);
 			if (s != 0) {
+				dlog.er("[rescached] error at processing client!\n");
 				delete question;
 				question = NULL;
 			}
@@ -470,16 +538,17 @@ int Rescached::run()
 				addr = NULL;
 			}
 		} else if (FD_ISSET(_srvr_tcp._d, &_fd_read)) {
+			if (DBG_LVL_IS_2) {
+				dlog.out("[rescached] read server tcp.\n");
+			}
+
 			client = _srvr_tcp.accept_conn();
 			if (! client) {
+				dlog.er("[rescached] error at accepting client TCP connection!\n");
 				continue;
 			}
 
 			FD_SET(client->_d, &_fd_all);
-
-			if (client->_d >= _maxfds) {
-				_maxfds = client->_d + 1;
-			}
 
 			s = process_tcp_client();
 		} else {
@@ -616,7 +685,7 @@ int Rescached::queue_send_answer(struct sockaddr_in* udp_client
 		return -1;
 	}
 
-	if (DBG_LVL_IS_2) {
+	if (DBG_LVL_IS_3) {
 		_nc.dump_r();
 	}
 
@@ -641,7 +710,11 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 	// Question is not found in cache
 	if (idx < 0) {
-		s = _resolver.send_udp((*question));
+		if (_dns_conn_t == 0) {
+			s = _resolver.send_udp((*question));
+		} else {
+			s = _resolver.send_tcp((*question));
+		}
 		if (s < 0) {
 			return -1;
 		}
@@ -665,7 +738,11 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 					, (*question)->_name.v());
 			}
 
-			s = _resolver.send_udp((*question));
+			if (0 == _dns_conn_t) {
+				s = _resolver.send_udp ((*question));
+			} else {
+				s = _resolver.send_tcp ((*question));
+			}
 			if (s < 0) {
 				return -1;
 			}
@@ -759,9 +836,12 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 		return -1;
 	}
 
-	obj->_udp_client	= (struct sockaddr_in *) calloc (1
+	if (udp_client) {
+		obj->_udp_client = (struct sockaddr_in *) calloc (1
 						, SockAddr::IN_SIZE);
-	memcpy (obj->_udp_client, udp_client, SockAddr::IN_SIZE);
+		memcpy (obj->_udp_client, udp_client, SockAddr::IN_SIZE);
+	}
+
 	obj->_tcp_client	= tcp_client;
 	obj->_qstn		= (*question);
 

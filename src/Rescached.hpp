@@ -38,6 +38,8 @@ namespace rescached {
 #define	RESCACHED_HOSTS_ADS	"hosts.ads"
 
 #define	RESCACHED_DEF_PARENT	"8.8.8.8, 8.8.4.4"
+#define	RESCACHED_DEF_PARENT_CONN	"udp"
+#define	RESCACHED_DEF_CONN_T	0
 #define	RESCACHED_DEF_LISTEN	"127.0.0.1"
 #define	RESCACHED_DEF_PORT	53
 #define	RESCACHED_DEF_THRESHOLD	1
@@ -79,9 +81,11 @@ public:
 	Buffer		_flog;
 	Buffer		_fpid;
 	Buffer		_dns_parent;
+	Buffer		_dns_conn;
 	Buffer		_listen_addr;
 	int		_listen_port;
 	int		_rto;
+	int		_dns_conn_t;
 
 	Resolver	_resolver;
 	SockServer	_srvr_udp;
@@ -89,7 +93,6 @@ public:
 
 	fd_set		_fd_all;
 	fd_set		_fd_read;
-	int		_maxfds;
 	int		_running;
 
 	NameCache	_nc;
