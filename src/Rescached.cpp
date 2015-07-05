@@ -61,11 +61,6 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = bind();
-	if (s != 0) {
-		return -1;
-	}
-
 	s = _nc.bucket_init ();
 	if (s != 0) {
 		return -1;
@@ -82,6 +77,11 @@ int Rescached::init(const char* fconf)
 	}
 
 	s = load_cache();
+	if (s < 0) {
+		return -1;
+	}
+
+	s = bind();
 
 	return s;
 }
@@ -291,6 +291,9 @@ int Rescached::bind()
 	if (0 == _dns_conn_t) {
 		FD_SET(_resolver._d, &_fd_all);
 	}
+
+	dlog.out("[rescached] listening on %s:%d.\n", _listen_addr._v
+		, _listen_port);
 
 	return 0;
 }
