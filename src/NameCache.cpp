@@ -166,7 +166,7 @@ int NameCache::load(const char* fdata)
 				if (s != 0) {
 					delete ncr;
 				} else {
-					if (ncr && DBG_LVL_IS_1) {
+					if (ncr && !_skip_log && DBG_LVL_IS_1) {
 						dlog.er("[rescached]     load: %3d %6ds %s\n"
 							, ncr->_answ->_q_type
 							, ncr->_answ->_ans_ttl_max
@@ -180,7 +180,7 @@ int NameCache::load(const char* fdata)
 					node->_rec->answer_push (ncr->_answ);
 				}
 
-				if (DBG_LVL_IS_1) {
+				if (!_skip_log && DBG_LVL_IS_1) {
 					dlog.out("[rescached] load-add: %3d %6ds %s\n"
 						, ncr->_answ->_q_type
 						, ncr->_answ->_ans_ttl_max
@@ -531,7 +531,7 @@ int NameCache::insert_copy (DNSQuery* answer
 			node->_rec->_ttl = (uint32_t) (time (NULL) + answer->_ans_ttl_max);
 		}
 
-		if (DBG_LVL_IS_1) {
+		if (!_skip_log && DBG_LVL_IS_1) {
 			dlog.out ("[rescached]  renewed: %3d %6ds %s\n"
 				, answer->_q_type
 				, answer->_ans_ttl_max
@@ -553,7 +553,7 @@ int NameCache::insert_copy (DNSQuery* answer
 			delete ncr;
 			ncr = NULL;
 		} else {
-			if (DBG_LVL_IS_1) {
+			if (!_skip_log && DBG_LVL_IS_1) {
 				dlog.out ("[rescached]   insert: %3d %6ds %s (%ld)\n"
 					, answer->_q_type
 					, answer->_ans_ttl_max
@@ -574,7 +574,7 @@ int NameCache::insert_copy (DNSQuery* answer
 			node->_rec->answer_push (nu_answer);
 		}
 
-		if (DBG_LVL_IS_1) {
+		if (!_skip_log && DBG_LVL_IS_1) {
 			dlog.out("[rescached]      add: %3d %s\n"
 				, nu_answer->_q_type, nu_answer->_name.v());
 		}

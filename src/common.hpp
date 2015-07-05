@@ -21,6 +21,7 @@ enum _cache_mode_idx {
 extern Dlogger	dlog;
 extern int	_dbg;
 extern int	_cache_mode;
+extern short	_skip_log;
 
 #define	DBG_LVL_IS_1	(_dbg >= 1)
 #define	DBG_LVL_IS_2	(_dbg >= 2)

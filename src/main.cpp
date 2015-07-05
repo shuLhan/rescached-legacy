@@ -74,6 +74,8 @@ int main(int argc, char *argv[])
 		goto err;
 	}
 
+	_skip_log = 0;
+
 	rescached_set_signal_handle();
 	R.run();
 err:
