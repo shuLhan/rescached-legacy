@@ -150,7 +150,7 @@ int NameCache::load(const char* fdata)
 		if (0 == s) {
 			if (_cache_mode == CACHE_IS_TEMPORARY
 			&& (ncr->_ttl == 0 || ncr->_ttl == UINT_MAX)) {
-				ncr->_ttl = time_now;
+				ncr->_ttl = (uint32_t) time_now;
 			}
 
 			s = get_answer_from_cache (ncr->_answ, &lanswer, &node);
@@ -440,7 +440,7 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 		answer->set_rr_answer_ttl (UINT_MAX);
 		(*ncr)->_ttl = UINT_MAX;
 	} else {
-		(*ncr)->_ttl = time(NULL) + answer->_ans_ttl_max;
+		(*ncr)->_ttl = (uint32_t) (time(NULL) + answer->_ans_ttl_max);
 	}
 
 	if (do_cleanup) {
@@ -528,7 +528,7 @@ int NameCache::insert_copy (DNSQuery* answer
 
 		// reset TTL in NCR
 		if (CACHE_IS_TEMPORARY == _cache_mode) {
-			node->_rec->_ttl = time (NULL) + answer->_ans_ttl_max;
+			node->_rec->_ttl = (uint32_t) (time (NULL) + answer->_ans_ttl_max);
 		}
 
 		if (DBG_LVL_IS_1) {
