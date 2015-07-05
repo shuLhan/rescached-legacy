@@ -55,7 +55,7 @@ public:
 	int init(const char* fconf);
 	int load_config(const char* fconf);
 	int bind();
-	int load_hosts (const char* hosts_file);
+	int load_hosts (const char* hosts_file, const short is_ads = 0);
 	int load_hosts_ads ();
 	int load_cache();
 

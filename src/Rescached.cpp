@@ -66,7 +66,7 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = load_hosts (NULL);
+	s = load_hosts (NULL, 0);
 	if (s < 0) {
 		return -1;
 	}
@@ -305,12 +305,13 @@ int Rescached::bind()
  * @return 0	: success.
  * @return -1	: fail to open and/or parse hosts file.
  */
-int Rescached::load_hosts (const char* file)
+int Rescached::load_hosts (const char* file, const short is_ads)
 {
 	int	s	= 0;
 	int	is_ipv4	= 0;
 	int	addr	= 0;
 	int	cnt	= 0;
+	uint32_t attrs = 0;
 	Buffer	fhosts;
 
 #ifdef __unix
@@ -323,6 +324,12 @@ int Rescached::load_hosts (const char* file)
 
 	if (fhosts.is_empty ()) {
 		return 1;
+	}
+
+	if (is_ads) {
+		attrs = vos::DNS_IS_ADS;
+	} else {
+		attrs = vos::DNS_IS_LOCAL;
 	}
 
 	dlog.out ("[rescached] loading '%s'...\n", fhosts._v);
@@ -354,7 +361,9 @@ int Rescached::load_hosts (const char* file)
 					, (uint16_t) vos::QUERY_T_ADDRESS
 					, (uint16_t) vos::QUERY_C_IN
 					, INT_MAX
-					, (uint16_t) ip->_i, ip->_v);
+					, (uint16_t) ip->_i
+					, ip->_v
+					, attrs);
 
 				if (s == 0) {
 					_nc.insert_copy (&qanswer, 0, 1);
@@ -384,7 +393,7 @@ int Rescached::load_hosts_ads ()
 
 	if (s) {
 		dlog.out ("[rescached] hosts ads: %s\n", RESCACHED_HOSTS_ADS);
-		return load_hosts (RESCACHED_HOSTS_ADS);
+		return load_hosts (RESCACHED_HOSTS_ADS, 1);
 	}
 
 	// Check hosts for UNIX system.
@@ -396,7 +405,7 @@ int Rescached::load_hosts_ads ()
 		s = File::IS_EXIST (path._v);
 
 		if (s) {
-			return load_hosts (path._v);
+			return load_hosts (path._v, 1);
 		}
 	}
 
@@ -731,9 +740,9 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		return 0;
 	}
 
-	// Check TTL
+	// Check TTL if cache mode is temporary and answer is from query.
 	if (_cache_mode == CACHE_IS_TEMPORARY
-	&&  answer->_is_local == 0) {
+	&&  answer->_attrs == vos::DNS_IS_QUERY) {
 		time_t	now	= time(NULL);
 
 		diff = (int) difftime (now, node->_rec->_ttl);
@@ -761,11 +770,14 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached]   cached: %3d %6ds %s +%d\n"
+		dlog.out("[rescached] %8s: %3d %6ds %s +%d\n"
+			, (answer->_attrs == vos::DNS_IS_ADS
+				? "ads blocked" : "cached")
 			, (*question)->_q_type
 			, diff
 			, (*question)->_name.v()
-			, node->_rec->_stat);
+			, node->_rec->_stat
+			);
 	}
 
 	_nc.increase_stat_and_rebuild ((NCR_List *) node->_p_list);
