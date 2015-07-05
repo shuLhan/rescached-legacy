@@ -24,6 +24,7 @@ extern int	_cache_mode;
 
 #define	DBG_LVL_IS_1	(_dbg >= 1)
 #define	DBG_LVL_IS_2	(_dbg >= 2)
+#define	DBG_LVL_IS_3	(_dbg >= 3)
 
 } /* namespace::rescached */
 
