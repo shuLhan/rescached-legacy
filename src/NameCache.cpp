@@ -548,6 +548,9 @@ int NameCache::insert_copy (DNSQuery* answer
 			return s;
 		}
 
+		ncr->_answ->_ans_ttl_max = answer->_ans_ttl_max;
+		ncr->_answ->_attrs = answer->_attrs;
+
 		s = insert (&ncr, do_cleanup, skip_list);
 		if (s != 0) {
 			delete ncr;
