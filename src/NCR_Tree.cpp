@@ -113,7 +113,7 @@ void NCR_Tree::dump()
 	if (_left) {
 		_left->dump();
 	}
-	if (_rec && DBG_LVL_IS_2) {
+	if (_rec && DBG_LVL_IS_3) {
 		dlog.writes("\t%d|%s\n", _rec->_stat, _rec->_name->_v);
 	}
 	if (_right) {
