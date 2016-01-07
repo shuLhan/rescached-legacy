@@ -13,6 +13,7 @@ Rescached::Rescached() :
 ,	_fdatabak()
 ,	_flog()
 ,	_fpid()
+,	_fhostsblock()
 ,	_dns_parent()
 ,	_dns_conn()
 ,	_listen_addr()
@@ -71,7 +72,7 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = load_hosts_ads ();
+	s = load_hosts_block ();
 	if (s < 0) {
 		return -1;
 	}
@@ -136,6 +137,13 @@ int Rescached::load_config(const char* fconf)
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.pid", RESCACHED_PID);
 	s = _fpid.copy_raw(v);
+	if (s != 0) {
+		return -1;
+	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "file.hosts.block"
+		, RESCACHED_HOSTS_BLOCK);
+	s = _fhostsblock.copy_raw(v);
 	if (s != 0) {
 		return -1;
 	}
@@ -211,6 +219,7 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] cache file backup > %s\n", _fdatabak._v);
 		dlog.er("[rescached] pid file          > %s\n", _fpid._v);
 		dlog.er("[rescached] log file          > %s\n", _flog._v);
+		dlog.er("[rescached] hosts blocked     > %s\n", _fhostsblock._v);
 		dlog.er("[rescached] parent address    > %s\n", _dns_parent._v);
 		dlog.er("[rescached] parent connection > %s\n", _dns_conn._v);
 		dlog.er("[rescached] listening on      > %s\n", _listen_addr._v);
@@ -305,7 +314,7 @@ int Rescached::bind()
  * @return 0	: success.
  * @return -1	: fail to open and/or parse hosts file.
  */
-int Rescached::load_hosts (const char* file, const short is_ads)
+int Rescached::load_hosts (const char* file, const short is_blocked)
 {
 	int	s	= 0;
 	int	is_ipv4	= 0;
@@ -326,8 +335,8 @@ int Rescached::load_hosts (const char* file, const short is_ads)
 		return 1;
 	}
 
-	if (is_ads) {
-		attrs = vos::DNS_IS_ADS;
+	if (is_blocked) {
+		attrs = vos::DNS_IS_BLOCKED;
 	} else {
 		attrs = vos::DNS_IS_LOCAL;
 	}
@@ -382,30 +391,24 @@ int Rescached::load_hosts (const char* file, const short is_ads)
 	return 0;
 }
 
-int Rescached::load_hosts_ads ()
+int Rescached::load_hosts_block ()
 {
 	int s = 0;
-	const char* path_unix = "/etc/rescached/";
-	Buffer path;
 
-	// Check hosts ads in current directory.
-	s = File::IS_EXIST (RESCACHED_HOSTS_ADS);
+	// Check blocked hosts file in current directory.
+	s = File::IS_EXIST (RESCACHED_HOSTS_BLOCK);
 
 	if (s) {
-		dlog.out ("[rescached] hosts ads: %s\n", RESCACHED_HOSTS_ADS);
-		return load_hosts (RESCACHED_HOSTS_ADS, 1);
+		dlog.out ("[rescached] blocked hosts: %s\n", RESCACHED_HOSTS_BLOCK);
+		return load_hosts (RESCACHED_HOSTS_BLOCK, 1);
 	}
 
-	// Check hosts for UNIX system.
-#ifdef __unix
-	path.concat (path_unix, RESCACHED_HOSTS_ADS, NULL);
-#endif
-
-	if (! path.is_empty ()) {
-		s = File::IS_EXIST (path._v);
+	// Load blocked hosts file from config
+	if (! _fhostsblock.is_empty ()) {
+		s = File::IS_EXIST (_fhostsblock._v);
 
 		if (s) {
-			return load_hosts (path._v, 1);
+			return load_hosts (_fhostsblock._v, 1);
 		}
 	}
 
@@ -771,8 +774,8 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 	if (DBG_LVL_IS_1) {
 		dlog.out("[rescached] %8s: %3d %6ds %s +%d\n"
-			, (answer->_attrs == vos::DNS_IS_ADS
-				? "ads blocked" : "cached")
+			, (answer->_attrs == vos::DNS_IS_BLOCKED
+				? "host blocked" : "cached")
 			, (*question)->_q_type
 			, diff
 			, (*question)->_name.v()

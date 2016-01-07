@@ -201,6 +201,15 @@ Format:: 	/any/path/to/file
 Default:: 	rescached.log
 Description:: 	This file contain log of program when running. Verbosity of log output is depend on value of +debug+ option.
 
+[[file.hosts.block]]
+=== +file.hosts.block+
+
+[horizontal]
+Value::		A path to list of blocked hosts file
+Format::	/any/path/to/file
+Default::	/etc/rescached/hosts.block
+Description::	This file contain list of hosts that will be blocked by rescached. Format of file content is using Unix hosts file.
+
 [[server.parent]]
 === +server.parent+
 
@@ -349,7 +358,8 @@ For request of features and/or bugs report please submitted through web at https
 
 == CREDITS
 
-'pgl.yoyo.org' for ads server list for use with hosts files to block ads.
+* 'pgl.yoyo.org' for ads server list for use with hosts files to block ads.
+* 'www.malwaredomainlist.com' for list of malware hosts.
 
 == SEE ALSO
 

@@ -115,7 +115,7 @@ do-install:
 	if [ ! -f $(INSTALL_CFG_D)/$(RESCACHED_CFG) ]; then		\
 		$(call do_install,$(RESCACHED_CFG),$(INSTALL_CFG_D))	\
 	fi;								\
-	$(call do_install,$(SRC_D)/hosts.ads,$(INSTALL_CFG_D))		\
+	$(call do_install,$(SRC_D)/hosts.block,$(INSTALL_CFG_D))	\
 									\
 	echo "";							\
 	echo " >> Installing service ...";				\
