@@ -750,6 +750,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 		diff = (int) difftime (now, node->_rec->_ttl);
 
+		// TTL is outdated.
 		if (diff >= 0) {
 			if (DBG_LVL_IS_1) {
 				dlog.out ("[rescached]    renew: %3d %6ds %s\n"
@@ -770,6 +771,10 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 			queue_push(udp_client, tcp_client, question);
 			return 0;
 		}
+
+		// Update answer TTL with time difference.
+		diff = (int) difftime (node->_rec->_ttl, now);
+		answer->set_rr_answer_ttl(diff);
 	}
 
 	if (DBG_LVL_IS_1) {
