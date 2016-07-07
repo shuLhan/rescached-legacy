@@ -1,16 +1,14 @@
 /*
- * Copyright (C) 2010 kilabit.org
- * Author:
- *	- m.shulhan (ms@kilabit.org)
+ * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
  */
 
 #include "common.hpp"
 
 namespace rescached {
 
-Dlogger dlog;
-int	_dbg		= 0;
-int	_cache_mode	= CACHE_IS_TEMPORARY;
-short	_skip_log	= 1;
+Dlogger		dlog;
+int		_dbg		= 0;
+uint32_t	_cache_minttl	= 60;
+short		_skip_log	= 1;
 
 } /* namespace::rescached */

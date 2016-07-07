@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2010 kilabit.org
- * Author:
- *	- m.shulhan (ms@kilabit.org)
+ * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
  */
 
 #include "NameCache.hpp"
@@ -148,8 +146,7 @@ int NameCache::load(const char* fdata)
 	while (s == 1 && (_n_cache < _cache_max || 0 == _cache_max)) {
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
-			if (_cache_mode == CACHE_IS_TEMPORARY
-			&& (ncr->_ttl == 0 || ncr->_ttl == UINT_MAX)) {
+			if (ncr->_ttl <= 0 || ncr->_ttl == UINT_MAX) {
 				ncr->_ttl = (uint32_t) time_now;
 			}
 
@@ -431,16 +428,18 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 	NCR_Tree*	p_tree	= NULL;
 	NCR_Bucket*	bucket	= NULL;
 	DNSQuery*	answer	= (*ncr)->_answ;
+	time_t		time_now= time(NULL);
 
 	if (answer->_id) {
 		answer->set_id(0);
 	}
 
-	if (_cache_mode == CACHE_IS_PERMANENT) {
-		answer->set_rr_answer_ttl (UINT_MAX);
-		(*ncr)->_ttl = UINT_MAX;
+	if (answer->_ans_ttl_max < _cache_minttl) {
+		answer->set_rr_answer_ttl (_cache_minttl);
+		(*ncr)->_ttl = (uint32_t) (time_now + _cache_minttl);
 	} else {
-		(*ncr)->_ttl = (uint32_t) (time(NULL) + answer->_ans_ttl_max);
+		answer->set_rr_answer_ttl (answer->_ans_ttl_max);
+		(*ncr)->_ttl = (uint32_t) (time_now + answer->_ans_ttl_max);
 	}
 
 	if (do_cleanup) {
@@ -502,7 +501,7 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 
 /**
  * @return	:
- (	< >0	: fail, record with the same name already exist.
+ *	< >0	: fail, record with the same name already exist.
  *	< 0	: success.
  *	< -1	: fail.
  */
@@ -519,6 +518,7 @@ int NameCache::insert_copy (DNSQuery* answer
 	NCR_Tree*	node	= NULL;
 	Buffer*		name	= (Buffer*) &answer->_name;
 	NCR*		ncr	= NULL;
+	time_t		time_now= time(NULL);
 
 	s = get_answer_from_cache (answer, &lanswer, &node);
 	if (s == 0) {
@@ -527,8 +527,12 @@ int NameCache::insert_copy (DNSQuery* answer
 		lanswer->extract (vos::DNSQ_EXTRACT_RR_AUTH);
 
 		// reset TTL in NCR
-		if (CACHE_IS_TEMPORARY == _cache_mode) {
-			node->_rec->_ttl = (uint32_t) (time (NULL) + answer->_ans_ttl_max);
+		if (answer->_ans_ttl_max < _cache_minttl) {
+			node->_rec->_ttl = (uint32_t) (time_now
+				+ _cache_minttl);
+		} else {
+			node->_rec->_ttl = (uint32_t) (time_now
+				+ answer->_ans_ttl_max);
 		}
 
 		if (!_skip_log && DBG_LVL_IS_1) {

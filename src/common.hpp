@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2010 kilabit.org
- * Author:
- *	- m.shulhan (ms@kilabit.org)
+ * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
  */
 
 #ifndef _RESCACHED_COMMON_HPP
@@ -13,14 +11,9 @@ using vos::Dlogger;
 
 namespace rescached {
 
-enum _cache_mode_idx {
-	CACHE_IS_PERMANENT	= 1
-,	CACHE_IS_TEMPORARY	= 2
-};
-
 extern Dlogger	dlog;
 extern int	_dbg;
-extern int	_cache_mode;
+extern uint32_t	_cache_minttl;
 extern short	_skip_log;
 
 #define	DBG_LVL_IS_1	(_dbg >= 1)

@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2010 kilabit.org
- * Author:
- *	- m.shulhan (ms@kilabit.org)
+ * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
  */
 
 #include "Rescached.hpp"
@@ -198,10 +196,10 @@ int Rescached::load_config(const char* fconf)
 		_nc._cache_thr = RESCACHED_DEF_THRESHOLD;
 	}
 
-	_cache_mode = (int) cfg.get_number(RESCACHED_CONF_HEAD, "cache.mode"
-					, RESCACHED_DEF_MODE);
-	if (_cache_mode <= 0) {
-		_cache_mode = RESCACHED_DEF_MODE;
+	_cache_minttl = (uint32_t) cfg.get_number(RESCACHED_CONF_HEAD
+		, "cache.minttl", RESCACHED_DEF_MINTTL);
+	if (_cache_minttl <= 0) {
+		_cache_minttl = RESCACHED_DEF_MINTTL;
 	}
 
 	_dbg = (int) cfg.get_number(RESCACHED_CONF_HEAD, "debug"
@@ -227,7 +225,7 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] timeout           > %d\n", _rto);
 		dlog.er("[rescached] cache maximum     > %ld\n", _nc._cache_max);
 		dlog.er("[rescached] cache threshold   > %ld\n", _nc._cache_thr);
-		dlog.er("[rescached] cache mode        > %d\n", _cache_mode);
+		dlog.er("[rescached] cache min TTL     > %d\n", _cache_minttl);
 		dlog.er("[rescached] debug level       > %d\n", _dbg);
 	}
 
@@ -743,9 +741,8 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		return 0;
 	}
 
-	// Check TTL if cache mode is temporary and answer is from query.
-	if (_cache_mode == CACHE_IS_TEMPORARY
-	&&  answer->_attrs == vos::DNS_IS_QUERY) {
+	// Check if TTL outdated.
+	if (answer->_attrs == vos::DNS_IS_QUERY) {
 		time_t	now	= time(NULL);
 
 		diff = (int) difftime (now, node->_rec->_ttl);

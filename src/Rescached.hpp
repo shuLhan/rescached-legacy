@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2010 kilabit.org
- * Author:
- *	- m.shulhan (ms@kilabit.org)
+ * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
  */
 
 #ifndef _RESCACHED_HPP
@@ -45,7 +43,7 @@ namespace rescached {
 #define	RESCACHED_DEF_THRESHOLD	1
 #define	RESCACHED_DEF_DEBUG	0
 #define	RESCACHED_DEF_TIMEOUT	300
-#define	RESCACHED_DEF_MODE	CACHE_IS_TEMPORARY
+#define	RESCACHED_DEF_MINTTL		60
 
 class Rescached {
 public:
