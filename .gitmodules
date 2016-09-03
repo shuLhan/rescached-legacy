@@ -1,6 +1,6 @@
 [submodule "libvos"]
 	path = src/lib
-	url = git@github.com:shuLhan/libvos.git
+	url = https://github.com/shuLhan/libvos.git
 [submodule "AUR"]
 	path = AUR
-	url = git+ssh://aur@aur.archlinux.org/rescached-git.git
+	url = https://aur.archlinux.org/rescached-git.git
