@@ -1,5 +1,7 @@
 /*
- * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
+ * Copyright 2009-2016 M. Shulhan (ms@kilabit.info).  All right reserved.
+ * Use of this source code is governed by a BSD-style license that can be found
+ * in the LICENSE file.
  */
 
 #include "NameCache.hpp"
@@ -519,6 +521,16 @@ int NameCache::insert_copy (DNSQuery* answer
 	Buffer*		name	= (Buffer*) &answer->_name;
 	NCR*		ncr	= NULL;
 	time_t		time_now= time(NULL);
+
+	if (answer->_i > 512) {
+		answer->remove_rr_add();
+	}
+	if (answer->_i > 512) {
+		answer->remove_rr_aut();
+	}
+	if (DBG_LVL_IS_2) {
+		dlog.out("[rescached] answer size: %d\n", answer->_i);
+	}
 
 	s = get_answer_from_cache (answer, &lanswer, &node);
 	if (s == 0) {
