@@ -269,13 +269,17 @@ Format:: 	Any integer number between 1 and 2147483647.
 Default:: 	1
 Description:: 	When +rescached+ cache all the queries and answers, until long enough it will reached its own maximum value (+cache.max+), when it happen +rescached+ will remove all cache that has number-of-queried value is less than +cache.threshold+.
 
-[[cache.mode]]
-=== +cache.mode+
+[[cache.minttl]]
+=== +cache.minttl+
 
-Value:: 	cache mode, affect how the cache will be saved in disk/memory.
-Format:: 	Number (1 or 2).
-Default:: 	2
-Description:: 	If +cache.mode+ is set to 1, all DNS record will be keep forever, no possible query or renewed of DNS record will happen until the specific DNS record removed from cache. If +cache.mode+ is set to 2 (default), all DNS record will be keep only after the specific time, based on maximum TTL value in DNS record. If TTL is reached, hostname will be queried again to the DNS parent server, and old cache and TTL value will be replaced with a new one.
+Value:: Set DNS record TTL to this value if their original TTL is less than this.
+Format:: in seconds, any number from 1 to 2147483647.
+Default:: 60 (1 minute).
+Description:: Nowaday DNS record last only 60 second. Saving it permanently will
+cause wrong connection from client (probably 404 or host not found), while
+saving it temporarily will cause many cache misses.
+Our solution to this problem is by allowing user to replace TTL value
+in DNS record with this value only if below it.
 
 [[debug]]
 === +debug+
@@ -335,7 +339,7 @@ This program developed with reference to,
 
 == BUGS
 
-* +rescached+ only know specific DNS record type,
++rescached+ only know specific DNS record type,
 [horizontal]
 A:: a host address
 NS:: an authoritative name server
@@ -348,7 +352,7 @@ TXT:: text string
 SRV:: location of services
 AAAA:: a host address for IPv6
 
-* +rescached+ only run and tested in Linux system. Technically, if it can compiled, it will run in any UNIX system.
++rescached+ only run and tested in Linux system. Technically, if it can compiled, it will run in any UNIX system.
 
 For request of features and/or bugs report please submitted through web at https://github.com/shuLhan/rescached/issues.
 
@@ -360,6 +364,18 @@ For request of features and/or bugs report please submitted through web at https
 
 * 'pgl.yoyo.org' for ads server list for use with hosts files to block ads.
 * 'www.malwaredomainlist.com' for list of malware hosts.
+
+== LICENSE
+
+Copyright 2009-2016, M. Shulhan (ms@kilabit.info).
+All rights reserved.
+
+Use of this source code is governed by a BSD-style license that can be found
+in the LICENSE file.
+
+== LINKS
+
+* Source code repository: https://github.com/shuLhan/rescached
 
 == SEE ALSO
 
