@@ -1,0 +1,7 @@
+post_upgrade() {
+	## Fix wrong systemd service
+	rm -f /etc/systemd/system/rescached.service
+	systemctl daemon-reload
+	echo ':: rescached service now installed in /usr/lib/systemd/system'
+	echo ':: Please reenable the service if you want to start it at boot'
+}

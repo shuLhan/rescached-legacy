@@ -1,3 +1,6 @@
+AUR/libvos
+AUR/rescached-git
+AUR/*.tar
 build
 rescached.vos*
 src/valgrind.out*
