@@ -80,7 +80,7 @@ $(BLD_D)/rescached: $(TARGET_OBJS)
 	@$(do_build)
 
 $(BLD_D)/rescached.1.gz: $(DATA_D)/README.adoc
-	@a2x --doctype manpage --format manpage -D $(BLD_D) $< 2>/dev/null
+	@a2x --no-xmllint --doctype manpage --format manpage -D $(BLD_D) $< 2>/dev/null
 	@gzip -f $(BLD_D)/rescached.1
 
 $(BLD_D)/%.oo: $(SRC_D)/%.cpp $(SRC_D)/%.hpp

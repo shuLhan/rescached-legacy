@@ -10,7 +10,7 @@
 # Description:       resolver cache daemon.
 ### END INIT INFO
 
-RESCACHED_BIN=/usr/sbin/rescached
+RESCACHED_BIN=/usr/bin/rescached
 RESCACHED_CFG=/etc/rescached/rescached.cfg
 
 #
