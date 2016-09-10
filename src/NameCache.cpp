@@ -594,8 +594,9 @@ int NameCache::insert_copy (DNSQuery* answer
 		}
 
 		if (!_skip_log && DBG_LVL_IS_1) {
-			dlog.out("[rescached]      add: %3d %s\n"
-				, nu_answer->_q_type, nu_answer->_name.v());
+			dlog.out("[rescached]      add: %3d %6ds %s\n"
+				, nu_answer->_q_type, nu_answer->_ans_ttl_max
+				, nu_answer->_name.v());
 		}
 	}
 
