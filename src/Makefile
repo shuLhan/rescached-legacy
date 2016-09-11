@@ -1,8 +1,10 @@
+#!/usr/bin/make
 ##
-## Copyright (C) 2014 kilabit.info
-## Author:
-##	- m.shulhan (ms@kilabit.info)
+## Copyright 2009-2016 M. Shulhan (ms@kilabit.info). All rights reserved.
+## Use of this source code is governed by a BSD-style license that can be
+## found in the LICENSE file.
 ##
+
 SRC_D		=.
 BLD_D		=build
 SCRIPTS_D	=$(SRC_D)/scripts
@@ -172,3 +174,5 @@ clean:
 	@$(call do_rmdir,$(BLD_D))
 
 distclean: libvos-clean clean
+
+## vi: ts=8 sw=8 tw=78:

@@ -1,8 +1,8 @@
-/*
- * Copyright (C) 2010 kilabit.org
- * Author:
- *	- m.shulhan (ms@kilabit.org)
- */
+//
+// Copyright 2009-2016 M. Shulhan (ms@kilabit.info). All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+//
 
 #include "NCR_Tree.hh"
 #include "NCR_List.hh"
@@ -505,3 +505,4 @@ NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 }
 
 } /* namespace::rescached */
+// vi: ts=8 sw=8 tw=78:

@@ -1,9 +1,11 @@
-/*
- * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
- */
+//
+// Copyright 2009-2016 M. Shulhan (ms@kilabit.info). All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+//
 
-#ifndef _RESCACHED_COMMON_HPP
-#define	_RESCACHED_COMMON_HPP	1
+#ifndef _RESCACHED_COMMON_HH
+#define _RESCACHED_COMMON_HH 1
 
 #include "lib/Dlogger.hh"
 
@@ -23,3 +25,4 @@ extern short	_skip_log;
 } /* namespace::rescached */
 
 #endif
+// vi: ts=8 sw=8 tw=78:

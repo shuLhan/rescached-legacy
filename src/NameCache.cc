@@ -1,8 +1,8 @@
-/*
- * Copyright 2009-2016 M. Shulhan (ms@kilabit.info).  All right reserved.
- * Use of this source code is governed by a BSD-style license that can be found
- * in the LICENSE file.
- */
+//
+// Copyright 2009-2016 M. Shulhan (ms@kilabit.info). All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+//
 
 #include "NameCache.hh"
 
@@ -682,3 +682,4 @@ void NameCache::dump_r()
 }
 
 } /* namespace::rescached */
+// vi: ts=8 sw=8 tw=78:

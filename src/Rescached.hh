@@ -1,9 +1,11 @@
-/*
- * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
- */
+//
+// Copyright 2009-2016 M. Shulhan (ms@kilabit.info). All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+//
 
-#ifndef _RESCACHED_HPP
-#define	_RESCACHED_HPP	1
+#ifndef _RESCACHED_HH
+#define _RESCACHED_HH 1
 
 #include "lib/Config.hh"
 #include "lib/Resolver.hh"
@@ -104,3 +106,4 @@ private:
 } /* namespace::rescached */
 
 #endif
+// vi: ts=8 sw=8 tw=78:
