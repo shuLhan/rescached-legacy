@@ -71,6 +71,7 @@ LIBVOS_OPTS	+=NO_DEFAULT_LIBS
 .PHONY: all debug clean install install-arch uninstall
 
 all: libvos-all
+	@strip -s $(BLD_D)/rescached;
 
 debug: libvos-debug
 
