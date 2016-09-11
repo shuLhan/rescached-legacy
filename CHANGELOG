@@ -1,0 +1,71 @@
+# CHANGELOG
+
+## v1.3.0 ()
+
+Breaking changes:
+
+For user that use non standard port for rescached, the configuration value
+for `server.listen.port` has been merge with `server.listen`. From now on, to
+set port for listening, user must add it after the listen address, e.g.
+`127.0.0.1:53`.
+
+Fixes:
+
+* Print TTL value when adding new answer type. This will align the `add`
+  output with others when debug option is set.
+* libvos: Fix SOA record parsing
+* Remove duplicate extraction on the answer data
+* Fix installation on old linux system with old version of `asciidoc`
+* Fix systemd service file installation directory
+
+Enhancements:
+
+* Update list of blocked host
+* Strip generated binary. The binary size is now around 55k, previously its
+  around 70k.
+* Support for ARM has been tested on Raspberry PI
+* Include AUR script package as submodule
+
+## v1.2.0 (2016-09-04)
+
+Remove additional or auth section if packet size greater than 512 bytes.
+
+Some DNS library or resolver can not handle packet size greater than
+512 bytes automatically. This is because RFC 1035 defined that DNS packet must
+not exceed 512 bytes or server must set the TrunCated flag if greater than
+that.
+
+## v1.1.0 (2016-07-07)
+
+* Replace cache mode config with cache minimum TTL config.
+
+  Nowaday DNS record last only 60 second. Saving it permanently will
+  cause wrong connection from client (probably 404 or host not found), while
+  saving it temporarily will cause many cache misses (renewed).
+
+  Our solution to this problem is by allowing user to replace TTL value
+  in DNS record with some value only if below this config.
+
+* Fix compiler name on GCC 6
+
+  On GCC 6, `gcc` can not be used anymore to compile C++, we should use `g++`.
+
+* Update host ads
+
+## v1.0.0 (2016-02-12)
+
+* Enable to handle request from UDP and TCP connections
+* Saving/loading cache to/from disk
+* Load and serve addresses and hostnames in `/etc/hosts`
+* Blocking ads using hosts file format
+* Supported DNS record type:
+  * A: a host address
+  * NS: an authoritative name server
+  * CNAME: a canonical name for an alias
+  * SOA: zone authority
+  * PTR: a domain name pointer
+  * HINFO: host information
+  * MX: mail exchange
+  * TXT: text string
+  * SRV: location of services
+  * AAAA: a host address for IPv6
