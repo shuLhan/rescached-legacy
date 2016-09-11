@@ -7,8 +7,8 @@
 #ifndef _RESCACHED_NCR_HPP
 #define	_RESCACHED_NCR_HPP	1
 
-#include "common.hpp"
-#include "DNSQuery.hpp"
+#include "common.hh"
+#include "DNSQuery.hh"
 
 using vos::DNSQuery;
 using vos::Buffer;

@@ -4,7 +4,7 @@
  *	- m.shulhan (ms@kilabit.org)
  */
 
-#include "main.hpp"
+#include "main.hh"
 
 using namespace rescached;
 

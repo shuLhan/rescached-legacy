@@ -62,6 +62,7 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/SSVReader.oo	\
 			$(LIBVOS_BLD_D)/File.oo		\
 			$(LIBVOS_BLD_D)/Buffer.oo	\
+			$(LIBVOS_BLD_D)/Object.oo	\
 			$(LIBVOS_BLD_D)/libvos.oo
 
 PRE_TARGET	+= $(BLD_D)
@@ -83,7 +84,7 @@ $(BLD_D)/rescached.1.gz: $(DATA_D)/README.adoc
 	@a2x --no-xmllint --doctype manpage --format manpage -D $(BLD_D) $< 2>/dev/null
 	@gzip -f $(BLD_D)/rescached.1
 
-$(BLD_D)/%.oo: $(SRC_D)/%.cpp $(SRC_D)/%.hpp
+$(BLD_D)/%.oo: $(SRC_D)/%.cc $(SRC_D)/%.hh
 	@$(do_compile)
 
 do-install:

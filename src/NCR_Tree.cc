@@ -4,8 +4,8 @@
  *	- m.shulhan (ms@kilabit.org)
  */
 
-#include "NCR_Tree.hpp"
-#include "NCR_List.hpp"
+#include "NCR_Tree.hh"
+#include "NCR_List.hh"
 
 namespace rescached {
 

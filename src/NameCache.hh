@@ -7,10 +7,10 @@
 #ifndef _RESCACHED_NAME_CACHE_HPP
 #define	_RESCACHED_NAME_CACHE_HPP	1
 
-#include "Reader.hpp"
-#include "Writer.hpp"
-#include "NCR_Tree.hpp"
-#include "NCR_List.hpp"
+#include "Reader.hh"
+#include "Writer.hh"
+#include "NCR_Tree.hh"
+#include "NCR_List.hh"
 
 using vos::Record;
 using vos::RecordMD;

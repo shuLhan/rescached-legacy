@@ -4,7 +4,7 @@
  *	- m.shulhan (ms@kilabit.org)
  */
 
-#include "NCR_List.hpp"
+#include "NCR_List.hh"
 
 namespace rescached {
 
@@ -39,7 +39,7 @@ void NCR_List::dump()
 	while (p) {
 		if (p->_rec) {
 			o.aprint("  [%6d] %6d|%s\n", i++, p->_rec->_stat
-					, p->_rec->_name->v());
+					, p->_rec->_name->chars());
 		}
 		p = p->_down;
 	}

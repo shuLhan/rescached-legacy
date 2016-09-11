@@ -5,15 +5,15 @@
 #ifndef _RESCACHED_HPP
 #define	_RESCACHED_HPP	1
 
-#include "lib/Config.hpp"
-#include "lib/Resolver.hpp"
-#include "lib/SockServer.hpp"
-#include "lib/SSVReader.hpp"
-#include "common.hpp"
-#include "NameCache.hpp"
-#include "NCR.hpp"
-#include "NCR_List.hpp"
-#include "ResQueue.hpp"
+#include "lib/Config.hh"
+#include "lib/Resolver.hh"
+#include "lib/SockServer.hh"
+#include "lib/SSVReader.hh"
+#include "common.hh"
+#include "NameCache.hh"
+#include "NCR.hh"
+#include "NCR_List.hh"
+#include "ResQueue.hh"
 
 using vos::File;
 using vos::Config;

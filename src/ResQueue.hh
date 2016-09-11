@@ -7,8 +7,8 @@
 #ifndef _RESCACHED_QUEUE_HPP
 #define	_RESCACHED_QUEUE_HPP	1
 
-#include "Socket.hpp"
-#include "DNSQuery.hpp"
+#include "Socket.hh"
+#include "DNSQuery.hh"
 
 using vos::Socket;
 using vos::DNSQuery;

@@ -9,7 +9,7 @@
 
 #include <pthread.h>
 #include <signal.h>
-#include "libvos.hpp"
-#include "Rescached.hpp"
+#include "libvos.hh"
+#include "Rescached.hh"
 
 #endif

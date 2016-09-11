@@ -2,7 +2,7 @@
  * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
  */
 
-#include "Rescached.hpp"
+#include "Rescached.hh"
 
 namespace rescached {
 
@@ -55,7 +55,7 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = File::WRITE_PID (_fpid.v());
+	s = File::WRITE_PID (_fpid.chars());
 	if (s != 0) {
 		return -1;
 	}
@@ -753,7 +753,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 				dlog.out ("[rescached]    renew: %3d %6ds %s\n"
 					, (*question)->_q_type
 					, diff
-					, (*question)->_name.v());
+					, (*question)->_name.chars());
 			}
 
 			if (0 == _dns_conn_t) {
@@ -780,7 +780,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 				? "host blocked" : "cached")
 			, (*question)->_q_type
 			, diff
-			, (*question)->_name.v()
+			, (*question)->_name.chars()
 			, node->_rec->_stat
 			);
 	}

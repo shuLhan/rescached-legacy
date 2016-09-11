@@ -4,7 +4,7 @@
  *	- m.shulhan (ms@kilabit.org)
  */
 
-#include "ResQueue.hpp"
+#include "ResQueue.hh"
 
 namespace rescached {
 

@@ -2,7 +2,7 @@
  * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
  */
 
-#include "common.hpp"
+#include "common.hh"
 
 namespace rescached {
 

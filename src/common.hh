@@ -5,7 +5,7 @@
 #ifndef _RESCACHED_COMMON_HPP
 #define	_RESCACHED_COMMON_HPP	1
 
-#include "lib/Dlogger.hpp"
+#include "lib/Dlogger.hh"
 
 using vos::Dlogger;
 

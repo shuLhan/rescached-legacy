@@ -4,7 +4,7 @@
  *	- m.shulhan (ms@kilabit.org)
  */
 
-#include "NCR.hpp"
+#include "NCR.hh"
 
 namespace rescached {
 
@@ -77,7 +77,7 @@ void NCR::answer_pop ()
 void NCR::dump()
 {
 	dlog.writes("[rescached] NCR::dump: %s\n"
-		"  accessed : %d times\n", _name ? _name->v() : "\0", _stat);
+		"  accessed : %d times\n", _name ? _name->chars() : "\0", _stat);
 
 	if (_answ) {
 		dlog.write_raw("  answer     :\n");
