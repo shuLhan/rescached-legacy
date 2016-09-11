@@ -85,6 +85,40 @@ int Rescached::init(const char* fconf)
 	return s;
 }
 
+//
+// `config_parse_server_listen()` will get "server.listen" from user
+// configuration and parse their value to get listen address and port.
+//
+// (1) If no port is set, then default port will be used.
+//
+int Rescached::config_parse_server_listen(Config* cfg)
+{
+	int s;
+
+	const char* v = cfg->get(RESCACHED_CONF_HEAD, "server.listen"
+				, RESCACHED_DEF_LISTEN);
+	s = _listen_addr.copy_raw(v);
+	if (s != 0) {
+		return -1;
+	}
+
+	List* addr_port = _listen_addr.split_by_char(':', 1);
+
+	// (1)
+	if (addr_port->_n == 1) {
+		_listen_port = RESCACHED_DEF_PORT;
+		return 0;
+	}
+
+	Buffer* addr = (Buffer*) addr_port->at(0);
+	Buffer* port = (Buffer*) addr_port->at(1);
+
+	_listen_addr.copy(addr);
+	_listen_port = port->to_lint();
+
+	delete addr_port;
+}
+
 /**
  * @method	: Rescached::load_config
  * @param	:
@@ -164,18 +198,9 @@ int Rescached::load_config(const char* fconf)
 		_dns_conn_t = 1;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "server.listen"
-			, RESCACHED_DEF_LISTEN);
-	s = _listen_addr.copy_raw(v);
+	s = config_parse_server_listen(&cfg);
 	if (s != 0) {
 		return -1;
-	}
-
-	_listen_port = (int) cfg.get_number(RESCACHED_CONF_HEAD
-						, "server.listen.port"
-						, RESCACHED_DEF_PORT);
-	if (_listen_port <= 0) {
-		_listen_port = RESCACHED_DEF_PORT;
 	}
 
 	_rto = (int) cfg.get_number(RESCACHED_CONF_HEAD, "server.timeout"

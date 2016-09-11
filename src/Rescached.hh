@@ -7,6 +7,7 @@
 #ifndef _RESCACHED_HH
 #define _RESCACHED_HH 1
 
+#include "lib/List.hh"
 #include "lib/Config.hh"
 #include "lib/Resolver.hh"
 #include "lib/SockServer.hh"
@@ -17,6 +18,7 @@
 #include "NCR_List.hh"
 #include "ResQueue.hh"
 
+using vos::List;
 using vos::File;
 using vos::Config;
 using vos::SockAddr;
@@ -40,7 +42,7 @@ namespace rescached {
 #define	RESCACHED_DEF_PARENT	"8.8.8.8, 8.8.4.4"
 #define	RESCACHED_DEF_PARENT_CONN	"udp"
 #define	RESCACHED_DEF_CONN_T	0
-#define	RESCACHED_DEF_LISTEN	"127.0.0.1"
+#define RESCACHED_DEF_LISTEN		"127.0.0.1:53"
 #define	RESCACHED_DEF_PORT	53
 #define	RESCACHED_DEF_THRESHOLD	1
 #define	RESCACHED_DEF_DEBUG	0
@@ -53,6 +55,7 @@ public:
 	~Rescached();
 
 	int init(const char* fconf);
+	int config_parse_server_listen(Config* cfg);
 	int load_config(const char* fconf);
 	int bind();
 	int load_hosts (const char* hosts_file, const short is_ads = 0);
