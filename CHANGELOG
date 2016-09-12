@@ -20,6 +20,12 @@ Fixes:
 
 Enhancements:
 
+* Install script to update list of ads/malware hosts file.
+
+  User now can run this script manually, to update their hosts file without
+  waiting update from rescached package. The script is located in:
+  `/usr/bin/rescached-update-hosts-block.sh`.
+
 * Update list of blocked host
 * Strip generated binary. The binary size is now around 55k, previously its
   around 70k.

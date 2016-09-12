@@ -118,6 +118,7 @@ do-install:
 	echo "";							\
 	echo " >> Installing program and configuration ...";		\
 	$(call do_install,$(BLD_D)/rescached,$(INSTALL_BIN_D))		\
+	$(call do_install,$(SCRIPTS_D)/rescached-update-hosts-block.sh,$(INSTALL_BIN_D))\
 	if [ ! -f $(INSTALL_CFG_D)/$(RESCACHED_CFG) ]; then		\
 		$(call do_install,$(RESCACHED_CFG),$(INSTALL_CFG_D))	\
 	fi;								\

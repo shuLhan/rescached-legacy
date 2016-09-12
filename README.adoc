@@ -290,7 +290,7 @@ Description:: 	This option only used by developer for debugging program or if us
 
 == EXIT STATUS
 
-Upon success, +rescached+ will return 0, or not 0 if fail.
+Upon success, +rescached+ will return 0, or fail otherwise.
 
 
 == ENVIRONMENT
@@ -306,13 +306,17 @@ If the value is set to non zero before running, +rescached+ will print debug out
 
 The +rescached+ main configuration. This configuration will be read when program started.
 
-'/etc/rescached/hosts.ads'::
+'/etc/rescached/hosts.block'::
 
 List of ads server hostname that will blocked by the +rescached+. This configuration will be read when program started.
 
 '/etc/hosts'::
 
 System hostname to address mapping. This configuration will be read when program started.
+
+'/usr/bin/rescached-update-hosts-block.sh'::
+
+Script to update list of ads/malware hosts in +/etc/rescached/hosts.block+.
 
 '/var/cache/rescached.vos'::
 
@@ -324,6 +328,9 @@ Backup of cache file.
 
 
 == NOTES
+
+This program has been debugged extensively with Valgrind and has no memory
+leak.
 
 This program developed with reference to,
 
