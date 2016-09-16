@@ -366,6 +366,8 @@ For request of features and/or bugs report please submitted through web at https
 
 * 'pgl.yoyo.org' for ads server list for use with hosts files to block ads.
 * 'www.malwaredomainlist.com' for list of malware hosts.
+* Dan Pollock for 'http://someonewhocares.org/hosts/hosts'
+* Winhelp2002 for 'http://winhelp2002.mvps.org/hosts.txt'
 
 == LICENSE
 
