@@ -20,6 +20,16 @@ Fixes:
 
 Enhancements:
 
+* Include generated man page in repository. Since different system can have
+  old asciidoc program, building it can be problematic and error.
+
+* Two more hosts sources for ads/malware sites were added,
+
+  * Dan Pollock for 'http://someonewhocares.org/hosts/hosts'
+  * Winhelp2002 for 'http://winhelp2002.mvps.org/hosts.txt'
+
+* Blocked hosts now use the IP 127.0.0.2, not 127.0.0.1.
+
 * Install script to update list of ads/malware hosts file.
 
   User now can run this script manually, to update their hosts file without

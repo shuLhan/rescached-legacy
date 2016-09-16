@@ -9,6 +9,7 @@ SRC_D		=.
 BLD_D		=build
 SCRIPTS_D	=$(SRC_D)/scripts
 DATA_D		=..
+DOC_D		=$(DATA_D)/doc
 DESTDIR		=
 
 INSTALL_BIN_D	=$(DESTDIR)/usr/bin
@@ -24,7 +25,10 @@ include $(LIBVOS_D)/Makefile
 SERVICE_NAME	=rescached
 
 TARGET		=$(BLD_D)/rescached
-TARGET		+=$(BLD_D)/rescached.1.gz
+
+RESCACHED_MAN	=$(DOC_D)/rescached.1.gz
+DOC_TARGET	=$(RESCACHED_MAN)
+
 RESCACHED_CFG	=$(SRC_D)/rescached.cfg
 RESCACHED_SVC	=
 SVC_INIT_D	=/etc/init.d
@@ -72,12 +76,14 @@ TARGET_OBJS	=					\
 PRE_TARGET	+= $(BLD_D)
 LIBVOS_OPTS	+=NO_DEFAULT_LIBS
 
-.PHONY: all debug clean install install-arch uninstall
+.PHONY: all doc debug clean install install-arch uninstall
 
 all: libvos-all
 	@strip -s $(BLD_D)/rescached;
 
 debug: libvos-debug
+
+doc: $(DOC_TARGET)
 
 $(BLD_D):
 	@$(call do_mkdir,$(BLD_D))
@@ -85,9 +91,10 @@ $(BLD_D):
 $(BLD_D)/rescached: $(TARGET_OBJS)
 	@$(do_build)
 
-$(BLD_D)/rescached.1.gz: $(DATA_D)/README.adoc
-	@a2x --no-xmllint --doctype manpage --format manpage -D $(BLD_D) $< 2>/dev/null
-	@gzip -f $(BLD_D)/rescached.1
+$(RESCACHED_MAN): $(DATA_D)/README.adoc
+	@echo ">> Generating man page..."
+	@a2x --doctype manpage --format manpage -D $(DOC_D) $< 2>/dev/null
+	@gzip -f $(DOC_D)/rescached.1
 
 $(BLD_D)/%.oo: $(SRC_D)/%.cc $(SRC_D)/%.hh
 	@$(do_compile)
@@ -133,7 +140,7 @@ do-install:
 	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
 	$(call do_install,$(DATA_D)/README.adoc,$(INSTALL_DATA_D))	\
 	$(call do_install_dir,$(DATA_D)/doc/dev,$(INSTALL_DATA_D))	\
-	$(call do_install,$(BLD_D)/rescached.1.gz,$(INSTALL_MAN_D))
+	$(call do_install,$(RESCACHED_MAN),$(INSTALL_MAN_D))
 
 
 do-uninstall:
