@@ -105,7 +105,7 @@ int Rescached::config_parse_server_listen(Config* cfg)
 	List* addr_port = _listen_addr.split_by_char(':', 1);
 
 	// (1)
-	if (addr_port->_n == 1) {
+	if (addr_port->size() == 1) {
 		_listen_port = RESCACHED_DEF_PORT;
 		return 0;
 	}
@@ -802,7 +802,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	if (DBG_LVL_IS_1) {
 		dlog.out("[rescached] %8s: %3d %6ds %s +%d\n"
 			, (answer->_attrs == vos::DNS_IS_BLOCKED
-				? "host blocked" : "cached")
+				? "blocked" : "cached")
 			, (*question)->_q_type
 			, diff
 			, (*question)->_name.chars()
