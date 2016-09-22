@@ -87,7 +87,7 @@ public:
 	Buffer		_dns_parent;
 	Buffer		_dns_conn;
 	Buffer		_listen_addr;
-	int		_listen_port;
+	uint16_t	_listen_port;
 	int		_rto;
 	int		_dns_conn_t;
 

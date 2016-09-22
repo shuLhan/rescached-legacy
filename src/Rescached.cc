@@ -114,9 +114,11 @@ int Rescached::config_parse_server_listen(Config* cfg)
 	Buffer* port = (Buffer*) addr_port->at(1);
 
 	_listen_addr.copy(addr);
-	_listen_port = port->to_lint();
+	_listen_port = (uint16_t) port->to_lint();
 
 	delete addr_port;
+
+	return 0;
 }
 
 /**
