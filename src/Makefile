@@ -66,6 +66,7 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/ConfigData.oo	\
 			$(LIBVOS_BLD_D)/Config.oo	\
 			$(LIBVOS_BLD_D)/SSVReader.oo	\
+			$(LIBVOS_BLD_D)/Rowset.oo	\
 			$(LIBVOS_BLD_D)/File.oo		\
 			$(LIBVOS_BLD_D)/Buffer.oo	\
 			$(LIBVOS_BLD_D)/List.oo		\

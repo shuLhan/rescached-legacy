@@ -370,9 +370,10 @@ int Rescached::load_hosts (const char* file, const short is_blocked)
 
 	SSVReader	reader;
 	DNSQuery	qanswer;
-	Record*		ip;
-	Record*		r;
-	Record*		c;
+	Buffer*		ip = NULL;
+	List*		row = NULL;
+	Buffer*		c = NULL;
+	int x, y;
 
 	reader._comment_c = '#';
 
@@ -381,34 +382,33 @@ int Rescached::load_hosts (const char* file, const short is_blocked)
 		return -1;
 	}
 
-	r = reader._rows;
-	while (r) {
-		ip	= r;
+	for (x = 0; x < reader._rows->size(); x++) {
+		row = (List*) reader._rows->at(x);
+		ip = (Buffer*) row->at(0);
 
-		is_ipv4	= inet_pton (AF_INET, ip->_v, &addr);
+		is_ipv4	= inet_pton (AF_INET, ip->chars(), &addr);
 		addr	= 0;
 
-		if (is_ipv4 == 1) {
-			c = ip->_next_col;
-			while (c) {
-				s = qanswer.create_answer (c->_v
-					, (uint16_t) vos::QUERY_T_ADDRESS
-					, (uint16_t) vos::QUERY_C_IN
-					, INT_MAX
-					, (uint16_t) ip->_i
-					, ip->_v
-					, attrs);
-
-				if (s == 0) {
-					_nc.insert_copy (&qanswer, 0, 1);
-					cnt++;
-				}
-
-				c = c->_next_col;
-			}
+		if (is_ipv4 != 1) {
+			continue;
 		}
 
-		r = r->_next_row;
+		for (y = 1; y < row->size(); y++) {
+			c = (Buffer*) row->at(y);
+
+			s = qanswer.create_answer (c->chars()
+				, (uint16_t) vos::QUERY_T_ADDRESS
+				, (uint16_t) vos::QUERY_C_IN
+				, INT_MAX
+				, (uint16_t) ip->_i
+				, ip->chars()
+				, attrs);
+
+			if (s == 0) {
+				_nc.insert_copy(&qanswer, 0, 1);
+				cnt++;
+			}
+		}
 	}
 
 	dlog.out ("[rescached] %d addresses loaded.\n", cnt);
