@@ -94,6 +94,9 @@ int Rescached::init(const char* fconf)
 int Rescached::config_parse_server_listen(Config* cfg)
 {
 	int s;
+	List* addr_port = NULL;
+	Buffer* addr = NULL;
+	Buffer* port = NULL;
 
 	const char* v = cfg->get(RESCACHED_CONF_HEAD, "server.listen"
 				, RESCACHED_DEF_LISTEN);
@@ -102,21 +105,24 @@ int Rescached::config_parse_server_listen(Config* cfg)
 		return -1;
 	}
 
-	List* addr_port = _listen_addr.split_by_char(':', 1);
+	addr_port = _listen_addr.split_by_char(':', 1);
 
 	// (1)
 	if (addr_port->size() == 1) {
 		_listen_port = RESCACHED_DEF_PORT;
-		return 0;
+		goto out;
 	}
 
-	Buffer* addr = (Buffer*) addr_port->at(0);
-	Buffer* port = (Buffer*) addr_port->at(1);
+	addr = (Buffer*) addr_port->at(0);
+	port = (Buffer*) addr_port->at(1);
 
 	_listen_addr.copy(addr);
 	_listen_port = (uint16_t) port->to_lint();
 
-	delete addr_port;
+out:
+	if (addr_port) {
+		delete addr_port;
+	}
 
 	return 0;
 }
@@ -247,8 +253,8 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] hosts blocked     > %s\n", _fhostsblock._v);
 		dlog.er("[rescached] parent address    > %s\n", _dns_parent._v);
 		dlog.er("[rescached] parent connection > %s\n", _dns_conn._v);
-		dlog.er("[rescached] listening on      > %s\n", _listen_addr._v);
-		dlog.er("[rescached] listening on port > %d\n", _listen_port);
+		dlog.er("[rescached] listening on      > %s:%d\n"
+			, _listen_addr._v, _listen_port);
 		dlog.er("[rescached] timeout           > %d\n", _rto);
 		dlog.er("[rescached] cache maximum     > %ld\n", _nc._cache_max);
 		dlog.er("[rescached] cache threshold   > %ld\n", _nc._cache_thr);
