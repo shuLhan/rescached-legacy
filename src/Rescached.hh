@@ -47,6 +47,12 @@ namespace rescached {
 #define	RESCACHED_DEF_TIMEOUT	300
 #define	RESCACHED_DEF_MINTTL		60
 
+#define	DNS_ATTR_BLOCKED	"blocked"
+#define	DNS_ATTR_LOCAL		"local"
+#define	DNS_ATTR_CACHED		"cached"
+
+const char* __p_str = NULL;
+
 class Rescached {
 public:
 	Rescached();

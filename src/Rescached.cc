@@ -778,9 +778,19 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 	}
 
 	if (DBG_LVL_IS_1) {
+		switch (answer->_attrs) {
+		case vos::DNS_IS_QUERY:
+			__p_str = DNS_ATTR_CACHED;
+			break;
+		case vos::DNS_IS_LOCAL:
+			__p_str = DNS_ATTR_LOCAL;
+			break;
+		case vos::DNS_IS_BLOCKED:
+			__p_str = DNS_ATTR_BLOCKED;
+			break;
+		}
 		dlog.out("[rescached] %8s: %3d %6ds %s +%d\n"
-			, (answer->_attrs == vos::DNS_IS_BLOCKED
-				? "blocked" : "cached")
+			, __p_str
 			, (*question)->_q_type
 			, diff
 			, (*question)->_name.chars()
