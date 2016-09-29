@@ -176,14 +176,6 @@ Format:: 	/any/path/to/file
 Default::	rescached.vos
 Description:: 	This file contain all DNS answers that rescached collected while running. When +rescached+ stopped it will saved all DNS answer in this file, so when +rescached+ is started again it will load all data in this file to memory again. If not set, then +rescached+ will load/save the cache to the file named +rescached.vos+ in current directory where user running +rescached+.
 
-[[file.data.backup]]
-=== +file.data.backup+
-
-Value:: 	A name of of backup file, with or without path.
-Format:: 	/any/path/to/file
-Default:: 	<<file.data>> + ".bak"
-Description:: 	This file is a backup of +file.data+, it will be created only if +rescached+ program exit successfully without error. If not set then it will have the same name with the value in +file.data+ but with additional suffix, +.bak+.
-
 [[file.pid]]
 === +file.pid+
 
@@ -321,10 +313,6 @@ Script to update list of ads/malware hosts in +/etc/rescached/hosts.block+.
 '/var/cache/rescached.vos'::
 
 The cache file. This file will be read when program started and written when program exit.
-
-'/var/cache/rescached.vos.bak'::
-
-Backup of cache file.
 
 
 == NOTES

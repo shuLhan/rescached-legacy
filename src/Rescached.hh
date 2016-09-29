@@ -32,8 +32,6 @@ namespace rescached {
 #define	RESCACHED_CONF		"rescached.cfg"
 #define	RESCACHED_CONF_HEAD	"RESCACHED"
 #define	RESCACHED_DATA		"rescached.vos"
-#define	RESCACHED_DATA_BAK	"rescached.vos.bak"
-#define	RESCACHED_DATA_BAK_EXT	".bak"
 #define	RESCACHED_LOG		"rescached.log"
 #define	RESCACHED_PID		"rescached.pid"
 #define	RESCACHED_CACHE_MAX	100000
@@ -60,7 +58,7 @@ public:
 	int bind();
 	int load_hosts (const char* hosts_file, const short is_ads = 0);
 	int load_hosts_block ();
-	int load_cache();
+	void load_cache();
 
 	int run();
 	void queue_clean();
@@ -80,7 +78,6 @@ public:
 	int create_backup();
 
 	Buffer		_fdata;
-	Buffer		_fdatabak;
 	Buffer		_flog;
 	Buffer		_fpid;
 	Buffer		_fhostsblock;

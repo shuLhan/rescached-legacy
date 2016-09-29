@@ -110,7 +110,6 @@ do-install:
 		echo "";						\
 		echo " >> removing old caches ...";			\
 		$(call do_rm,$(INSTALL_CACHE_D)/rescached.vos)		\
-		$(call do_rm,$(INSTALL_CACHE_D)/rescached.vos.bak)	\
 	fi;								\
 									\
 	echo "";							\

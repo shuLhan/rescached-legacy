@@ -8,7 +8,6 @@ namespace rescached {
 
 Rescached::Rescached() :
 	_fdata()
-,	_fdatabak()
 ,	_flog()
 ,	_fpid()
 ,	_fhostsblock()
@@ -75,10 +74,7 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = load_cache();
-	if (s < 0) {
-		return -1;
-	}
+	load_cache();
 
 	s = bind();
 
@@ -162,13 +158,6 @@ int Rescached::load_config(const char* fconf)
 		return -1;
 	}
 
-	v = cfg.get(RESCACHED_CONF_HEAD, "file.data.backup"
-			, RESCACHED_DATA_BAK);
-	s = _fdatabak.copy_raw(v);
-	if (s != 0) {
-		return -1;
-	}
-
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.log", RESCACHED_LOG);
 	s = _flog.copy_raw(v);
 	if (s != 0) {
@@ -247,7 +236,6 @@ int Rescached::load_config(const char* fconf)
 
 	if (DBG_LVL_IS_1) {
 		dlog.er("[rescached] cache file        > %s\n", _fdata._v);
-		dlog.er("[rescached] cache file backup > %s\n", _fdatabak._v);
 		dlog.er("[rescached] pid file          > %s\n", _fpid._v);
 		dlog.er("[rescached] log file          > %s\n", _flog._v);
 		dlog.er("[rescached] hosts blocked     > %s\n", _fhostsblock._v);
@@ -447,37 +435,19 @@ int Rescached::load_hosts_block ()
 }
 
 /**
- * @method	: Rescached::load_cache
- * @return	:
- *	< 0	: success.
- *	< -1	: fail.
- * @desc	: load cache data from file.
- * Try loading the default cache file first. if it is fail or no cache
- * loaded (zero record), try to load backup file.
+ * `Rescached::load_cache()` will load cache data from file.
  */
-int Rescached::load_cache()
+void Rescached::load_cache()
 {
-	register int s;
-
 	dlog.out("[rescached] loading cache ...\n");
 
-	s = _nc.load(_fdata._v);
-	if (s != 0 || _nc._n_cache == 0) {
-		s = _nc.load(_fdatabak._v);
-		if (s != 0) {
-			if (ENOENT != errno) {
-				return -1;
-			}
-		}
-	}
+	_nc.load(_fdata._v);
 
 	dlog.out("[rescached] %d records loaded.\n", _nc._n_cache);
 
 	if (DBG_LVL_IS_3) {
 		_nc.dump();
 	}
-
-	return 0;
 }
 
 /**
@@ -929,8 +899,6 @@ void Rescached::exit()
 		_nc.save(_fdata._v);
 	}
 
-	create_backup();
-
 	if (_queue) {
 		delete _queue;
 		_queue = NULL;
@@ -940,45 +908,5 @@ void Rescached::exit()
 	}
 }
 
-/**
- * @method	: Rescached::create_backup()
- * @return	:
- *	< 0	: success.
- *	< -1	: fail.
- * @desc	: create backup of cache file.
- *		 - do not create backup if the original file is empty.
- */
-int Rescached::create_backup()
-{
-	int	s;
-	File	r;
-	File	w;
-
-	s = r.open_ro(_fdata._v);
-	if (s != 0) {
-		return -1;
-	}
-
-	s = (int) r.get_size();
-	if (s <= 0) {
-		return 0;
-	}
-
-	s = w.open_wo(_fdatabak._v);
-	if (s != 0) {
-		return -1;
-	}
-
-	s = r.read();
-	while (s > 0) {
-		s = w.write(&r);
-		if (s < 0) {
-			break;
-		}
-		s = r.read();
-	}
-
-	return 0;
-}
-
 } /* namespace::rescached */
+// vi: ts=8 sw=8 tw=78:

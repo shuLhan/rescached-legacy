@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v1.3.0 ()
+## v1.3.0 (2016-10-)
 
 Breaking changes:
 
@@ -37,10 +37,18 @@ Enhancements:
   `/usr/bin/rescached-update-hosts-block.sh`.
 
 * Update list of blocked host
+
 * Strip generated binary. The binary size is now around 55k, previously its
   around 70k.
+
 * Support for ARM has been tested on Raspberry PI
+
 * Include AUR script package as submodule
+
+* Remove backup function.
+
+  Since cache file is not crucial, hence `cache`, there is no need to create
+  a backup everytime the process stopped or restarted.
 
 ## v1.2.0 (2016-09-04)
 
