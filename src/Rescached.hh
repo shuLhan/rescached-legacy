@@ -51,8 +51,6 @@ namespace rescached {
 #define	DNS_ATTR_LOCAL		"local"
 #define	DNS_ATTR_CACHED		"cached"
 
-const char* __p_str = NULL;
-
 class Rescached {
 public:
 	Rescached();
