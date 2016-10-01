@@ -71,6 +71,7 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/Buffer.oo	\
 			$(LIBVOS_BLD_D)/List.oo		\
 			$(LIBVOS_BLD_D)/BNode.oo	\
+			$(LIBVOS_BLD_D)/Locker.oo	\
 			$(LIBVOS_BLD_D)/Object.oo	\
 			$(LIBVOS_BLD_D)/libvos.oo
 

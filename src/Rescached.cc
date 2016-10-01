@@ -812,18 +812,19 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 int Rescached::process_tcp_client()
 {
+	int		x		= 0;
 	int		s		= 0;
 	Socket*		client		= NULL;
-	Socket*		next		= NULL;
 	DNSQuery*	question	= NULL;
 
-	client = _srvr_tcp._clients;
+	if (!_srvr_tcp._clients) {
+		return 0;
+	}
 
-	while (client) {
-		next = client->_next;
+	for (; x < _srvr_tcp._clients->size(); x++) {
+		client = (Socket*) _srvr_tcp._clients->at(x);
 
 		if (FD_ISSET(client->_d, &_fd_read) == 0) {
-			client = next;
 			continue;
 		}
 
@@ -839,7 +840,6 @@ int Rescached::process_tcp_client()
 			s = DNSQuery::INIT(&question, client
 						, vos::BUFFER_IS_TCP);
 			if (s < 0) {
-				client = next;
 				continue;
 			}
 
@@ -847,8 +847,6 @@ int Rescached::process_tcp_client()
 
 			question = NULL;
 		}
-
-		client = next;
 	}
 
 	return 0;

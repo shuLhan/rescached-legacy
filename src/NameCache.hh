@@ -7,11 +7,13 @@
 #ifndef _RESCACHED_NAME_CACHE_HH
 #define _RESCACHED_NAME_CACHE_HH 1
 
+#include "Locker.hh"
 #include "Reader.hh"
 #include "Writer.hh"
 #include "NCR_Tree.hh"
 #include "NCR_List.hh"
 
+using vos::Locker;
 using vos::Record;
 using vos::RecordMD;
 using vos::Reader;
@@ -36,9 +38,6 @@ class NameCache {
 public:
 	NameCache();
 	~NameCache();
-
-	void lock();
-	void unlock();
 
 	int bucket_init ();
 	NCR_Bucket* bucket_get_by_index (int c);
@@ -69,7 +68,7 @@ public:
 	long int	_n_cache;
 	long int	_cache_max;
 	long int	_cache_thr;
-	pthread_mutex_t	_lock;
+	Locker		_locker;
 	NCR_Bucket*	_buckets;
 	NCR_List*	_cachel;
 private:

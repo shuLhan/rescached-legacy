@@ -12,29 +12,14 @@ NameCache::NameCache() :
 	_n_cache(0)
 ,	_cache_max(0)
 ,	_cache_thr(0)
-,	_lock()
+,	_locker()
 ,	_buckets(NULL)
 ,	_cachel(NULL)
-{
-	pthread_mutex_init(&_lock, NULL);
-}
+{}
 
 NameCache::~NameCache()
 {
 	prune();
-	pthread_mutex_destroy(&_lock);
-}
-
-inline void NameCache::lock()
-{
-	while (pthread_mutex_trylock(&_lock) != 0)
-		;
-}
-
-void NameCache::unlock()
-{
-	while (pthread_mutex_unlock(&_lock) != 0)
-		;
 }
 
 /**
@@ -304,7 +289,7 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 		return -1;
 	}
 
-	lock();
+	_locker.lock();
 
 	Buffer* name = (Buffer*) &question->_name;
 	int c = 0;
@@ -327,7 +312,7 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 		c = -1;
 	}
 
-	unlock();
+	_locker.unlock();
 
 	return c;
 }
@@ -556,11 +541,11 @@ int NameCache::insert_copy (DNSQuery* answer
 
 	} else if (s == -1) {
 		// name not found, create new node.
-		lock();
+		_locker.lock();
 
 		s = NCR::INIT(&ncr, name, answer);
 		if (s != 0) {
-			unlock();
+			_locker.unlock();
 			return s;
 		}
 
@@ -580,7 +565,7 @@ int NameCache::insert_copy (DNSQuery* answer
 			}
 		}
 
-		unlock();
+		_locker.unlock();
 	} else if (s == -2) {
 		// name exist but no type found
 		DNSQuery* nu_answer = answer->duplicate ();
@@ -610,10 +595,10 @@ void NameCache::increase_stat_and_rebuild(NCR_List* list)
 		return;
 	}
 
-	lock();
+	_locker.lock();
 	list->_rec->_stat++;
 	NCR_List::REBUILD(&_cachel, list);
-	unlock();
+	_locker.unlock();
 }
 
 void NameCache::prune()
@@ -676,9 +661,9 @@ i + CACHET_IDX_FIRST);
 
 void NameCache::dump_r()
 {
-	lock();
+	_locker.lock();
 	dump();
-	unlock();
+	_locker.unlock();
 }
 
 } /* namespace::rescached */
