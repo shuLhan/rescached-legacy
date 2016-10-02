@@ -14,6 +14,7 @@
 #include "NCR_List.hh"
 
 using vos::Locker;
+using vos::List;
 using vos::Record;
 using vos::RecordMD;
 using vos::Reader;

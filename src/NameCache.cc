@@ -110,7 +110,7 @@ int NameCache::load(const char* fdata)
 	time_t		time_now= time(NULL);
 	NCR*		ncr	= NULL;
 	Record*		row	= NULL;
-	RecordMD*	rmd	= NULL;
+	List*		list_md	= NULL;
 	DNSQuery*	lanswer	= NULL;
 	NCR_Tree*	node	= NULL;
 
@@ -119,17 +119,17 @@ int NameCache::load(const char* fdata)
 		return -1;
 	}
 
-	s = RecordMD::INIT(&rmd, RESCACHED_MD);
+	list_md = RecordMD::INIT(RESCACHED_MD);
+	if (!list_md) {
+		return -1;
+	}
+
+	s = Record::INIT_ROW(&row, list_md->size());
 	if (s != 0) {
 		return -1;
 	}
 
-	s = Record::INIT_ROW(&row, rmd->_n_md);
-	if (s != 0) {
-		return -1;
-	}
-
-	s = R.read(row, rmd);
+	s = R.read(row, list_md);
 	while (s == 1 && (_n_cache < _cache_max || 0 == _cache_max)) {
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
@@ -176,11 +176,11 @@ int NameCache::load(const char* fdata)
 				break;
 			}
 		}
-		s = R.read(row, rmd);
+		s = R.read(row, list_md);
 		ncr = NULL;
 	}
 
-	delete rmd;
+	delete list_md;
 	delete row;
 
 	return 0;
@@ -226,19 +226,19 @@ int NameCache::save(const char* fdata)
 	Writer		W;
 	NCR_List*	p	= NULL;
 	Record*		row	= NULL;
-	RecordMD*	rmd	= NULL;
+	List*		list_md	= NULL;
 
 	s = W.open_wo(fdata);
 	if (s != 0) {
 		return -1;
 	}
 
-	s = RecordMD::INIT(&rmd, RESCACHED_MD);
-	if (s != 0) {
+	list_md = RecordMD::INIT(RESCACHED_MD);
+	if (!list_md) {
 		return -1;
 	}
 
-	s = Record::INIT_ROW(&row, rmd->_n_md);
+	s = Record::INIT_ROW(&row, list_md->size());
 	if (s != 0) {
 		return -1;
 	}
@@ -249,7 +249,7 @@ int NameCache::save(const char* fdata)
 			while (p->_rec->_answ) {
 				ncrecord_to_record (p->_rec, row);
 
-				s = W.write(row, rmd);
+				s = W.write(row, list_md);
 				if (s != 0) {
 					break;
 				}
@@ -264,7 +264,7 @@ int NameCache::save(const char* fdata)
 	}
 
 	delete row;
-	delete rmd;
+	delete list_md;
 
 	return 0;
 }
