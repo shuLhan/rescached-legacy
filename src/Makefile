@@ -52,10 +52,10 @@ TARGET_OBJS	=					\
 			$(BLD_D)/NCR.oo			\
 			$(BLD_D)/NCR_Tree.oo		\
 			$(BLD_D)/NCR_List.oo		\
-			$(LIBVOS_BLD_D)/Writer.oo	\
-			$(LIBVOS_BLD_D)/Reader.oo	\
-			$(LIBVOS_BLD_D)/Record.oo	\
-			$(LIBVOS_BLD_D)/RecordMD.oo	\
+			$(LIBVOS_BLD_D)/DSVWriter.oo	\
+			$(LIBVOS_BLD_D)/DSVReader.oo	\
+			$(LIBVOS_BLD_D)/DSVRecord.oo	\
+			$(LIBVOS_BLD_D)/DSVRecordMD.oo	\
 			$(LIBVOS_BLD_D)/Resolver.oo	\
 			$(LIBVOS_BLD_D)/DNSQuery.oo	\
 			$(LIBVOS_BLD_D)/DNS_rr.oo	\

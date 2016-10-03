@@ -64,19 +64,19 @@ NCR_Bucket* NameCache::bucket_get_by_index (int c)
 
 /**
  * @method	: NameCache::raw_to_ncrecord
- * @desc	: Convert from Record to NameCache Record.
+ * @desc	: Convert from DSVRecord to NameCache Record.
  * @param raw	: input.
  * @param ncr	: output.
  * @return 0	: success.
  * @return !0	: fail.
  */
-int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
+int NameCache::raw_to_ncrecord(DSVRecord* raw, NCR** ncr)
 {
-	int	s		= 0;
-	Record*	name		= NULL;
-	Record*	stat		= NULL;
-	Record* ttl		= NULL;
-	Record*	answer		= NULL;
+	int	s	= 0;
+	DSVRecord* name		= NULL;
+	DSVRecord* stat		= NULL;
+	DSVRecord* ttl		= NULL;
+	DSVRecord* answer	= NULL;
 
 	name		= raw->get_column(0);
 	stat		= raw->get_column(1);
@@ -106,10 +106,10 @@ int NameCache::raw_to_ncrecord(Record* raw, NCR** ncr)
 int NameCache::load(const char* fdata)
 {
 	int		s;
-	Reader		R;
+	DSVReader	R;
 	time_t		time_now= time(NULL);
 	NCR*		ncr	= NULL;
-	Record*		row	= NULL;
+	DSVRecord*	row	= NULL;
 	List*		list_md	= NULL;
 	DNSQuery*	lanswer	= NULL;
 	NCR_Tree*	node	= NULL;
@@ -119,12 +119,12 @@ int NameCache::load(const char* fdata)
 		return -1;
 	}
 
-	list_md = RecordMD::INIT(RESCACHED_MD);
+	list_md = DSVRecordMD::INIT(RESCACHED_MD);
 	if (!list_md) {
 		return -1;
 	}
 
-	s = Record::INIT_ROW(&row, list_md->size());
+	s = DSVRecord::INIT_ROW(&row, list_md->size());
 	if (s != 0) {
 		return -1;
 	}
@@ -188,13 +188,13 @@ int NameCache::load(const char* fdata)
 
 /**
  * @method	: NameCache::ncrecord_to_record
- * @desc	: Convert from NCR to Record.
+ * @desc	: Convert from NCR to DSVRecord.
  * @param NCR	: input.
- * @param Record: output.
+ * @param DSVRecord: output.
  * @return 0	: success.
  * @return 1	: input or output is null.
  */
-int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
+int NameCache::ncrecord_to_record(const NCR* ncr, DSVRecord* row)
 {
 	if (!ncr || !row) {
 		return 1;
@@ -223,9 +223,9 @@ int NameCache::ncrecord_to_record(const NCR* ncr, Record* row)
 int NameCache::save(const char* fdata)
 {
 	int		s	= 0;
-	Writer		W;
+	DSVWriter	W;
 	NCR_List*	p	= NULL;
-	Record*		row	= NULL;
+	DSVRecord*	row	= NULL;
 	List*		list_md	= NULL;
 
 	s = W.open_wo(fdata);
@@ -233,12 +233,12 @@ int NameCache::save(const char* fdata)
 		return -1;
 	}
 
-	list_md = RecordMD::INIT(RESCACHED_MD);
+	list_md = DSVRecordMD::INIT(RESCACHED_MD);
 	if (!list_md) {
 		return -1;
 	}
 
-	s = Record::INIT_ROW(&row, list_md->size());
+	s = DSVRecord::INIT_ROW(&row, list_md->size());
 	if (s != 0) {
 		return -1;
 	}
@@ -381,7 +381,7 @@ void NameCache::clean_by_threshold(const long int thr)
 }
 
 /**
- * @desc: insert Record 'record' into cache tree & list.
+ * @desc: insert 'record' into cache tree & list.
  *
  * @param:
  *	> record : Name Cache Record object.

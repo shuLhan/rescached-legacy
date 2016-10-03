@@ -8,17 +8,17 @@
 #define _RESCACHED_NAME_CACHE_HH 1
 
 #include "Locker.hh"
-#include "Reader.hh"
-#include "Writer.hh"
+#include "DSVReader.hh"
+#include "DSVWriter.hh"
 #include "NCR_Tree.hh"
 #include "NCR_List.hh"
 
 using vos::Locker;
 using vos::List;
-using vos::Record;
-using vos::RecordMD;
-using vos::Reader;
-using vos::Writer;
+using vos::DSVRecord;
+using vos::DSVRecordMD;
+using vos::DSVReader;
+using vos::DSVWriter;
 
 #define RESCACHED_MD	\
 ":name:::'|',"		\
@@ -43,10 +43,10 @@ public:
 	int bucket_init ();
 	NCR_Bucket* bucket_get_by_index (int c);
 
-	int raw_to_ncrecord(Record* raw, NCR** ncr);
+	int raw_to_ncrecord(DSVRecord* raw, NCR** ncr);
 	int load(const char* fdata);
 
-	int ncrecord_to_record(const NCR* ncr, Record* row);
+	int ncrecord_to_record(const NCR* ncr, DSVRecord* row);
 	int save(const char* fdata);
 
 	int get_answer_from_cache (const DNSQuery* question
