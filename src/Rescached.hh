@@ -36,6 +36,7 @@ namespace rescached {
 #define	RESCACHED_PID		"rescached.pid"
 #define	RESCACHED_CACHE_MAX	100000
 #define	RESCACHED_HOSTS_BLOCK	"hosts.block"
+#define	RESCACHED_SYS_HOSTS	"/etc/hosts"
 
 #define	RESCACHED_DEF_PARENT	"8.8.8.8, 8.8.4.4"
 #define	RESCACHED_DEF_PARENT_CONN	"udp"
@@ -60,7 +61,7 @@ public:
 	int config_parse_server_listen(Config* cfg);
 	int load_config(const char* fconf);
 	int bind();
-	int load_hosts (const char* hosts_file, const short is_ads = 0);
+	int load_hosts(const char* hosts_file, const uint32_t attrs);
 	int load_hosts_block ();
 	void load_cache();
 

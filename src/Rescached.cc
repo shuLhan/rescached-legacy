@@ -64,7 +64,7 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	s = load_hosts (NULL, 0);
+	s = load_hosts(RESCACHED_SYS_HOSTS, vos::DNS_IS_LOCAL);
 	if (s < 0) {
 		return -1;
 	}
@@ -333,34 +333,18 @@ int Rescached::bind()
  * @return 0	: success.
  * @return -1	: fail to open and/or parse hosts file.
  */
-int Rescached::load_hosts (const char* file, const short is_blocked)
+int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 {
 	int	s	= 0;
 	int	is_ipv4	= 0;
 	int	addr	= 0;
 	int	cnt	= 0;
-	uint32_t attrs = 0;
-	Buffer	fhosts;
 
-#ifdef __unix
-	if (! file) {
-		fhosts.copy_raw ("/etc/hosts");
-	} else {
-		fhosts.copy_raw (file);
-	}
-#endif
-
-	if (fhosts.is_empty ()) {
-		return 1;
+	if (!fhosts) {
+		return -1;
 	}
 
-	if (is_blocked) {
-		attrs = vos::DNS_IS_BLOCKED;
-	} else {
-		attrs = vos::DNS_IS_LOCAL;
-	}
-
-	dlog.out ("[rescached] loading '%s'...\n", fhosts._v);
+	dlog.out ("[rescached] loading '%s'...\n", fhosts);
 
 	SSVReader	reader;
 	DNSQuery	qanswer;
@@ -371,7 +355,7 @@ int Rescached::load_hosts (const char* file, const short is_blocked)
 
 	reader._comment_c = '#';
 
-	s = reader.load (fhosts._v);
+	s = reader.load (fhosts);
 	if (s != 0) {
 		return -1;
 	}
@@ -419,7 +403,7 @@ int Rescached::load_hosts_block ()
 
 	if (s) {
 		dlog.out ("[rescached] blocked hosts: %s\n", RESCACHED_HOSTS_BLOCK);
-		return load_hosts (RESCACHED_HOSTS_BLOCK, 1);
+		return load_hosts(RESCACHED_HOSTS_BLOCK, vos::DNS_IS_BLOCKED);
 	}
 
 	// Load blocked hosts file from config
@@ -427,7 +411,8 @@ int Rescached::load_hosts_block ()
 		s = File::IS_EXIST (_fhostsblock._v);
 
 		if (s) {
-			return load_hosts (_fhostsblock._v, 1);
+			return load_hosts(_fhostsblock._v
+					, vos::DNS_IS_BLOCKED);
 		}
 	}
 
