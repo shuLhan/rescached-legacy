@@ -27,53 +27,6 @@ NCR::~NCR()
 	}
 }
 
-/**
- * @method	: NCR::search_answer_by_type
- * @desc	: search list answer by query type 'qtype'.
- * @param qtype	: query type.
- * @return q	: found.
- * @return NULL	: not found
- */
-DNSQuery* NCR::search_answer_by_type (uint16_t qtype)
-{
-	DNSQuery* p = _answ;
-
-	while (p) {
-		if (p->_q_type == qtype) {
-			return p;
-		}
-		p = p->_next;
-	}
-	return NULL;
-}
-
-/**
- * @method	: NCR::answer_push
- * @desc	: Add 'answer' to the list of answer '_answ'.
- * @param answer: DNS answer.
- */
-void NCR::answer_push (DNSQuery* answer)
-{
-	DNSQuery::ADD (&_answ, answer);
-}
-
-/**
- * @method	: NCR::answer_pop
- * @desc	: Remove the first answer from the list '_answ' and use
- * next answer as head.
- */
-void NCR::answer_pop ()
-{
-	DNSQuery* p = NULL;
-
-	if (_answ) {
-		p = _answ->_next;
-	}
-	_answ->_next = NULL;
-	delete _answ;
-	_answ = p;
-}
-
 void NCR::dump()
 {
 	dlog.writes("[rescached] NCR::dump: %s\n"

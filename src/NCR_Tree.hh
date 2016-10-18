@@ -35,7 +35,7 @@ public:
 	~NCR_Tree();
 
 	int cmp(NCR* ncr);
-	NCR_Tree* search_record_name(Buffer* name);
+	NCR_Tree* search_record(Buffer* name, uint16_t type);
 
 	void prune();
 	void dump();

@@ -57,7 +57,7 @@ int NCR_Tree::cmp(NCR* ncr)
 }
 
 /**
- * @method		: NCR_Tree::search_record_name
+ * @method		: NCR_Tree::search_record
  * @param		:
  *	> name		: record name.
  * @return		:
@@ -65,15 +65,24 @@ int NCR_Tree::cmp(NCR* ncr)
  *	< NULL		: fail, record not found.
  * @desc		: search node with name is 'name' in the tree.
  */
-NCR_Tree* NCR_Tree::search_record_name(Buffer* name)
+NCR_Tree* NCR_Tree::search_record(Buffer* name, uint16_t type)
 {
 	int		s;
 	NCR_Tree*	p = this;
+	uint16_t answer_type = 0;
 
 	while (p) {
 		s = name->like(p->_rec->_name);
 		if (s == 0) {
-			return p;
+			answer_type = p->_rec->_answ->_q_type;
+			if (type == answer_type) {
+				return p;
+			}
+			if (type < answer_type) {
+				p = p->_left;
+			} else {
+				p = p->_right;
+			}
 		} else if (s < 0) {
 			p = p->_left;
 		} else {
@@ -283,28 +292,40 @@ int NCR_Tree::RBT_INSERT(NCR_Tree** root, NCR_Tree* node)
 	NCR_Tree*	p	= NULL;
 	NCR_Tree*	top	= NULL;
 
+	uint16_t answer_type = 0;
+	uint16_t node_type = 0;
+
 	name	= node->_rec->_name;
+	node_type = node->_rec->_answ->_q_type;
+
 	p	= (*root);
 	while (p) {
 		top	= p;
 		s	= name->like(p->_rec->_name);
 		if (s == 0) {
-			delete p->_rec->_answ;
-			p->_rec->_answ		= NULL;
+			answer_type = p->_rec->_answ->_q_type;
+			if (node_type == answer_type) {
+				delete p->_rec->_answ;
+				p->_rec->_answ		= NULL;
 
-			if (DBG_LVL_IS_1) {
-				dlog.out(
-"[rescached] NCR_Tree::RBT_INSERT: '%s' replace old cache with new one\n"
-, name->_v);
+				if (DBG_LVL_IS_1) {
+					dlog.out(
+	"[rescached] NCR_Tree::RBT_INSERT: '%s' replace old cache with new one\n"
+	, name->_v);
+				}
+
+				p->_rec->_answ		= node->_rec->_answ;
+				p->_rec->_ttl		= node->_rec->_ttl;
+
+				node->_rec->_answ	= NULL;
+				return 1;
 			}
-
-			p->_rec->_answ		= node->_rec->_answ;
-			p->_rec->_ttl		= node->_rec->_ttl;
-
-			node->_rec->_answ	= NULL;
-			return 1;
-		}
-		if (s < 0) {
+			if (node_type < answer_type) {
+				p = p->_left;
+			} else {
+				p = p->_right;
+			}
+		} else if (s < 0) {
 			p = p->_left;
 		} else {
 			p = p->_right;

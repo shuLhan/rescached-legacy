@@ -158,22 +158,6 @@ int NameCache::load(const char* fdata)
 					}
 				}
 				break;
-			// name exist but no type found
-			case -2:
-				if (node && node->_rec) {
-					node->_rec->answer_push (ncr->_answ);
-				}
-
-				if (!_skip_log && DBG_LVL_IS_1) {
-					dlog.out("[rescached] load-add: %3d %6ds %s\n"
-						, ncr->_answ->_q_type
-						, ncr->_answ->_ans_ttl_max
-						, ncr->_answ->_name._v);
-				}
-
-				ncr->_answ = NULL;
-				delete ncr;
-				break;
 			}
 		}
 		s = R.read(row, list_md);
@@ -246,18 +230,14 @@ int NameCache::save(const char* fdata)
 	p = _cachel;
 	while (p) {
 		if (p->_rec && p->_rec->_name && p->_rec->_name->_i) {
-			while (p->_rec->_answ) {
-				ncrecord_to_record (p->_rec, row);
+			ncrecord_to_record (p->_rec, row);
 
-				s = W.write(row, list_md);
-				if (s != 0) {
-					break;
-				}
-
-				row->columns_reset();
-
-				p->_rec->answer_pop ();
+			s = W.write(row, list_md);
+			if (s != 0) {
+				break;
 			}
+
+			row->columns_reset();
 
 		}
 		p = p->_down;
@@ -274,9 +254,8 @@ int NameCache::save(const char* fdata)
  * @param question	: hostname that will be search in the tree.
  * @param answer	: return, query answer.
  * @param node		: return value, pointer to DNS answer in tree.
- * @return >=0	: success, return index of buckets tree.
- * @return -1	: fail, name not found.
- * @return -2	: fail, query type not found.
+ * @return 0	: success, cached answer that match with question found.
+ * @return -1	: fail, question not found.
  * @desc	: search for record with 'name' in the tree and
  * 	with query type in answer, return node found in the tree
  * 	and answer in the record.
@@ -292,26 +271,23 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 	_locker.lock();
 
 	Buffer* name = (Buffer*) &question->_name;
-	int c = 0;
+	uint16_t qtype = question->_q_type;
+	int c = -1;
 	NCR_Bucket* bucket = bucket_get_by_index (toupper (name->_v[0]));
 
-	if (bucket->_v) {
-		(*node) = bucket->_v->search_record_name (name);
-		if (!(*node)) {
-			c = -1;
-		} else {
-			/* find answer by type */
-			(*answer) = (*node)->_rec->search_answer_by_type (
-						question->_q_type);
-
-			if (! (*answer)) {
-				c = -2;
-			}
-		}
-	} else {
-		c = -1;
+	if (!bucket->_v) {
+		goto out;
 	}
 
+	(*node) = bucket->_v->search_record(name, qtype);
+	if (!(*node)) {
+		c = -1;
+		goto out;
+	}
+
+	(*answer) = (*node)->_rec->_answ;
+	c = 0;
+out:
 	_locker.unlock();
 
 	return c;
@@ -566,23 +542,6 @@ int NameCache::insert_copy (DNSQuery* answer
 		}
 
 		_locker.unlock();
-	} else if (s == -2) {
-		// name exist but no type found
-		DNSQuery* nu_answer = answer->duplicate ();
-
-		if (! nu_answer) {
-			return -1;
-		}
-
-		if (node && node->_rec) {
-			node->_rec->answer_push (nu_answer);
-		}
-
-		if (!_skip_log && DBG_LVL_IS_1) {
-			dlog.out("[rescached]      add: %3d %6ds %s\n"
-				, nu_answer->_q_type, nu_answer->_ans_ttl_max
-				, nu_answer->_name.chars());
-		}
 	}
 
 	return 0;
