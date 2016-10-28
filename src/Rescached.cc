@@ -854,7 +854,7 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 {
 	ResQueue* obj = NULL;
 
-	obj = ResQueue::NEW();
+	obj = new ResQueue();
 	if (!obj) {
 		return -1;
 	}
