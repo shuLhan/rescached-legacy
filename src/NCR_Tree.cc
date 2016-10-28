@@ -321,8 +321,10 @@ int NCR_Tree::RBT_INSERT(NCR_Tree** root, NCR_Tree* node)
 				return 1;
 			}
 			if (node_type < answer_type) {
+				s = -1;
 				p = p->_left;
 			} else {
+				s = 1;
 				p = p->_right;
 			}
 		} else if (s < 0) {
