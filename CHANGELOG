@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.3.1 (2016-10-29)
+
+Fixes:
+
+- Fix duplicate record caused by regression on tree (commit 6da7ea8)
+- ResQueue: remove static NEW method
+
+  Using free on NEW method and delete on REMOVE method will trigger invalid
+  delete operation when debugging with valgrind.
+
+
 ## v1.3.0 (2016-10-19)
 
 Breaking changes:
@@ -55,6 +66,7 @@ Enhancements:
   DNS packet with hostname `x.com` and type `A` will be different with DNS
   packet with hostname `x.com` and type `AAAA`.
 
+
 ## v1.2.0 (2016-09-04)
 
 Remove additional or auth section if packet size greater than 512 bytes.
@@ -63,6 +75,7 @@ Some DNS library or resolver can not handle packet size greater than
 512 bytes automatically. This is because RFC 1035 defined that DNS packet must
 not exceed 512 bytes or server must set the TrunCated flag if greater than
 that.
+
 
 ## v1.1.0 (2016-07-07)
 
@@ -80,6 +93,7 @@ that.
   On GCC 6, `gcc` can not be used anymore to compile C++, we should use `g++`.
 
 * Update host ads
+
 
 ## v1.0.0 (2016-02-12)
 
