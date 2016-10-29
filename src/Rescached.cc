@@ -24,7 +24,7 @@ Rescached::Rescached() :
 ,	_fd_read()
 ,	_running(1)
 ,	_nc()
-,	_queue(NULL)
+,	_queue()
 {}
 
 Rescached::~Rescached()
@@ -579,21 +579,52 @@ int Rescached::run()
  */
 void Rescached::queue_clean()
 {
-	double		x = 0;
-	time_t		t = time(NULL);
-	ResQueue*	q = _queue;
-	ResQueue*	n = NULL;
+	if (!_queue._head) {
+		return;
+	}
 
-	while (q) {
-		n = q->_next;
+	int x = 0;
+	double difft = 0;
+	time_t t = time(NULL);
+	BNode* bnode = NULL;
+	BNode* bnode_next = NULL;
+	ResQueue* q = NULL;
 
-		x = difftime(t, q->_timeout);
-		if (x >= _rto) {
-			ResQueue::REMOVE(&_queue, q);
+	_queue._locker.lock();
+
+	if (DBG_LVL_IS_1) {
+		dlog.out("[rescached] clean queue ...\n");
+	}
+
+	bnode = _queue._head;
+
+	do {
+		bnode_next = bnode->_right;
+
+		q = (ResQueue*) bnode->_item;
+
+		difft = difftime(t, q->_timeout);
+		if (difft >= _rto) {
+			if (DBG_LVL_IS_1) {
+				dlog.out("[rescached]  timeout: %3d %s\n"
+					, q->_qstn->_q_type
+					, q->_qstn->_name._v);
+			}
+
+			_queue.node_remove_unsafe(bnode);
+			delete q;
+			x--;
 		}
 
-		q = n;
+		bnode = bnode_next;
+		x++;
+	} while(x < _queue.size());
+
+	if (DBG_LVL_IS_1) {
+		dlog.out("[rescached] queue size: %d\n", _queue.size());
 	}
+
+	_queue._locker.unlock();
 }
 
 /**
@@ -610,51 +641,49 @@ int Rescached::queue_process(DNSQuery* answer)
 	if (!answer) {
 		return -1;
 	}
+	if (!_queue._head) {
+		return 0;
+	}
 
-	int		s;
-	ResQueue* 	q = NULL;
-	ResQueue*	n = NULL;
+	_queue._locker.lock();
 
-	/* search queue by id and name only */
-	q = _queue;
-	while (q) {
-		if (q->_qstn
-		&& q->_qstn->_id == answer->_id
-		&& q->_qstn->_q_type == answer->_q_type) {
-			s = q->_qstn->_name.like(&answer->_name);
-			if (s == 0) {
-				s = _nc.insert_copy (answer, 1, 0);
-				break;
-			}
+	int x = 0;
+	int s = 0;
+	BNode* bnode = _queue._head;
+	BNode* bnode_next = NULL;
+	ResQueue* q = NULL;
+
+	do {
+		bnode_next = bnode->_right;
+
+		q = (ResQueue*) bnode->_item;
+
+		if (q->_qstn->_q_type != answer->_q_type) {
+			goto next;
 		}
-		q = q->_next;
-	}
-	if (!q) {
-		return -1;
-	}
 
-	s = queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn, answer);
-
-	ResQueue::REMOVE(&_queue, q);
-
-	/* send reply to all queue with the same name and type */
-	q = _queue;
-	while (q) {
-		n = q->_next;
-
-		if (q->_qstn
-		&& q->_qstn->_q_type == answer->_q_type) {
-			s = q->_qstn->_name.like(&answer->_name);
-			if (s == 0) {
-				s = queue_send_answer(q->_udp_client
-							, q->_tcp_client
-							, q->_qstn
-							, answer);
-				ResQueue::REMOVE(&_queue, q);
-			}
+		s = q->_qstn->_name.like(&answer->_name);
+		if (s != 0) {
+			goto next;
 		}
-		q = n;
-	}
+
+		if (q->_qstn->_id == answer->_id) {
+			_nc.insert_copy(answer, 1, 0);
+		}
+
+		queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn
+				, answer);
+
+		(ResQueue*) _queue.node_remove_unsafe(bnode);
+		delete q;
+		x--;
+next:
+		bnode = bnode_next;
+		x++;
+	} while (x < _queue.size());
+
+	_queue._locker.unlock();
+
 	return 0;
 }
 
@@ -873,7 +902,7 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 			, (*question)->_q_type, 0, (*question)->_name._v);
 	}
 
-	ResQueue::PUSH(&_queue, obj);
+	_queue.push_tail(obj);
 
 	return 0;
 }
@@ -894,10 +923,6 @@ void Rescached::exit()
 		_nc.save(_fdata._v);
 	}
 
-	if (_queue) {
-		delete _queue;
-		_queue = NULL;
-	}
 	if (_fpid._v) {
 		unlink(_fpid._v);
 	}

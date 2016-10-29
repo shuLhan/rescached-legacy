@@ -18,6 +18,7 @@
 #include "NCR_List.hh"
 #include "ResQueue.hh"
 
+using vos::BNode;
 using vos::List;
 using vos::File;
 using vos::Config;
@@ -102,7 +103,7 @@ public:
 	int		_running;
 
 	NameCache	_nc;
-	ResQueue*	_queue;
+	List		_queue;
 private:
 	Rescached(const Rescached&);
 	void operator=(const Rescached&);
