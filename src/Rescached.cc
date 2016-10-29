@@ -243,7 +243,7 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] parent connection > %s\n", _dns_conn._v);
 		dlog.er("[rescached] listening on      > %s:%d\n"
 			, _listen_addr._v, _listen_port);
-		dlog.er("[rescached] timeout           > %d\n", _rto);
+		dlog.er("[rescached] timeout           > %d seconds\n", _rto);
 		dlog.er("[rescached] cache maximum     > %ld\n", _nc._cache_max);
 		dlog.er("[rescached] cache threshold   > %ld\n", _nc._cache_thr);
 		dlog.er("[rescached] cache min TTL     > %d\n", _cache_minttl);
