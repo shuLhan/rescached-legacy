@@ -398,14 +398,6 @@ int Rescached::load_hosts_block ()
 {
 	int s = 0;
 
-	// Check blocked hosts file in current directory.
-	s = File::IS_EXIST (RESCACHED_HOSTS_BLOCK);
-
-	if (s) {
-		dlog.out ("[rescached] blocked hosts: %s\n", RESCACHED_HOSTS_BLOCK);
-		return load_hosts(RESCACHED_HOSTS_BLOCK, vos::DNS_IS_BLOCKED);
-	}
-
 	// Load blocked hosts file from config
 	if (! _fhostsblock.is_empty ()) {
 		s = File::IS_EXIST (_fhostsblock._v);
