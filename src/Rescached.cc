@@ -582,7 +582,7 @@ void Rescached::queue_clean()
 	BNode* bnode_next = NULL;
 	ResQueue* q = NULL;
 
-	_queue._locker.lock();
+	_queue.lock();
 
 	if (DBG_LVL_IS_1) {
 		dlog.out("[rescached] clean queue ...\n");
@@ -616,7 +616,7 @@ void Rescached::queue_clean()
 		dlog.out("[rescached] queue size: %d\n", _queue.size());
 	}
 
-	_queue._locker.unlock();
+	_queue.unlock();
 }
 
 /**
@@ -637,7 +637,7 @@ int Rescached::queue_process(DNSQuery* answer)
 		return 0;
 	}
 
-	_queue._locker.lock();
+	_queue.lock();
 
 	int x = 0;
 	int s = 0;
@@ -674,7 +674,7 @@ next:
 		x++;
 	} while (x < _queue.size());
 
-	_queue._locker.unlock();
+	_queue.unlock();
 
 	return 0;
 }
