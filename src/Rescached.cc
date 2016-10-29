@@ -56,6 +56,8 @@ int Rescached::init(const char* fconf)
 
 	s = File::WRITE_PID (_fpid.chars());
 	if (s != 0) {
+		dlog.er("[rescached] PID file exist"
+			", rescached process may already running.\n");
 		return -1;
 	}
 
@@ -269,6 +271,10 @@ int Rescached::load_config(const char* fconf)
  */
 int Rescached::bind()
 {
+	if (!_running) {
+		return 0;
+	}
+
 	register int s;
 
 	// (1)
@@ -360,7 +366,7 @@ int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 		return -1;
 	}
 
-	for (x = 0; x < reader._rows->size(); x++) {
+	for (x = 0; x < reader._rows->size() && _running; x++) {
 		row = (List*) reader._rows->at(x);
 		ip = (Buffer*) row->at(0);
 
@@ -416,6 +422,10 @@ int Rescached::load_hosts_block ()
  */
 void Rescached::load_cache()
 {
+	if (!_running) {
+		return;
+	}
+
 	dlog.out("[rescached] loading cache ...\n");
 
 	_nc.load(_fdata._v);
@@ -905,10 +915,6 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
  */
 void Rescached::exit()
 {
-	if (DBG_LVL_IS_1) {
-		dlog.er("\n[rescached] saving %d records ...\n", _nc._n_cache);
-	}
-
 	_running = 0;
 
 	if (_fdata._v) {

@@ -216,6 +216,10 @@ int NameCache::save(const char* fdata)
 		return 0;
 	}
 
+	if (DBG_LVL_IS_1) {
+		dlog.er("\n[rescached] saving %d records ...\n", _n_cache);
+	}
+
 	s = W.open_wo(fdata);
 	if (s != 0) {
 		return -1;

@@ -63,6 +63,8 @@ int main(int argc, char *argv[])
 {
 	int s = -1;
 
+	rescached_set_signal_handle();
+
 	if (argc == 1) {
 		s = R.init(NULL);
 	} else if (argc == 2) {
@@ -76,7 +78,6 @@ int main(int argc, char *argv[])
 
 	_skip_log = 0;
 
-	rescached_set_signal_handle();
 	R.run();
 err:
 	if (s) {
