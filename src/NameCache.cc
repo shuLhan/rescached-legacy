@@ -212,6 +212,10 @@ int NameCache::save(const char* fdata)
 	DSVRecord*	row	= NULL;
 	List*		list_md	= NULL;
 
+	if (_n_cache <= 0) {
+		return 0;
+	}
+
 	s = W.open_wo(fdata);
 	if (s != 0) {
 		return -1;
