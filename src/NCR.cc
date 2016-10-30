@@ -8,11 +8,14 @@
 
 namespace rescached {
 
-NCR::NCR() :
-	_stat(1)
+const char* NCR::__name = "NCR";
+
+NCR::NCR() : Object()
+,	_stat(1)
 ,	_ttl(0)
 ,	_name(NULL)
 ,	_answ(NULL)
+,	_p_tree(NULL)
 {}
 
 NCR::~NCR()
@@ -25,17 +28,24 @@ NCR::~NCR()
 		delete _answ;
 		_answ = NULL;
 	}
+	_p_tree = NULL;
 }
 
-void NCR::dump()
+const char* NCR::chars()
 {
-	dlog.writes("[rescached] NCR::dump: %s\n"
-		"  accessed : %d times\n", _name ? _name->chars() : "\0", _stat);
+	Buffer b;
 
-	if (_answ) {
-		dlog.write_raw("  answer     :\n");
-		_answ->dump(vos::DNSQ_DO_ALL);
+	if (_v) {
+		free(_v);
+		_v = NULL;
 	}
+
+	b.aprint("[ \"name\": %s, \"TTL\": %d ]", _name->_v, _ttl);
+
+	_v = b._v;
+	b._v = NULL;
+
+	return _v;
 }
 
 /**
@@ -72,6 +82,28 @@ err:
 	(*o) = NULL;
 
 	return s;
+}
+
+//
+// `CMP_BY_STAT` will compare NCR object `x` and `y`.
+// It will return
+//
+// - 0 if stat of both object equal, or
+// - 1 if `x._stat` greater than `y._stat`, or
+// - -1 if `x._stat` less than `y._stat`.
+//
+int NCR::CMP_BY_STAT(Object* x, Object* y)
+{
+	NCR* ncrx = (NCR*) x;
+	NCR* ncry = (NCR*) y;
+
+	if (ncrx->_stat == ncry->_stat) {
+		return 0;
+	}
+	if (ncrx->_stat > ncry->_stat) {
+		return 1;
+	}
+	return -1;
 }
 
 } /* namespace::rescached */

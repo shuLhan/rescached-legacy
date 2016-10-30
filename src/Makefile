@@ -51,7 +51,6 @@ TARGET_OBJS	=					\
 			$(BLD_D)/NameCache.oo		\
 			$(BLD_D)/NCR.oo			\
 			$(BLD_D)/NCR_Tree.oo		\
-			$(BLD_D)/NCR_List.oo		\
 			$(LIBVOS_BLD_D)/DSVWriter.oo	\
 			$(LIBVOS_BLD_D)/DSVReader.oo	\
 			$(LIBVOS_BLD_D)/DSVRecord.oo	\

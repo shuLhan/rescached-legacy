@@ -5,7 +5,6 @@
 //
 
 #include "NCR_Tree.hh"
-#include "NCR_List.hh"
 
 namespace rescached {
 
@@ -504,7 +503,8 @@ NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 	if (y != node) {
 		NCR* node_rec		= node->_rec;
 		void* node_p_list	= node->_p_list;
-		NCR_List* r_list	= (NCR_List*) y->_p_list;
+		BNode* r_list = (BNode*) y->_p_list;
+		NCR* ncr = NULL;
 
 		node->_rec	= y->_rec;
 		node->_p_list	= y->_p_list;
@@ -513,7 +513,8 @@ NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 		y->_p_list	= node_p_list;
 
 		if (r_list) {
-			r_list->_p_tree	= node;
+			ncr = (NCR*) r_list->_item;
+			ncr->_p_tree = node;
 		}
 	}
 	if (x && y->_color == RBT_IS_BLACK) {

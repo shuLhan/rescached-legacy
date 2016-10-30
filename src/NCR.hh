@@ -10,6 +10,7 @@
 #include "common.hh"
 #include "DNSQuery.hh"
 
+using vos::Object;
 using vos::DNSQuery;
 using vos::Buffer;
 
@@ -25,19 +26,23 @@ namespace rescached {
  * @desc	: Name Cache Record. This class represent a domain name and
  * their DNS packet with number of times the same name is queried by clients. 
  */
-class NCR {
+class NCR : public Object {
 public:
 	NCR();
 	~NCR();
 
-	void dump();
+	const char* chars();
 
 	int		_stat;
 	uint32_t	_ttl;
 	Buffer*		_name;
 	DNSQuery*	_answ;
+	void*		_p_tree;
 
 	static int INIT(NCR** o, const Buffer* name, const Buffer* answer);
+	static int CMP_BY_STAT(Object* x, Object* y);
+
+	static const char* __name;
 private:
 	NCR(const NCR&);
 	void operator=(const NCR&);

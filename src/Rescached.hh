@@ -15,7 +15,6 @@
 #include "common.hh"
 #include "NameCache.hh"
 #include "NCR.hh"
-#include "NCR_List.hh"
 #include "ResQueue.hh"
 
 using vos::BNode;

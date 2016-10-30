@@ -9,6 +9,7 @@
 
 #include "NCR.hh"
 
+using vos::BNode;
 using vos::DNSQuery;
 
 namespace rescached {

@@ -430,7 +430,7 @@ void Rescached::load_cache()
 
 	_nc.load(_fdata._v);
 
-	dlog.out("[rescached] %d records loaded.\n", _nc._n_cache);
+	dlog.out("[rescached] %d records loaded.\n", _nc._cachel.size());
 
 	if (DBG_LVL_IS_3) {
 		_nc.dump();
@@ -816,7 +816,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 			);
 	}
 
-	_nc.increase_stat_and_rebuild ((NCR_List *) node->_p_list);
+	_nc.increase_stat_and_rebuild((BNode*) node->_p_list);
 
 	s = queue_send_answer(udp_client, tcp_client, (*question), answer);
 

@@ -11,9 +11,9 @@
 #include "DSVReader.hh"
 #include "DSVWriter.hh"
 #include "NCR_Tree.hh"
-#include "NCR_List.hh"
 
 using vos::Locker;
+using vos::BNode;
 using vos::List;
 using vos::DSVRecord;
 using vos::DSVRecordMD;
@@ -60,18 +60,17 @@ public:
 	int insert_copy (DNSQuery* answer
 			, const int do_cleanup, const int skip_list);
 
-	void increase_stat_and_rebuild(NCR_List *list);
+	void increase_stat_and_rebuild(BNode* list_node);
 
 	void prune();
 	void dump();
 	void dump_r();
 
-	long int	_n_cache;
 	long int	_cache_max;
 	long int	_cache_thr;
 	Locker		_locker;
 	NCR_Bucket*	_buckets;
-	NCR_List*	_cachel;
+	List		_cachel;
 private:
 	NameCache(const NameCache&);
 	void operator=(const NameCache&);
