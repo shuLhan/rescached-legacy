@@ -551,24 +551,32 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 		return;
 	}
 
+	int s = 0;
 	NCR* ncr = NULL;
-	NCR_Tree* ncr_tree = NULL;
 
 	_locker.lock();
 
 	ncr = (NCR*) list_node->_item;
-	ncr_tree = (NCR_Tree*) ncr->_p_tree;
 	ncr->_stat++;
 
 	if (list_node == _cachel._head) {
 		goto out;
 	}
 
+	// Quick check the stat with upper cache
+	s = NCR::CMP_BY_STAT(list_node->_item, list_node->_left->_item);
+	if (s <= 0) {
+		goto out;
+	}
+
+	if (DBG_LVL_IS_1) {
+		dlog.out("[rescached]  rebuild: %3d %6ds %s +%d\n"
+			, ncr->_answ->_q_type, ncr->_answ->_ans_ttl_max
+			, ncr->_answ->_name._v, ncr->_stat);
+	}
+
 	_cachel.detach(list_node);
-	ncr_tree->_p_list = _cachel.push_tail_sorted(list_node->_item, 0
-							, NCR::CMP_BY_STAT);
-	list_node->_item = NULL;
-	delete list_node;
+	_cachel.node_push_tail_sorted(list_node, 0, NCR::CMP_BY_STAT);
 out:
 	_locker.unlock();
 }
