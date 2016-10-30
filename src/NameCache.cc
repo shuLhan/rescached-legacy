@@ -394,6 +394,7 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 	}
 
 	int		s	= 0;
+	long int	thr	= _cache_thr;
 	NCR_Tree*	p_tree	= NULL;
 	NCR_Bucket*	bucket	= NULL;
 	DNSQuery*	answer	= (*ncr)->_answ;
@@ -411,25 +412,10 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 		(*ncr)->_ttl = (uint32_t) (time_now + answer->_ans_ttl_max);
 	}
 
-	if (do_cleanup) {
-		long int	thr	= _cache_thr;
+	while (do_cleanup && _cachel.size() >= _cache_max) {
+		clean_by_threshold(thr);
 
-		while (_cachel.size() > 0
-		&& ((_cachel.size() + ((thr * (thr + 1)) / 2)) >= _cache_max)) {
-			clean_by_threshold(thr);
-
-			// stop cleaning if (n + summation (thr)) < max
-			if ((_cachel.size() + ((thr * (thr + 1)) / 2)) < _cache_max) {
-				break;
-			}
-
-			++thr;
-			if (DBG_LVL_IS_1) {
-				dlog.er(
-				"[rescached] increasing threshold to %d\n"
-				, thr);
-			}
-		}
+		++thr;
 	}
 
 	bucket = bucket_get_by_index (toupper ((*ncr)->_name->_v[0]));
