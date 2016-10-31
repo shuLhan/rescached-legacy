@@ -16,6 +16,7 @@ NCR::NCR() : Object()
 ,	_name(NULL)
 ,	_answ(NULL)
 ,	_p_tree(NULL)
+,	_p_list(NULL)
 {}
 
 NCR::~NCR()
@@ -29,6 +30,7 @@ NCR::~NCR()
 		_answ = NULL;
 	}
 	_p_tree = NULL;
+	_p_list = NULL;
 }
 
 const char* NCR::chars()

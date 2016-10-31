@@ -13,6 +13,7 @@
 using vos::Object;
 using vos::DNSQuery;
 using vos::Buffer;
+using vos::BNode;
 
 namespace rescached {
 
@@ -38,6 +39,7 @@ public:
 	Buffer*		_name;
 	DNSQuery*	_answ;
 	void*		_p_tree;
+	BNode*		_p_list;
 
 	static int INIT(NCR** o, const Buffer* name, const Buffer* answer);
 	static int CMP_BY_STAT(Object* x, Object* y);

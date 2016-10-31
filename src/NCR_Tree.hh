@@ -9,9 +9,6 @@
 
 #include "NCR.hh"
 
-using vos::BNode;
-using vos::DNSQuery;
-
 namespace rescached {
 
 enum _rbt_color {
@@ -47,7 +44,6 @@ public:
 	NCR_Tree*	_left;
 	NCR_Tree*	_right;
 	NCR_Tree*	_top;
-	void*		_p_list;
 
 	static int RBT_INSERT(NCR_Tree** root, NCR_Tree* node);
 	static NCR_Tree* RBT_REMOVE(NCR_Tree** root, NCR_Tree* node);

@@ -348,7 +348,6 @@ void NameCache::clean_by_threshold(const long int thr)
 			node = (NCR_Tree*) ncr->_p_tree;
 			ndel = NCR_Tree::RBT_REMOVE(&bucket->_v, node);
 			if (ndel) {
-				ndel->_p_list = NULL;
 				ncr->_p_tree = NULL;
 				delete ndel;
 				ndel = NULL;
@@ -437,8 +436,7 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 
 	if (! skip_list) {
 		(*ncr)->_p_tree	= p_tree;
-
-		p_tree->_p_list = _cachel.push_tail_sorted((*ncr), 0
+		(*ncr)->_p_list = _cachel.push_tail_sorted((*ncr), 0
 						, NCR::CMP_BY_STAT);
 	}
 

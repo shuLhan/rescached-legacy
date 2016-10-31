@@ -816,7 +816,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 			);
 	}
 
-	_nc.increase_stat_and_rebuild((BNode*) node->_p_list);
+	_nc.increase_stat_and_rebuild(node->_rec->_p_list);
 
 	s = queue_send_answer(udp_client, tcp_client, (*question), answer);
 

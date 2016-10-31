@@ -14,7 +14,6 @@ NCR_Tree::NCR_Tree() :
 ,	_left(NULL)
 ,	_right(NULL)
 ,	_top(NULL)
-,	_p_list(NULL)
 {}
 
 NCR_Tree::~NCR_Tree()
@@ -31,7 +30,6 @@ NCR_Tree::~NCR_Tree()
 		delete _right;
 		_right = NULL;
 	}
-	_p_list = NULL;
 }
 
 /**
@@ -108,7 +106,6 @@ void NCR_Tree::prune()
 		_right->prune();
 	}
 	_top = NULL;
-	_p_list	= NULL;
 }
 
 /**
@@ -501,21 +498,14 @@ NCR_Tree* NCR_Tree::RBT_REMOVE(NCR_Tree** root, NCR_Tree* node)
 	}
 
 	if (y != node) {
-		NCR* node_rec		= node->_rec;
-		void* node_p_list	= node->_p_list;
-		BNode* r_list = (BNode*) y->_p_list;
-		NCR* ncr = NULL;
+		NCR* node_rec = node->_rec;
+		NCR* y_rec = y->_rec;
 
-		node->_rec	= y->_rec;
-		node->_p_list	= y->_p_list;
+		node->_rec = y_rec;
+		y->_rec = node_rec;
 
-		y->_rec 	= node_rec;
-		y->_p_list	= node_p_list;
-
-		if (r_list) {
-			ncr = (NCR*) r_list->_item;
-			ncr->_p_tree = node;
-		}
+		node->_rec->_p_tree = node;
+		y->_rec->_p_tree = y;
 	}
 	if (x && y->_color == RBT_IS_BLACK) {
 		(*root) = RBT_REMOVE_FIXUP((*root), x);
