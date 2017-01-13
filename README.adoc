@@ -279,6 +279,17 @@ Format:: 	Number (0, 1, or 2).
 Default:: 	0
 Description:: 	This option only used by developer for debugging program or if user want to monitor what kind of traffic goes out, set this option to 1.
 
+[[show_timestamp]]
+=== +show_timestamp+
+
+Value::
+0::: do not show timestamp in log output.
+1::: show timestamp in log output.
+Format::	Number (0 or 1)
+Default::	0
+Description::	This option will show the timestamp with "[YYYY.MM.DD
+HH:mm:SS]" format for each line in log output.
+
 
 == EXIT STATUS
 

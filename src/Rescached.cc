@@ -25,6 +25,7 @@ Rescached::Rescached() :
 ,	_running(1)
 ,	_nc()
 ,	_queue()
+,	_show_timestamp(RESCACHED_DEF_LOG_SHOW_TS)
 {}
 
 Rescached::~Rescached()
@@ -49,7 +50,7 @@ int Rescached::init(const char* fconf)
 	}
 
 	// Open log file with maximum size to 2MB
-	s = dlog.open(_flog._v, 2048000);
+	s = dlog.open(_flog._v, 2048000, _show_timestamp);
 	if (s != 0) {
 		return -1;
 	}
@@ -232,6 +233,10 @@ int Rescached::load_config(const char* fconf)
 		_dbg = RESCACHED_DEF_DEBUG;
 	}
 
+	_show_timestamp = (int) cfg.get_number(RESCACHED_CONF_LOG
+						, "show_timestamp"
+						, RESCACHED_DEF_LOG_SHOW_TS);
+
 	/* environment variable replace value in config file */
 	v	= getenv("RESCACHED_DEBUG");
 	_dbg	= (!v) ? _dbg : atoi(v);
@@ -250,6 +255,7 @@ int Rescached::load_config(const char* fconf)
 		dlog.er("[rescached] cache threshold   > %ld\n", _nc._cache_thr);
 		dlog.er("[rescached] cache min TTL     > %d\n", _cache_minttl);
 		dlog.er("[rescached] debug level       > %d\n", _dbg);
+		dlog.er("[rescached] show timestamp    > %d\n", _show_timestamp);
 	}
 
 	return 0;

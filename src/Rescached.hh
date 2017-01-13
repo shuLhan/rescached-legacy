@@ -31,6 +31,7 @@ namespace rescached {
 
 #define	RESCACHED_CONF		"rescached.cfg"
 #define	RESCACHED_CONF_HEAD	"RESCACHED"
+#define	RESCACHED_CONF_LOG	"LOG"
 #define	RESCACHED_DATA		"rescached.vos"
 #define	RESCACHED_LOG		"rescached.log"
 #define	RESCACHED_PID		"rescached.pid"
@@ -47,6 +48,7 @@ namespace rescached {
 #define	RESCACHED_DEF_DEBUG	0
 #define	RESCACHED_DEF_TIMEOUT	7
 #define	RESCACHED_DEF_MINTTL		60
+#define	RESCACHED_DEF_LOG_SHOW_TS	0
 
 #define	DNS_ATTR_BLOCKED	"blocked"
 #define	DNS_ATTR_LOCAL		"local"
@@ -103,6 +105,8 @@ public:
 
 	NameCache	_nc;
 	List		_queue;
+
+	int		_show_timestamp;
 private:
 	Rescached(const Rescached&);
 	void operator=(const Rescached&);

@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v1.3.2 (next)
+
+Enhancements:
+
+* Add configuration to show or hide timestamp in log output.
+
+  Log output in system that use systemd is too long. This option, default to
+  0, will shortened the log output.
+
 ## v1.3.1 (2016-10-29)
 
 Fixes:
