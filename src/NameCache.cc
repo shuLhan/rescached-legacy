@@ -150,7 +150,7 @@ int NameCache::load(const char* fdata)
 					delete ncr;
 				} else {
 					if (ncr && !_skip_log && DBG_LVL_IS_1) {
-						dlog.er("[rescached]     load: %3d %6ds %s\n"
+						dlog.er("    load: %3d %6ds %s\n"
 							, ncr->_answ->_q_type
 							, ncr->_answ->_ans_ttl_max
 							, ncr->_name->_v);
@@ -217,7 +217,7 @@ int NameCache::save(const char* fdata)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("\n[rescached] saving %d records ...\n"
+		dlog.er("\nsaving %d records ...\n"
 			, _cachel.size());
 	}
 
@@ -337,7 +337,7 @@ void NameCache::clean_by_threshold(const long int thr)
 		}
 
 		if (DBG_LVL_IS_1) {
-			dlog.er("[rescached] removing: %3d %s -%d\n"
+			dlog.er("removing: %3d %s -%d\n"
 				, ncr->_answ->_q_type
 				, ncr->_name->_v, ncr->_stat);
 		}
@@ -471,7 +471,7 @@ int NameCache::insert_copy (DNSQuery* answer
 		answer->remove_rr_aut();
 	}
 	if (DBG_LVL_IS_2) {
-		dlog.out("[rescached] answer size: %d\n", answer->_i);
+		dlog.out("answer size: %d\n", answer->_i);
 	}
 
 	s = get_answer_from_cache (answer, &lanswer, &node);
@@ -490,7 +490,7 @@ int NameCache::insert_copy (DNSQuery* answer
 		}
 
 		if (!_skip_log && DBG_LVL_IS_1) {
-			dlog.out ("[rescached]  renewed: %3d %6ds %s\n"
+			dlog.out (" renewed: %3d %6ds %s\n"
 				, answer->_q_type
 				, answer->_ans_ttl_max
 				, name->_v);
@@ -515,7 +515,7 @@ int NameCache::insert_copy (DNSQuery* answer
 			ncr = NULL;
 		} else {
 			if (!_skip_log && DBG_LVL_IS_1) {
-				dlog.out ("[rescached]   insert: %3d %6ds %s (%ld)\n"
+				dlog.out ("  insert: %3d %6ds %s (%ld)\n"
 					, answer->_q_type
 					, answer->_ans_ttl_max
 					, name->_v, _cachel.size());
@@ -554,7 +554,7 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached]  rebuild: %3d %6ds %s +%d\n"
+		dlog.out(" rebuild: %3d %6ds %s +%d\n"
 			, ncr->_answ->_q_type, ncr->_answ->_ans_ttl_max
 			, ncr->_answ->_name._v, ncr->_stat);
 	}
@@ -596,7 +596,7 @@ void NameCache::dump()
 	int i = 0;
 
 	if (_cachel.size() > 0) {
-		dlog.write_raw("\n[rescached] NameCache::dump >> LIST\n");
+		dlog.write_raw("\nNameCache::dump >> LIST\n");
 		_cachel.chars();
 	}
 
@@ -604,7 +604,7 @@ void NameCache::dump()
 		return;
 	}
 
-	dlog.write_raw("\n[rescached] NameCache::dump >> TREE\n");
+	dlog.write_raw("\nNameCache::dump >> TREE\n");
 	for (; i < CACHET_IDX_SIZE; ++i) {
 		if (!_buckets[i]._v) {
 			continue;

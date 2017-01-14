@@ -287,8 +287,20 @@ Value::
 1::: show timestamp in log output.
 Format::	Number (0 or 1)
 Default::	0
-Description::	This option will show the timestamp with "[YYYY.MM.DD
-HH:mm:SS]" format for each line in log output.
+Description::	If set to non-zero, each line in log output will added with
+timestamp format "[YYYY.MM.DD HH:mm:SS] ".
+
+[[show_appstamp]]
+=== +show_appstamp+
+
+Value::
+0::: do not show application stamp.
+1::: show application stamp.
+Format::	Number (0 or 1)
+Default::	0
+Description::	If set to non-zero,  each line in log output will be added
+with application ## stamp "[rescached] ", after timestamp and before actual
+log string.
 
 
 == EXIT STATUS

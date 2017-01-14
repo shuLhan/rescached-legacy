@@ -26,6 +26,7 @@ Rescached::Rescached() :
 ,	_nc()
 ,	_queue()
 ,	_show_timestamp(RESCACHED_DEF_LOG_SHOW_TS)
+,	_show_appstamp(RESCACHED_DEF_LOG_SHOW_STAMP)
 {}
 
 Rescached::~Rescached()
@@ -50,14 +51,16 @@ int Rescached::init(const char* fconf)
 	}
 
 	// Open log file with maximum size to 2MB
-	s = dlog.open(_flog._v, 2048000, _show_timestamp);
+	s = dlog.open(_flog._v, 2048000
+		, _show_appstamp ? RESCACHED_DEF_STAMP : ""
+		, _show_timestamp);
 	if (s != 0) {
 		return -1;
 	}
 
 	s = File::WRITE_PID (_fpid.chars());
 	if (s != 0) {
-		dlog.er("[rescached] PID file exist"
+		dlog.er("PID file exist"
 			", rescached process may already running.\n");
 		return -1;
 	}
@@ -146,12 +149,12 @@ int Rescached::load_config(const char* fconf)
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.it("[rescached] loading config    > %s\n", fconf);
+		dlog.it("loading config    > %s\n", fconf);
 	}
 
 	s = cfg.load(fconf);
 	if (s < 0) {
-		dlog.er("[rescached] cannot open config file '%s'!", fconf);
+		dlog.er("cannot open config file '%s'!", fconf);
 		return -1;
 	}
 
@@ -237,25 +240,30 @@ int Rescached::load_config(const char* fconf)
 						, "show_timestamp"
 						, RESCACHED_DEF_LOG_SHOW_TS);
 
+	_show_appstamp = (int) cfg.get_number(RESCACHED_CONF_LOG
+					, "show_appstamp"
+					, RESCACHED_DEF_LOG_SHOW_STAMP);
+
 	/* environment variable replace value in config file */
 	v	= getenv("RESCACHED_DEBUG");
 	_dbg	= (!v) ? _dbg : atoi(v);
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[rescached] cache file        > %s\n", _fdata._v);
-		dlog.er("[rescached] pid file          > %s\n", _fpid._v);
-		dlog.er("[rescached] log file          > %s\n", _flog._v);
-		dlog.er("[rescached] hosts blocked     > %s\n", _fhostsblock._v);
-		dlog.er("[rescached] parent address    > %s\n", _dns_parent._v);
-		dlog.er("[rescached] parent connection > %s\n", _dns_conn._v);
-		dlog.er("[rescached] listening on      > %s:%d\n"
+		dlog.er("cache file        > %s\n", _fdata._v);
+		dlog.er("pid file          > %s\n", _fpid._v);
+		dlog.er("log file          > %s\n", _flog._v);
+		dlog.er("hosts blocked     > %s\n", _fhostsblock._v);
+		dlog.er("parent address    > %s\n", _dns_parent._v);
+		dlog.er("parent connection > %s\n", _dns_conn._v);
+		dlog.er("listening on      > %s:%d\n"
 			, _listen_addr._v, _listen_port);
-		dlog.er("[rescached] timeout           > %d seconds\n", _rto);
-		dlog.er("[rescached] cache maximum     > %ld\n", _nc._cache_max);
-		dlog.er("[rescached] cache threshold   > %ld\n", _nc._cache_thr);
-		dlog.er("[rescached] cache min TTL     > %d\n", _cache_minttl);
-		dlog.er("[rescached] debug level       > %d\n", _dbg);
-		dlog.er("[rescached] show timestamp    > %d\n", _show_timestamp);
+		dlog.er("timeout           > %d seconds\n", _rto);
+		dlog.er("cache maximum     > %ld\n", _nc._cache_max);
+		dlog.er("cache threshold   > %ld\n", _nc._cache_thr);
+		dlog.er("cache min TTL     > %d\n", _cache_minttl);
+		dlog.er("debug level       > %d\n", _dbg);
+		dlog.er("show timestamp    > %d\n", _show_timestamp);
+		dlog.er("show stamp        > %d\n", _show_appstamp);
 	}
 
 	return 0;
@@ -332,7 +340,7 @@ int Rescached::bind()
 		FD_SET(_resolver._d, &_fd_all);
 	}
 
-	dlog.out("[rescached] listening on %s:%d.\n", _listen_addr._v
+	dlog.out("listening on %s:%d.\n", _listen_addr._v
 		, _listen_port);
 
 	return 0;
@@ -356,7 +364,7 @@ int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 		return -1;
 	}
 
-	dlog.out ("[rescached] loading '%s'...\n", fhosts);
+	dlog.out ("loading '%s'...\n", fhosts);
 
 	SSVReader	reader;
 	DNSQuery	qanswer;
@@ -401,7 +409,7 @@ int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 		}
 	}
 
-	dlog.out ("[rescached] %d addresses loaded.\n", cnt);
+	dlog.out ("%d addresses loaded.\n", cnt);
 
 	return 0;
 }
@@ -432,11 +440,11 @@ void Rescached::load_cache()
 		return;
 	}
 
-	dlog.out("[rescached] loading cache ...\n");
+	dlog.out("loading cache ...\n");
 
 	_nc.load(_fdata._v);
 
-	dlog.out("[rescached] %d records loaded.\n", _nc._cachel.size());
+	dlog.out("%d records loaded.\n", _nc._cachel.size());
 
 	if (DBG_LVL_IS_3) {
 		_nc.dump();
@@ -465,7 +473,7 @@ int Rescached::run()
 			FD_SET (_resolver._d, &_fd_all);
 
 			if (DBG_LVL_IS_2) {
-				dlog.out ("[rescached] adding open resolver.\n");
+				dlog.out ("adding open resolver.\n");
 			}
 		}
 
@@ -486,13 +494,13 @@ int Rescached::run()
 		if (FD_ISSET(_resolver._d, &_fd_read)) {
 			if (_dns_conn_t == 0) {
 				if (DBG_LVL_IS_2) {
-					dlog.out("[rescached] read resolver udp.\n");
+					dlog.out("read resolver udp.\n");
 				}
 
 				s = _resolver.recv_udp (answer);
 			} else {
 				if (DBG_LVL_IS_2) {
-					dlog.out("[rescached] read resolver tcp.\n");
+					dlog.out("read resolver tcp.\n");
 				}
 
 				s = _resolver.recv_tcp (answer);
@@ -507,7 +515,7 @@ int Rescached::run()
 			}
 
 			if (DBG_LVL_IS_2) {
-				dlog.out("[rescached] read resolver status %d.\n", s);
+				dlog.out("read resolver status %d.\n", s);
 			}
 
 			if (s > 0) {
@@ -515,19 +523,19 @@ int Rescached::run()
 			}
 		} else if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
 			if (DBG_LVL_IS_2) {
-				dlog.out("[rescached] read server udp.\n");
+				dlog.out("read server udp.\n");
 			}
 
 			addr = (struct sockaddr_in*) calloc(1
 							, SockAddr::IN_SIZE);
 			if (!addr) {
-				dlog.er("[rescached] error at allocating new address!\n");
+				dlog.er("error at allocating new address!\n");
 				continue;
 			}
 
 			s = (int) _srvr_udp.recv_udp(addr);
 			if (s <= 0) {
-				dlog.er ("[rescached] error at receiving UDP packet!\n");
+				dlog.er ("error at receiving UDP packet!\n");
 				free(addr);
 				addr = NULL;
 				continue;
@@ -535,7 +543,7 @@ int Rescached::run()
 
 			s = DNSQuery::INIT(&question, &_srvr_udp);
 			if (s < 0) {
-				dlog.er("[rescached] error at initializing dnsquery!\n");
+				dlog.er("error at initializing dnsquery!\n");
 				free(addr);
 				addr = NULL;
 				continue;
@@ -543,7 +551,7 @@ int Rescached::run()
 
 			s = process_client(addr, NULL, &question);
 			if (s != 0) {
-				dlog.er("[rescached] error at processing client!\n");
+				dlog.er("error at processing client!\n");
 				delete question;
 				question = NULL;
 			}
@@ -553,12 +561,12 @@ int Rescached::run()
 			}
 		} else if (FD_ISSET(_srvr_tcp._d, &_fd_read)) {
 			if (DBG_LVL_IS_2) {
-				dlog.out("[rescached] read server tcp.\n");
+				dlog.out("read server tcp.\n");
 			}
 
 			client = _srvr_tcp.accept_conn();
 			if (! client) {
-				dlog.er("[rescached] error at accepting client TCP connection!\n");
+				dlog.er("error at accepting client TCP connection!\n");
 				continue;
 			}
 
@@ -573,7 +581,7 @@ int Rescached::run()
 	}
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("[rescached] service stopped ...\n");
+		dlog.er("service stopped ...\n");
 	}
 
 	delete answer;
@@ -601,7 +609,7 @@ void Rescached::queue_clean()
 	_queue.lock();
 
 	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached] clean queue ...\n");
+		dlog.out("clean queue ...\n");
 	}
 
 	bnode = _queue._head;
@@ -614,7 +622,7 @@ void Rescached::queue_clean()
 		difft = difftime(t, q->_timeout);
 		if (difft >= _rto) {
 			if (DBG_LVL_IS_1) {
-				dlog.out("[rescached]  timeout: %3d %s\n"
+				dlog.out(" timeout: %3d %s\n"
 					, q->_qstn->_q_type
 					, q->_qstn->_name._v);
 			}
@@ -629,7 +637,7 @@ void Rescached::queue_clean()
 	} while(x < _queue.size());
 
 	if (DBG_LVL_IS_1) {
-		dlog.out("[rescached] queue size: %d\n", _queue.size());
+		dlog.out("queue size: %d\n", _queue.size());
 	}
 
 	_queue.unlock();
@@ -724,7 +732,7 @@ int Rescached::queue_send_answer(struct sockaddr_in* udp_client
 						, answer->_i - 2);
 		}
 	} else {
-		dlog.er("[rescached] queue_send_answer: no client connected!\n");
+		dlog.er("queue_send_answer: no client connected!\n");
 		return -1;
 	}
 
@@ -775,7 +783,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		// TTL is outdated.
 		if (diff >= 0) {
 			if (DBG_LVL_IS_1) {
-				dlog.out ("[rescached]    renew: %3d %6ds %s\n"
+				dlog.out ("   renew: %3d %6ds %s\n"
 					, (*question)->_q_type
 					, diff
 					, (*question)->_name.chars());
@@ -813,7 +821,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 			p = DNS_ATTR_BLOCKED;
 			break;
 		}
-		dlog.out("[rescached] %8s: %3d %6ds %s +%d\n"
+		dlog.out("%8s: %3d %6ds %s +%d\n"
 			, p
 			, (*question)->_q_type
 			, diff
@@ -906,7 +914,7 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 	obj->_qstn		= (*question);
 
 	if (DBG_LVL_IS_1) {
-		dlog.out ("[rescached]    queue: %3d %6ds %s\n"
+		dlog.out ("   queue: %3d %6ds %s\n"
 			, (*question)->_q_type, 0, (*question)->_name._v);
 	}
 

@@ -306,7 +306,7 @@ int NCR_Tree::RBT_INSERT(NCR_Tree** root, NCR_Tree* node)
 
 				if (DBG_LVL_IS_1) {
 					dlog.out(
-	"[rescached] NCR_Tree::RBT_INSERT: '%s' replace old cache with new one\n"
+	"NCR_Tree::RBT_INSERT: '%s' replace old cache with new one\n"
 	, name->_v);
 				}
 

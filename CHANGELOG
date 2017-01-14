@@ -9,6 +9,18 @@ Enhancements:
   Log output in system that use systemd is too long. This option, default to
   0, will shortened the log output.
 
+* Remove application stamp on log output
+
+  Application stamp is a string "[rescached] " that you will see on each line
+  in log output. This is useful if your system log can not filter each program
+  by name or use one file to log several programs.
+
+  Since most system now use systemd, printing application stamp would be
+  duplicated with log from systemd, to save some space and readibility we
+  remove this stamp and let user turning on manually through config file
+  option "show_appstamp".
+
+
 ## v1.3.1 (2016-10-29)
 
 Fixes:

@@ -48,7 +48,10 @@ namespace rescached {
 #define	RESCACHED_DEF_DEBUG	0
 #define	RESCACHED_DEF_TIMEOUT	7
 #define	RESCACHED_DEF_MINTTL		60
+
 #define	RESCACHED_DEF_LOG_SHOW_TS	0
+#define	RESCACHED_DEF_LOG_SHOW_STAMP	0
+#define	RESCACHED_DEF_STAMP		"[rescached] "
 
 #define	DNS_ATTR_BLOCKED	"blocked"
 #define	DNS_ATTR_LOCAL		"local"
@@ -107,6 +110,7 @@ public:
 	List		_queue;
 
 	int		_show_timestamp;
+	int		_show_appstamp;
 private:
 	Rescached(const Rescached&);
 	void operator=(const Rescached&);
