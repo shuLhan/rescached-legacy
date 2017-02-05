@@ -753,8 +753,9 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 	int		s;
 	int		idx;
-	NCR_Tree*	node	= NULL;
+	TreeNode*	node	= NULL;
 	DNSQuery*	answer	= NULL;
+	NCR*		ncr	= NULL;
 	int		diff	= 0;
 
 	idx = _nc.get_answer_from_cache ((*question), &answer, &node);
@@ -774,11 +775,13 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		return 0;
 	}
 
+	ncr = (NCR*) node->get_content();
+
 	// Check if TTL outdated.
 	if (answer->_attrs == vos::DNS_IS_QUERY) {
 		time_t	now	= time(NULL);
 
-		diff = (int) difftime (now, node->_rec->_ttl);
+		diff = (int) difftime (now, ncr->_ttl);
 
 		// TTL is outdated.
 		if (diff >= 0) {
@@ -803,7 +806,7 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		}
 
 		// Update answer TTL with time difference.
-		diff = (int) difftime (node->_rec->_ttl, now);
+		diff = (int) difftime (ncr->_ttl, now);
 		answer->set_rr_answer_ttl(diff);
 	}
 
@@ -826,11 +829,11 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 			, (*question)->_q_type
 			, diff
 			, (*question)->_name.chars()
-			, node->_rec->_stat
+			, ncr->_stat
 			);
 	}
 
-	_nc.increase_stat_and_rebuild(node->_rec->_p_list);
+	_nc.increase_stat_and_rebuild(ncr->_p_list);
 
 	s = queue_send_answer(udp_client, tcp_client, (*question), answer);
 

@@ -50,7 +50,8 @@ TARGET_OBJS	=					\
 			$(BLD_D)/ResQueue.oo		\
 			$(BLD_D)/NameCache.oo		\
 			$(BLD_D)/NCR.oo			\
-			$(BLD_D)/NCR_Tree.oo		\
+			$(LIBVOS_BLD_D)/RBT.oo		\
+			$(LIBVOS_BLD_D)/TreeNode.oo	\
 			$(LIBVOS_BLD_D)/DSVWriter.oo	\
 			$(LIBVOS_BLD_D)/DSVReader.oo	\
 			$(LIBVOS_BLD_D)/DSVRecord.oo	\

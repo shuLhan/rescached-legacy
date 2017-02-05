@@ -10,14 +10,17 @@ namespace rescached {
 
 const char* NCR::__name = "NCR";
 
-NCR::NCR() : Object()
+NCR::NCR(const Buffer* qname, uint16_t qtype) : Object()
 ,	_stat(1)
 ,	_ttl(0)
+,	_q_type(qtype)
 ,	_name(NULL)
 ,	_answ(NULL)
 ,	_p_tree(NULL)
 ,	_p_list(NULL)
-{}
+{
+	_name = new Buffer(qname);
+}
 
 NCR::~NCR()
 {
@@ -55,35 +58,31 @@ const char* NCR::chars()
  *	< 0	: success.
  *	< <0	: fail.
  */
-int NCR::INIT(NCR** o, const Buffer* name, const Buffer* answer)
+NCR* NCR::INIT(const Buffer* name, const Buffer* answer)
 {
 	if (!name || !answer) {
-		return -1;
+		return NULL;
 	}
 
 	int s;
+	NCR* o = NULL;
 
-	(*o) = new NCR();
-	if (!(*o)) {
-		return -1;
+	o = new NCR(name);
+	if (o) {
+		s = DNSQuery::INIT(&o->_answ, answer, vos::BUFFER_IS_UDP);
+		if (s != 0) {
+			goto err;
+		}
+
+		o->_q_type = o->_answ->_q_type;
 	}
 
-	s = Buffer::INIT(&(*o)->_name, name);
-	if (s != 0) {
-		goto err;
-	}
-
-	s = DNSQuery::INIT(&(*o)->_answ, answer, vos::BUFFER_IS_UDP);
-	if (s != 0) {
-		goto err;
-	}
-
-	return s;
+	return o;
 err:
-	delete (*o);
-	(*o) = NULL;
+	delete o;
+	o = NULL;
 
-	return s;
+	return o;
 }
 
 //
@@ -106,6 +105,40 @@ int NCR::CMP_BY_STAT(Object* x, Object* y)
 		return 1;
 	}
 	return -1;
+}
+
+/**
+ * `CMP()` will compare two NCR objects `x` and `y` by record name and
+ * question-type.
+ * It will return 0 if both x and y are NULL or equal, or 1 if `x` is
+ * greater than `y` or -1 if `x` is less than `y`.
+ */
+int NCR::CMP(Object* x, Object* y)
+{
+	if (!x && !y) {
+		return 0;
+	}
+	if (x && !y) {
+		return 1;
+	}
+	if (y && !x) {
+		return -1;
+	}
+
+	NCR* nx = (NCR*) x;
+	NCR* ny = (NCR*) y;
+	int qx = nx->_q_type;
+	int qy = ny->_q_type;
+	int s = nx->_name->like(ny->_name);
+
+	if (s == 0) {
+		if (qx > qy) {
+			s = 1;
+		} else if (qx < qy) {
+			s = -1;
+		}
+	}
+	return s;
 }
 
 } /* namespace::rescached */

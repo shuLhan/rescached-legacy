@@ -12,8 +12,8 @@ NameCache::NameCache() :
 	_cache_max(0)
 ,	_cache_thr(0)
 ,	_locker()
-,	_buckets(NULL)
 ,	_cachel()
+,	_buckets(NULL)
 {}
 
 NameCache::~NameCache()
@@ -31,25 +31,25 @@ int NameCache::bucket_init ()
 {
 	int s = 0;
 
-	_buckets = new NCR_Bucket[CACHET_IDX_SIZE + 1];
+	_buckets = (RBT**) calloc(CACHET_IDX_FIRST + 1, sizeof(RBT));
 	if (!_buckets) {
 		return -1;
 	}
 
 	for (; s <= CACHET_IDX_SIZE; ++s) {
-		_buckets[s]._v = NULL;
+		_buckets[s] = new RBT(NCR::CMP);
 	}
 
 	return 0;
 }
 
 /**
- * @method	: NameCache::bucket_get_index
+ * @method	: NameCache::bucket_get_by_index
  * @desc	: Get bucket index by character 'c'.
  * @param c	: First character of data.
  * @return >= 0	: Index of bucket of 'c'.
  */
-NCR_Bucket* NameCache::bucket_get_by_index (int c)
+RBT* NameCache::bucket_get_by_index(int c)
 {
 	if (isalpha (c)) {
 		c = (c - 'A') + 10;
@@ -58,7 +58,7 @@ NCR_Bucket* NameCache::bucket_get_by_index (int c)
 	} else {
 		c = CACHET_IDX_SIZE;
 	}
-	return &_buckets[c];
+	return _buckets[c];
 }
 
 /**
@@ -82,8 +82,8 @@ int NameCache::raw_to_ncrecord(DSVRecord* raw, NCR** ncr)
 	ttl		= raw->get_column(2);
 	answer		= raw->get_column(3);
 
-	s = NCR::INIT(ncr, name, answer);
-	if (0 == s) {
+	(*ncr) = NCR::INIT(name, answer);
+	if (*ncr) {
 		(*ncr)->_stat	= (int) strtol(stat->_v, 0, 10);
 		(*ncr)->_ttl	= (int32_t) strtol(ttl->_v, 0, 10);
 	}
@@ -111,7 +111,7 @@ int NameCache::load(const char* fdata)
 	DSVRecord*	row	= NULL;
 	List*		list_md	= NULL;
 	DNSQuery*	lanswer	= NULL;
-	NCR_Tree*	node	= NULL;
+	TreeNode*	node	= NULL;
 
 	s = R.open_ro(fdata);
 	if (s != 0) {
@@ -275,7 +275,7 @@ int NameCache::save(const char* fdata)
  */
 int NameCache::get_answer_from_cache (const DNSQuery* question
 					, DNSQuery** answer
-					, NCR_Tree** node)
+					, TreeNode** node)
 {
 	if (!question) {
 		return -1;
@@ -283,22 +283,23 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 
 	_locker.lock();
 
+	NCR ncr(&question->_name, question->_q_type);
 	Buffer* name = (Buffer*) &question->_name;
-	uint16_t qtype = question->_q_type;
 	int c = -1;
-	NCR_Bucket* bucket = bucket_get_by_index (toupper (name->_v[0]));
+	RBT* bucket = bucket_get_by_index(toupper(name->_v[0]));
 
-	if (!bucket->_v) {
+	if (!bucket->get_root()) {
 		goto out;
 	}
 
-	(*node) = bucket->_v->search_record(name, qtype);
+
+	(*node) = bucket->find(&ncr);
 	if (!(*node)) {
 		c = -1;
 		goto out;
 	}
 
-	(*answer) = (*node)->_rec->_answ;
+	(*answer) = ((NCR*)(*node)->get_content())->_answ;
 	c = 0;
 out:
 	_locker.unlock();
@@ -321,9 +322,9 @@ void NameCache::clean_by_threshold(const long int thr)
 		return;
 	}
 
-	NCR_Tree*	node	= NULL;
-	NCR_Tree*	ndel	= NULL;
-	NCR_Bucket*	bucket	= NULL;
+	TreeNode*	node	= NULL;
+	TreeNode*	ndel	= NULL;
+	RBT*		bucket	= NULL;
 
 	BNode* p = NULL;
 	NCR* ncr = NULL;
@@ -344,9 +345,9 @@ void NameCache::clean_by_threshold(const long int thr)
 
 		bucket = bucket_get_by_index(toupper(ncr->_name->_v[0]));
 
-		if (bucket->_v) {
-			node = (NCR_Tree*) ncr->_p_tree;
-			ndel = NCR_Tree::RBT_REMOVE(&bucket->_v, node);
+		if (bucket->get_root()) {
+			node = (TreeNode*) ncr->_p_tree;
+			ndel = bucket->remove(node);
 			if (ndel) {
 				ncr->_p_tree = NULL;
 				delete ndel;
@@ -392,10 +393,10 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 		return -1;
 	}
 
-	int		s	= 0;
 	long int	thr	= _cache_thr;
-	NCR_Tree*	p_tree	= NULL;
-	NCR_Bucket*	bucket	= NULL;
+	TreeNode*	p_tree	= NULL;
+	TreeNode*	p_ins	= NULL;
+	RBT*		bucket	= NULL;
 	DNSQuery*	answer	= (*ncr)->_answ;
 	time_t		time_now= time(NULL);
 
@@ -420,18 +421,16 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 	bucket = bucket_get_by_index (toupper ((*ncr)->_name->_v[0]));
 
 	/* add to tree */
-	p_tree = new NCR_Tree();
+	p_tree = new TreeNode((*ncr));
 	if (!p_tree) {
 		return -1;
 	}
 
-	p_tree->_rec = (*ncr);
-
-	s = NCR_Tree::RBT_INSERT(&bucket->_v, p_tree);
-	if (s != 0) {
-		p_tree->_rec = NULL;
+	p_ins = bucket->insert(p_tree, 1);
+	if (p_ins != p_tree) {
+		p_tree->set_content(NULL);
 		delete p_tree;
-		return -1;
+		return 1;
 	}
 
 	if (! skip_list) {
@@ -459,7 +458,7 @@ int NameCache::insert_copy (DNSQuery* answer
 
 	int		s	= 0;
 	DNSQuery*	lanswer	= NULL;
-	NCR_Tree*	node	= NULL;
+	TreeNode*	node	= NULL;
 	Buffer*		name	= (Buffer*) &answer->_name;
 	NCR*		ncr	= NULL;
 	time_t		time_now= time(NULL);
@@ -480,12 +479,14 @@ int NameCache::insert_copy (DNSQuery* answer
 		lanswer->set (answer);
 		lanswer->extract (vos::DNSQ_EXTRACT_RR_AUTH);
 
+		ncr = (NCR*) node->get_content();
+
 		// reset TTL in NCR
 		if (answer->_ans_ttl_max < _cache_minttl) {
-			node->_rec->_ttl = (uint32_t) (time_now
+			ncr->_ttl = (uint32_t) (time_now
 				+ _cache_minttl);
 		} else {
-			node->_rec->_ttl = (uint32_t) (time_now
+			ncr->_ttl = (uint32_t) (time_now
 				+ answer->_ans_ttl_max);
 		}
 
@@ -500,8 +501,8 @@ int NameCache::insert_copy (DNSQuery* answer
 		// name not found, create new node.
 		_locker.lock();
 
-		s = NCR::INIT(&ncr, name, answer);
-		if (s != 0) {
+		ncr = NCR::INIT(name, answer);
+		if (!ncr) {
 			_locker.unlock();
 			return s;
 		}
@@ -572,13 +573,9 @@ void NameCache::prune()
 
 	if (_buckets) {
 		for (; i <= CACHET_IDX_SIZE; ++i) {
-			if (_buckets[i]._v) {
-				_buckets[i]._v->prune();
-				delete _buckets[i]._v;
-				_buckets[i]._v = NULL;
-			}
+			delete _buckets[i];
 		}
-		delete[] _buckets;
+		free(_buckets);
 		_buckets = NULL;
 	}
 
@@ -606,7 +603,7 @@ void NameCache::dump()
 
 	dlog.write_raw("\nNameCache::dump >> TREE\n");
 	for (; i < CACHET_IDX_SIZE; ++i) {
-		if (!_buckets[i]._v) {
+		if (!_buckets[i]->get_root()) {
 			continue;
 		}
 
@@ -617,7 +614,7 @@ void NameCache::dump()
 ------------------------------------------------------------------------\n",
 i + CACHET_IDX_FIRST);
 
-		_buckets[i]._v->dump_tree(0);
+		_buckets[i]->chars();
 	}
 }
 

@@ -10,7 +10,8 @@
 #include "Locker.hh"
 #include "DSVReader.hh"
 #include "DSVWriter.hh"
-#include "NCR_Tree.hh"
+#include "NCR.hh"
+#include "RBT.hh"
 
 using vos::Locker;
 using vos::BNode;
@@ -19,6 +20,8 @@ using vos::DSVRecord;
 using vos::DSVRecordMD;
 using vos::DSVReader;
 using vos::DSVWriter;
+using vos::RBT;
+using vos::TreeNode;
 
 #define RESCACHED_MD	\
 ":name:::'|',"		\
@@ -31,17 +34,13 @@ using vos::DSVWriter;
 
 namespace rescached {
 
-struct NCR_Bucket {
-	NCR_Tree* _v;
-};
-
 class NameCache {
 public:
 	NameCache();
 	~NameCache();
 
 	int bucket_init ();
-	NCR_Bucket* bucket_get_by_index (int c);
+	RBT* bucket_get_by_index(int c);
 
 	int raw_to_ncrecord(DSVRecord* raw, NCR** ncr);
 	int load(const char* fdata);
@@ -51,7 +50,7 @@ public:
 
 	int get_answer_from_cache (const DNSQuery* question
 				, DNSQuery** answer
-				, NCR_Tree** node);
+				, TreeNode** node);
 
 	void clean_by_threshold(const long int thr);
 
@@ -69,8 +68,8 @@ public:
 	long int	_cache_max;
 	long int	_cache_thr;
 	Locker		_locker;
-	NCR_Bucket*	_buckets;
 	List		_cachel;
+	RBT**		_buckets;
 private:
 	NameCache(const NameCache&);
 	void operator=(const NameCache&);

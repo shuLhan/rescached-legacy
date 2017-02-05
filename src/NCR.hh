@@ -25,24 +25,26 @@ namespace rescached {
  *	- _answ	: pointer to Answer packet.
  *	- _ttl	: time to live.
  * @desc	: Name Cache Record. This class represent a domain name and
- * their DNS packet with number of times the same name is queried by clients. 
+ * their DNS packet with number of times the same name is queried by clients.
  */
 class NCR : public Object {
 public:
-	NCR();
+	NCR(const Buffer* qname = NULL, uint16_t qtype = 0);
 	~NCR();
 
 	const char* chars();
 
 	int		_stat;
 	uint32_t	_ttl;
+	uint16_t	_q_type;
 	Buffer*		_name;
 	DNSQuery*	_answ;
 	void*		_p_tree;
 	BNode*		_p_list;
 
-	static int INIT(NCR** o, const Buffer* name, const Buffer* answer);
+	static NCR* INIT(const Buffer* name, const Buffer* answer);
 	static int CMP_BY_STAT(Object* x, Object* y);
+	static int CMP(Object* x, Object* y);
 
 	static const char* __name;
 private:
