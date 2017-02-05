@@ -1,13 +1,16 @@
 # CHANGELOG
 
-## v1.3.2 (next)
+## v1.4.0 (2017-02-05)
+
+Under the hood we replace the queue and cache implementation from using
+internal module with libvos::List and libvos::RBT.
 
 Enhancements:
 
 * Add configuration to show or hide timestamp in log output.
 
-  Log output in system that use systemd is too long. This option, default to
-  0, will shortened the log output.
+  Log output in system that use systemd is too long. This option,
+  `show_timestamp`, default to 0, will shortened the log output.
 
 * Remove application stamp on log output
 
@@ -19,6 +22,21 @@ Enhancements:
   duplicated with log from systemd, to save some space and readibility we
   remove this stamp and let user turning on manually through config file
   option "show_appstamp".
+
+Fixes:
+
+* Fixes compilation warning on GCC version 6.3
+
+* Handle user interruption when rescached still in initialization state
+
+* On exit, do not overwrite cache file if list of cache is empty
+
+  When rescached is still loading host files, and user interupt it, it will
+  save the empty cache, which cause overwriting the current cache file.
+
+* Change server timeout from 300 to 7 seconds.
+
+  Higher timeout cause queue never clean up when rescached is idle.
 
 
 ## v1.3.1 (2016-10-29)
