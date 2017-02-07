@@ -45,7 +45,8 @@ const char* NCR::chars()
 		_v = NULL;
 	}
 
-	b.aprint("[ \"name\": %s, \"TTL\": %d ]", _name->_v, _ttl);
+	b.aprint("[ 'name': %s, 'QTYPE': %d, 'TTL': %d ]", _name->_v, _q_type
+		, _ttl);
 
 	_v = b._v;
 	b._v = NULL;
@@ -139,6 +140,24 @@ int NCR::CMP(Object* x, Object* y)
 		}
 	}
 	return s;
+}
+
+/**
+ * `SWAP_PTREE()` will swap pointer to the tree of NCR `x` with `y`.
+ */
+void NCR::SWAP_PTREE(Object* x, Object* y)
+{
+	if (!x || !y) {
+		return;
+	}
+
+	TreeNode* tmp = NULL;
+	NCR* nx = (NCR*) x;
+	NCR* ny = (NCR*) y;
+
+	tmp = nx->_p_tree;
+	nx->_p_tree = ny->_p_tree;
+	ny->_p_tree = tmp;
 }
 
 } /* namespace::rescached */

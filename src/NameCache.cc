@@ -37,7 +37,7 @@ int NameCache::bucket_init ()
 	}
 
 	for (; s <= CACHET_IDX_SIZE; ++s) {
-		_buckets[s] = new RBT(NCR::CMP);
+		_buckets[s] = new RBT(NCR::CMP, NCR::SWAP_PTREE);
 	}
 
 	return 0;
@@ -328,6 +328,7 @@ void NameCache::clean_by_threshold(const long int thr)
 
 	BNode* p = NULL;
 	NCR* ncr = NULL;
+	NCR* ncr_del = NULL;
 
 	p = _cachel._tail;
 	do {
@@ -337,19 +338,24 @@ void NameCache::clean_by_threshold(const long int thr)
 			break;
 		}
 
-		if (DBG_LVL_IS_1) {
-			dlog.er("removing: %3d %s -%d\n"
-				, ncr->_answ->_q_type
-				, ncr->_name->_v, ncr->_stat);
-		}
-
 		bucket = bucket_get_by_index(toupper(ncr->_name->_v[0]));
 
 		if (bucket->get_root()) {
 			node = (TreeNode*) ncr->_p_tree;
 			ndel = bucket->remove(node);
+
 			if (ndel) {
+				ncr_del = (NCR*) ndel->get_content();
+
+				if (DBG_LVL_IS_1) {
+					dlog.er("removing: %3d %s -%d\n"
+						, ncr_del->_answ->_q_type
+						, ncr_del->_name->_v
+						, ncr_del->_stat);
+				}
+
 				ncr->_p_tree = NULL;
+				ncr->_p_list = NULL;
 				delete ndel;
 				ndel = NULL;
 			}
@@ -427,6 +433,7 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 	}
 
 	p_ins = bucket->insert(p_tree, 1);
+
 	if (p_ins != p_tree) {
 		p_tree->set_content(NULL);
 		delete p_tree;

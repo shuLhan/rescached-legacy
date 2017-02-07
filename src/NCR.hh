@@ -9,10 +9,12 @@
 
 #include "common.hh"
 #include "DNSQuery.hh"
+#include "TreeNode.hh"
 
 using vos::Object;
 using vos::DNSQuery;
 using vos::Buffer;
+using vos::TreeNode;
 using vos::BNode;
 
 namespace rescached {
@@ -39,12 +41,13 @@ public:
 	uint16_t	_q_type;
 	Buffer*		_name;
 	DNSQuery*	_answ;
-	void*		_p_tree;
+	TreeNode*	_p_tree;
 	BNode*		_p_list;
 
 	static NCR* INIT(const Buffer* name, const Buffer* answer);
 	static int CMP_BY_STAT(Object* x, Object* y);
 	static int CMP(Object* x, Object* y);
+	static void SWAP_PTREE(Object* x, Object* y);
 
 	static const char* __name;
 private:

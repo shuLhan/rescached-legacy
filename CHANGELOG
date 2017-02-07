@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.4.1 (2017-02-08)
+
+Fixes:
+
+- Coredump when doing cache cleanup when limit is reached
+
 ## v1.4.0 (2017-02-05)
 
 Under the hood we replace the queue and cache implementation from using
