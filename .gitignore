@@ -3,6 +3,6 @@ AUR/rescached-git
 AUR/*.tar
 build
 rescached.vos*
-src/valgrind.out*
+valgrind.out*
 src/rescached.log
 src/rescached.cfg.debug

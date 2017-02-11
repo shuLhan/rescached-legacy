@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.5.0 (2017-xx-xx)
+
+The new tool `resolver` is coming to the town!
+
+`resolver` is command line tool to query hostname to name server.
+Its like `dig` (bind tools). Currently, it only provide function to query
+nameserver in the following format,
+
+	$ resolver [@nameserver[:port]] hostname [type]
+
 ## v1.4.1 (2017-02-08)
 
 Fixes:

@@ -12,7 +12,7 @@ DATA_D		=..
 DOC_D		=$(DATA_D)/doc
 DESTDIR		=
 
-INSTALL_BIN_D	=$(DESTDIR)/usr/bin
+export INSTALL_BIN_D	=$(DESTDIR)/usr/bin
 INSTALL_CFG_D	=$(DESTDIR)/etc/rescached
 INSTALL_CACHE_D	=$(DESTDIR)/var/cache/rescached
 INSTALL_DATA_D	=$(DESTDIR)/usr/share/rescached
@@ -82,8 +82,10 @@ LIBVOS_OPTS	+=NO_DEFAULT_LIBS
 
 all: libvos-all
 	@strip -s $(BLD_D)/rescached;
+	$(MAKE) -C resolver
 
 debug: libvos-debug
+	$(MAKE) -C resolver debug
 
 doc: $(DOC_TARGET)
 
@@ -164,6 +166,7 @@ install: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 install: RESCACHED_SVC=$(SCRIPTS_D)/rescached.service
 install: SYSTEM_SVC=$(INSTALL_SVC_D)/rescached.service
 install: all do-install
+	$(MAKE) -C resolver install
 
 install-init: SVC_D=$(SVC_INIT_D)
 install-init: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
@@ -183,7 +186,9 @@ uninstall-init: do-uninstall
 
 clean:
 	@$(call do_rmdir,$(BLD_D))
+	$(MAKE) -C resolver clean
 
 distclean: libvos-clean clean
+	$(MAKE) -C resolver distclean
 
 ## vi: ts=8 sw=8 tw=78:
