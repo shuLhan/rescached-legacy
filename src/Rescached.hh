@@ -53,9 +53,12 @@ namespace rescached {
 #define	RESCACHED_DEF_LOG_SHOW_STAMP	0
 #define	RESCACHED_DEF_STAMP		"[rescached] "
 
-#define	DNS_ATTR_BLOCKED	"blocked"
-#define	DNS_ATTR_LOCAL		"local"
-#define	DNS_ATTR_CACHED		"cached"
+#define	TAG_BLOCKED	"blocked"
+#define	TAG_LOCAL	"local"
+#define	TAG_CACHED	"cached"
+#define	TAG_RESOLVER	"resolver"
+#define	TAG_QUEUE	"queue"
+#define	TAG_RENEW	"renew"
 
 class Rescached {
 public:
@@ -72,7 +75,6 @@ public:
 
 	int run();
 	void queue_clean();
-	int queue_process(DNSQuery* answer);
 	int queue_send_answer(struct sockaddr_in* udp_client
 				, Socket* tcp_client
 				, DNSQuery* question
@@ -114,6 +116,9 @@ public:
 private:
 	Rescached(const Rescached&);
 	void operator=(const Rescached&);
+
+	int _resolver_process(DNSQuery* answer);
+	void _resolver_read();
 };
 
 } /* namespace::rescached */

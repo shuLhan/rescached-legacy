@@ -148,9 +148,7 @@ int Rescached::load_config(const char* fconf)
 		fconf = RESCACHED_CONF;
 	}
 
-	if (DBG_LVL_IS_1) {
-		dlog.it("loading config    > %s\n", fconf);
-	}
+	dlog.out("loading config '%s'\n", fconf);
 
 	s = cfg.load(fconf);
 	if (s < 0) {
@@ -440,7 +438,7 @@ void Rescached::load_cache()
 		return;
 	}
 
-	dlog.out("loading cache ...\n");
+	dlog.out("loading cache '%s'...\n", _fdata._v);
 
 	_nc.load(_fdata._v);
 
@@ -449,6 +447,123 @@ void Rescached::load_cache()
 	if (DBG_LVL_IS_3) {
 		_nc.dump();
 	}
+}
+
+/**
+ * `_resolver_process()` process queue using DNS packet reply 'answer'.
+ * It will return
+ *
+ * - `-1` only if `anwswer` is NULL,
+ * - `0` if queue is empty, or
+ * - `n` number of queue that has been processed.
+ */
+int Rescached::_resolver_process(DNSQuery* answer)
+{
+	if (!answer) {
+		return -1;
+	}
+	if (!_queue._head) {
+		return 0;
+	}
+
+	_queue.lock();
+
+	int x = 0;
+	int s = 0;
+	int n_answer = answer->get_num_answer();
+	int n_processed = 0;
+	BNode* bnode = _queue._head;
+	BNode* bnode_next = NULL;
+	ResQueue* q = NULL;
+
+	if (n_answer == 0) {
+		if (DBG_LVL_IS_1) {
+			dlog.out("%8s: %3d %6ds %s is empty\n", TAG_RESOLVER
+				, answer->_q_type, 0, answer->_name._v);
+		}
+	}
+
+	do {
+		bnode_next = bnode->_right;
+
+		q = (ResQueue*) bnode->_item;
+
+		if (q->_qstn->_q_type != answer->_q_type) {
+			goto next;
+		}
+
+		s = q->_qstn->_name.like(&answer->_name);
+		if (s != 0) {
+			goto next;
+		}
+
+		if (q->_qstn->_id == answer->_id) {
+			_nc.insert_copy(answer, 1, 0);
+		}
+
+		queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn
+				, answer);
+		n_processed++;
+
+		(ResQueue*) _queue.node_remove_unsafe(bnode);
+		delete q;
+		x--;
+next:
+		bnode = bnode_next;
+		x++;
+	} while (x < _queue.size());
+
+	_queue.unlock();
+
+	return n_processed;
+}
+
+/**
+ * `_resolver_read()` will read answer from parent answer.
+ *
+ * There are two type of parent server connection: UDP or TCP.
+ * If the connection is UDP we read it as normal.
+ * If the connection is TCP, we read them and convert it to UDP because our
+ * client maybe not using TCP.
+ *
+ * After that we pass the answer to our clients.
+ */
+void Rescached::_resolver_read()
+{
+	int s = 0;
+	DNSQuery* answer = new DNSQuery ();
+
+	if (_dns_conn_t == 0) {
+		if (DBG_LVL_IS_2) {
+			dlog.out("%8s: read udp.\n", TAG_RESOLVER);
+		}
+
+		s = _resolver.recv_udp(answer);
+	} else {
+		if (DBG_LVL_IS_2) {
+			dlog.out("%8s: read tcp.\n", TAG_RESOLVER);
+		}
+
+		s = _resolver.recv_tcp(answer);
+
+		if (s <= 0) {
+			FD_CLR(_resolver._d, &_fd_all);
+			_resolver.close();
+		} else {
+			// convert answer to UDP.
+			answer->to_udp();
+		}
+	}
+
+	if (DBG_LVL_IS_2) {
+		dlog.out("%8s: read status %d.\n", TAG_RESOLVER, s);
+	}
+
+	if (s > 0) {
+		s = _resolver_process(answer);
+	}
+
+	delete answer;
 }
 
 /**
@@ -462,7 +577,6 @@ int Rescached::run()
 {
 	int			s		= 0;
 	struct timeval		timeout;
-	DNSQuery*		answer		= new DNSQuery ();
 	DNSQuery*		question	= NULL;
 	Socket*			client		= NULL;
 	struct sockaddr_in*	addr		= NULL;
@@ -492,35 +606,8 @@ int Rescached::run()
 		}
 
 		if (FD_ISSET(_resolver._d, &_fd_read)) {
-			if (_dns_conn_t == 0) {
-				if (DBG_LVL_IS_2) {
-					dlog.out("read resolver udp.\n");
-				}
+			_resolver_read();
 
-				s = _resolver.recv_udp (answer);
-			} else {
-				if (DBG_LVL_IS_2) {
-					dlog.out("read resolver tcp.\n");
-				}
-
-				s = _resolver.recv_tcp (answer);
-
-				if (s <= 0) {
-					FD_CLR (_resolver._d, &_fd_all);
-					_resolver.close();
-				} else {
-					// convert answer to UDP.
-					answer->to_udp ();
-				}
-			}
-
-			if (DBG_LVL_IS_2) {
-				dlog.out("read resolver status %d.\n", s);
-			}
-
-			if (s > 0) {
-				s = queue_process (answer);
-			}
 		} else if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
 			if (DBG_LVL_IS_2) {
 				dlog.out("read server udp.\n");
@@ -584,8 +671,6 @@ int Rescached::run()
 		dlog.er("service stopped ...\n");
 	}
 
-	delete answer;
-
 	return s;
 }
 
@@ -609,7 +694,7 @@ void Rescached::queue_clean()
 	_queue.lock();
 
 	if (DBG_LVL_IS_1) {
-		dlog.out("clean queue ...\n");
+		dlog.out("%8s: cleaning ...\n", TAG_QUEUE);
 	}
 
 	bnode = _queue._head;
@@ -622,7 +707,8 @@ void Rescached::queue_clean()
 		difft = difftime(t, q->_timeout);
 		if (difft >= _rto) {
 			if (DBG_LVL_IS_1) {
-				dlog.out(" timeout: %3d %s\n"
+				dlog.out("%8s: timeout: %3d %s\n"
+					, TAG_QUEUE
 					, q->_qstn->_q_type
 					, q->_qstn->_name._v);
 			}
@@ -637,70 +723,10 @@ void Rescached::queue_clean()
 	} while(x < _queue.size());
 
 	if (DBG_LVL_IS_1) {
-		dlog.out("queue size: %d\n", _queue.size());
+		dlog.out("%8s: size %d\n", TAG_QUEUE, _queue.size());
 	}
 
 	_queue.unlock();
-}
-
-/**
- * @method		: Rescached::queue_process
- * @param		:
- *	> answer	: pointer to DNS packet reply from parent server.
- * @return		:
- *	< 0		: success.
- *	< -1		: fail.
- * @desc		: process queue using 'answer' DNS packet reply.
- */
-int Rescached::queue_process(DNSQuery* answer)
-{
-	if (!answer) {
-		return -1;
-	}
-	if (!_queue._head) {
-		return 0;
-	}
-
-	_queue.lock();
-
-	int x = 0;
-	int s = 0;
-	BNode* bnode = _queue._head;
-	BNode* bnode_next = NULL;
-	ResQueue* q = NULL;
-
-	do {
-		bnode_next = bnode->_right;
-
-		q = (ResQueue*) bnode->_item;
-
-		if (q->_qstn->_q_type != answer->_q_type) {
-			goto next;
-		}
-
-		s = q->_qstn->_name.like(&answer->_name);
-		if (s != 0) {
-			goto next;
-		}
-
-		if (q->_qstn->_id == answer->_id) {
-			_nc.insert_copy(answer, 1, 0);
-		}
-
-		queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn
-				, answer);
-
-		(ResQueue*) _queue.node_remove_unsafe(bnode);
-		delete q;
-		x--;
-next:
-		bnode = bnode_next;
-		x++;
-	} while (x < _queue.size());
-
-	_queue.unlock();
-
-	return 0;
 }
 
 int Rescached::queue_send_answer(struct sockaddr_in* udp_client
@@ -786,7 +812,8 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 		// TTL is outdated.
 		if (diff >= 0) {
 			if (DBG_LVL_IS_1) {
-				dlog.out ("   renew: %3d %6ds %s\n"
+				dlog.out ("%8s: %3d %6ds %s\n"
+					, TAG_RENEW
 					, (*question)->_q_type
 					, diff
 					, (*question)->_name.chars());
@@ -815,13 +842,13 @@ int Rescached::process_client(struct sockaddr_in* udp_client
 
 		switch (answer->_attrs) {
 		case vos::DNS_IS_QUERY:
-			p = DNS_ATTR_CACHED;
+			p = TAG_CACHED;
 			break;
 		case vos::DNS_IS_LOCAL:
-			p = DNS_ATTR_LOCAL;
+			p = TAG_LOCAL;
 			break;
 		case vos::DNS_IS_BLOCKED:
-			p = DNS_ATTR_BLOCKED;
+			p = TAG_BLOCKED;
 			break;
 		}
 		dlog.out("%8s: %3d %6ds %s +%d\n"
@@ -917,7 +944,7 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 	obj->_qstn		= (*question);
 
 	if (DBG_LVL_IS_1) {
-		dlog.out ("   queue: %3d %6ds %s\n"
+		dlog.out ("%8s: %3d %6ds %s\n", TAG_QUEUE
 			, (*question)->_q_type, 0, (*question)->_name._v);
 	}
 
