@@ -40,18 +40,18 @@ const char* NCR::chars()
 {
 	Buffer b;
 
-	if (_v) {
-		free(_v);
-		_v = NULL;
+	if (__str) {
+		free(__str);
+		__str = NULL;
 	}
 
 	b.aprint("[ 'name': %s, 'QTYPE': %d, 'TTL': %d ]", _name->_v, _q_type
 		, _ttl);
 
-	_v = b._v;
+	__str = b._v;
 	b._v = NULL;
 
-	return _v;
+	return __str;
 }
 
 /**
