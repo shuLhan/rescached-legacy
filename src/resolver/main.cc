@@ -16,11 +16,11 @@ void usage()
 	D.er("resolver [@parent-resolver[:port]] hostname [type]\n\n");
 	D.er("Supported type:\n\t");
 
-	for (; x < vos::RR_TYPE_SIZE; x++) {
+	for (; x < vos::DNSRecordType::SIZE; x++) {
 		if (x > 0) {
 			D.er(" ");
 		}
-		D.er("%s", vos::RR_TYPE_LIST[x]);
+		D.er("%s", vos::DNSRecordType::NAMES[x]);
 	}
 	D.er("\n");
 
@@ -38,7 +38,7 @@ int query(const char* server, const char* sname, const char* stype)
 		D.er("Invalid server address: %s\n", server);
 		return -1;
 	}
-	s = R.CONVERT_TYPE(stype);
+	s = vos::DNSRecordType::GET_VALUE(stype);
 	if (s < 0) {
 		D.er("Invalid type: %s\n", stype);
 		return -1;
