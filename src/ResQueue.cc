@@ -15,6 +15,7 @@ ResQueue::ResQueue() : Object()
 ,	_udp_client(NULL)
 ,	_tcp_client(NULL)
 ,	_qstn(NULL)
+,	_state(IS_NEW)
 {}
 
 ResQueue::~ResQueue()
@@ -30,6 +31,16 @@ ResQueue::~ResQueue()
 		delete _qstn;
 		_qstn = NULL;
 	}
+}
+
+void ResQueue::set_state(queue_state state)
+{
+	_state = state;
+}
+
+queue_state ResQueue::get_state()
+{
+	return _state;
 }
 
 } /* namespace::rescached */

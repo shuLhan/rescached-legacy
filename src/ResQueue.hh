@@ -16,6 +16,13 @@ using vos::DNSQuery;
 
 namespace rescached {
 
+enum queue_state {
+	IS_NEW		= 0
+,	IS_RESOLVING	= 1
+,	IS_RESOLVED	= 2
+,	IS_TIMEOUT	= 4
+};
+
 class ResQueue : public Object {
 public:
 	ResQueue();
@@ -26,10 +33,15 @@ public:
 	Socket*			_tcp_client;
 	DNSQuery*		_qstn;
 
+	void set_state(queue_state);
+	queue_state get_state();
+
 	static const char* __cname;
 private:
 	ResQueue(const ResQueue&);
 	void operator=(const ResQueue&);
+
+	queue_state _state;
 };
 
 } /* namespace::rescached */
