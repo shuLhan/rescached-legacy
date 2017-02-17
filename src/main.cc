@@ -37,7 +37,8 @@ static void rescached_interrupted(int sig_num)
 		}
 		_SIG_lock_	= 1;
 		_got_signal_ 	= sig_num;
-		R._running	= 0;
+		_running	= 0;
+		CW.wakeup();
 		_SIG_lock_	= 0;
                 break;
         }
@@ -78,12 +79,15 @@ int main(int argc, char *argv[])
 
 	_skip_log = 0;
 
+	CW.start();
 	R.run();
 err:
 	if (s) {
 		perror(NULL);
 	}
 	R.exit();
+	CW.stop();
+	CW.join();
 
 	return s;
 }

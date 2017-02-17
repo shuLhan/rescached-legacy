@@ -47,6 +47,8 @@ TARGET_OBJS	=					\
 			$(BLD_D)/main.oo		\
 			$(BLD_D)/common.oo		\
 			$(BLD_D)/Rescached.oo		\
+			$(BLD_D)/ClientWorker.oo	\
+			$(BLD_D)/ResolverWorker.oo	\
 			$(BLD_D)/ResQueue.oo		\
 			$(BLD_D)/NameCache.oo		\
 			$(BLD_D)/NCR.oo			\
@@ -72,6 +74,7 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/Buffer.oo	\
 			$(LIBVOS_BLD_D)/List.oo		\
 			$(LIBVOS_BLD_D)/BNode.oo	\
+			$(LIBVOS_BLD_D)/Thread.oo	\
 			$(LIBVOS_BLD_D)/Locker.oo	\
 			$(LIBVOS_BLD_D)/Object.oo	\
 			$(LIBVOS_BLD_D)/libvos.oo

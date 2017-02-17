@@ -1,0 +1,11 @@
+rescached:
+
+./scripts/benchmark.sh hosts.block  1.41s user 3.81s system 12% cpu 41.153 total
+
+rescached threaded:
+
+./scripts/benchmark.sh hosts.block  1.33s user 4.34s system 13% cpu 40.502 total
+
+pdnsd:
+
+./scripts/benchmark.sh hosts.block  1.32s user 3.91s system 12% cpu 41.253 total

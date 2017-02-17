@@ -6,6 +6,8 @@
 
 namespace rescached {
 
+ClientWorker CW;
+
 Rescached::Rescached() :
 	_fdata()
 ,	_flog()
@@ -15,22 +17,21 @@ Rescached::Rescached() :
 ,	_dns_conn()
 ,	_listen_addr()
 ,	_listen_port(RESCACHED_DEF_PORT)
-,	_rto(RESCACHED_DEF_TIMEOUT)
-,	_dns_conn_t (RESCACHED_DEF_CONN_T)
-,	_resolver()
-,	_srvr_udp()
 ,	_srvr_tcp()
 ,	_fd_all()
 ,	_fd_read()
-,	_running(1)
-,	_nc()
-,	_queue()
 ,	_show_timestamp(RESCACHED_DEF_LOG_SHOW_TS)
 ,	_show_appstamp(RESCACHED_DEF_LOG_SHOW_STAMP)
+,	_RW(NULL)
 {}
 
 Rescached::~Rescached()
-{}
+{
+	if (_RW) {
+		delete _RW;
+		_RW = NULL;
+	}
+}
 
 /**
  * @method	: Rescached::init()
@@ -144,6 +145,8 @@ int Rescached::load_config(const char* fconf)
 	Config		cfg;
 	const char*	v	= NULL;
 
+	_running = 1;
+
 	if (!fconf) {
 		fconf = RESCACHED_CONF;
 	}
@@ -196,7 +199,7 @@ int Rescached::load_config(const char* fconf)
 	}
 
 	if (_dns_conn.like_raw ("tcp") == 0) {
-		_dns_conn_t = 1;
+		_dns_conn_t = connection_type::IS_TCP;
 	}
 
 	s = config_parse_server_listen(&cfg);
@@ -204,7 +207,7 @@ int Rescached::load_config(const char* fconf)
 		return -1;
 	}
 
-	_rto = (int) cfg.get_number(RESCACHED_CONF_HEAD, "server.timeout"
+	_rto = (uint8_t) cfg.get_number(RESCACHED_CONF_HEAD, "server.timeout"
 					, RESCACHED_DEF_TIMEOUT);
 	if (_rto <= 0) {
 		_rto = RESCACHED_DEF_TIMEOUT;
@@ -275,8 +278,9 @@ int Rescached::load_config(const char* fconf)
  * @desc	: initialize Resolver object and start listening to client
  * connections.
  *
- * (1) Add server list.
- * (2) Create resolver object based on type.
+ * (1) Create and run resolver worker object based on `server.parent` and
+ * `server.connection` values.
+ *
  * (3) Create server for UDP.
  * (4) Create server for TCP.
  * (5) Initialize open fd.
@@ -290,18 +294,8 @@ int Rescached::bind()
 	register int s;
 
 	// (1)
-	s = _resolver.set_server(_dns_parent._v);
-	if (s < 0) {
-		return -1;
-	}
-
-	// (2)
-	if (_dns_conn_t == 0) {
-		s = _resolver.init (SOCK_DGRAM);
-	} else {
-		s = _resolver.init (SOCK_STREAM);
-	}
-	if (s < 0) {
+	_RW = ResolverWorker::INIT(&_dns_parent, _dns_conn_t);
+	if (!_RW) {
 		return -1;
 	}
 
@@ -333,10 +327,6 @@ int Rescached::bind()
 
 	FD_SET(_srvr_udp._d, &_fd_all);
 	FD_SET(_srvr_tcp._d, &_fd_all);
-
-	if (0 == _dns_conn_t) {
-		FD_SET(_resolver._d, &_fd_all);
-	}
 
 	dlog.out("listening on %s:%d.\n", _listen_addr._v
 		, _listen_port);
@@ -450,123 +440,6 @@ void Rescached::load_cache()
 }
 
 /**
- * `_resolver_process()` process queue using DNS packet reply 'answer'.
- * It will return
- *
- * - `-1` only if `anwswer` is NULL,
- * - `0` if queue is empty, or
- * - `n` number of queue that has been processed.
- */
-int Rescached::_resolver_process(DNSQuery* answer)
-{
-	if (!answer) {
-		return -1;
-	}
-	if (!_queue._head) {
-		return 0;
-	}
-
-	_queue.lock();
-
-	int x = 0;
-	int s = 0;
-	int n_answer = answer->get_num_answer();
-	int n_processed = 0;
-	BNode* bnode = _queue._head;
-	BNode* bnode_next = NULL;
-	ResQueue* q = NULL;
-
-	if (n_answer == 0) {
-		if (DBG_LVL_IS_1) {
-			dlog.out("%8s: %3d %6ds %s is empty\n", TAG_RESOLVER
-				, answer->_q_type, 0, answer->_name._v);
-		}
-	}
-
-	do {
-		bnode_next = bnode->_right;
-
-		q = (ResQueue*) bnode->_item;
-
-		if (q->_qstn->_q_type != answer->_q_type) {
-			goto next;
-		}
-
-		s = q->_qstn->_name.like(&answer->_name);
-		if (s != 0) {
-			goto next;
-		}
-
-		if (q->_qstn->_id == answer->_id) {
-			_nc.insert_copy(answer, 1, 0);
-		}
-
-		queue_send_answer(q->_udp_client, q->_tcp_client, q->_qstn
-				, answer);
-		n_processed++;
-
-		(ResQueue*) _queue.node_remove_unsafe(bnode);
-		delete q;
-		x--;
-next:
-		bnode = bnode_next;
-		x++;
-	} while (x < _queue.size());
-
-	_queue.unlock();
-
-	return n_processed;
-}
-
-/**
- * `_resolver_read()` will read answer from parent answer.
- *
- * There are two type of parent server connection: UDP or TCP.
- * If the connection is UDP we read it as normal.
- * If the connection is TCP, we read them and convert it to UDP because our
- * client maybe not using TCP.
- *
- * After that we pass the answer to our clients.
- */
-void Rescached::_resolver_read()
-{
-	int s = 0;
-	DNSQuery* answer = new DNSQuery ();
-
-	if (_dns_conn_t == 0) {
-		if (DBG_LVL_IS_2) {
-			dlog.out("%8s: read udp.\n", TAG_RESOLVER);
-		}
-
-		s = _resolver.recv_udp(answer);
-	} else {
-		if (DBG_LVL_IS_2) {
-			dlog.out("%8s: read tcp.\n", TAG_RESOLVER);
-		}
-
-		s = _resolver.recv_tcp(answer);
-
-		if (s <= 0) {
-			FD_CLR(_resolver._d, &_fd_all);
-			_resolver.close();
-		} else {
-			// convert answer to UDP.
-			answer->to_udp();
-		}
-	}
-
-	if (DBG_LVL_IS_2) {
-		dlog.out("%8s: read status %d.\n", TAG_RESOLVER, s);
-	}
-
-	if (s > 0) {
-		s = _resolver_process(answer);
-	}
-
-	delete answer;
-}
-
-/**
  * @method	: Rescached::run
  * @return	:
  *	< 0	: success.
@@ -582,15 +455,6 @@ int Rescached::run()
 	struct sockaddr_in*	addr		= NULL;
 
 	while (_running) {
-		// TCP: if resolver connection is open, add it to selector.
-		if (1 == _dns_conn_t && _resolver._status > 0) {
-			FD_SET (_resolver._d, &_fd_all);
-
-			if (DBG_LVL_IS_2) {
-				dlog.out ("adding open resolver.\n");
-			}
-		}
-
 		_fd_read	= _fd_all;
 		timeout.tv_sec	= _rto;
 		timeout.tv_usec	= 0;
@@ -601,14 +465,10 @@ int Rescached::run()
 				s = 0;
 				break;
 			}
-			queue_clean();
 			continue;
 		}
 
-		if (FD_ISSET(_resolver._d, &_fd_read)) {
-			_resolver_read();
-
-		} else if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
+		if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
 			if (DBG_LVL_IS_2) {
 				dlog.out("read server udp.\n");
 			}
@@ -636,7 +496,7 @@ int Rescached::run()
 				continue;
 			}
 
-			s = process_client(addr, NULL, &question);
+			s = queue_push(addr, NULL, &question);
 			if (s != 0) {
 				dlog.er("error at processing client!\n");
 				delete question;
@@ -674,202 +534,6 @@ int Rescached::run()
 	return s;
 }
 
-/**
- * @method	: Rescached::queue_clean()
- * @desc	: remove client queue that has reached timeout value.
- */
-void Rescached::queue_clean()
-{
-	if (!_queue._head) {
-		return;
-	}
-
-	int x = 0;
-	double difft = 0;
-	time_t t = time(NULL);
-	BNode* bnode = NULL;
-	BNode* bnode_next = NULL;
-	ResQueue* q = NULL;
-
-	_queue.lock();
-
-	if (DBG_LVL_IS_1) {
-		dlog.out("%8s: cleaning ...\n", TAG_QUEUE);
-	}
-
-	bnode = _queue._head;
-
-	do {
-		bnode_next = bnode->_right;
-
-		q = (ResQueue*) bnode->_item;
-
-		difft = difftime(t, q->_timeout);
-		if (difft >= _rto) {
-			if (DBG_LVL_IS_1) {
-				dlog.out("%8s: timeout: %3d %s\n"
-					, TAG_QUEUE
-					, q->_qstn->_q_type
-					, q->_qstn->_name._v);
-			}
-
-			_queue.node_remove_unsafe(bnode);
-			delete q;
-			x--;
-		}
-
-		bnode = bnode_next;
-		x++;
-	} while(x < _queue.size());
-
-	if (DBG_LVL_IS_1) {
-		dlog.out("%8s: size %d\n", TAG_QUEUE, _queue.size());
-	}
-
-	_queue.unlock();
-}
-
-int Rescached::queue_send_answer(struct sockaddr_in* udp_client
-				, Socket* tcp_client
-				, DNSQuery* question
-				, DNSQuery* answer)
-{
-	int s;
-
-	answer->set_id(question->_id);
-
-	if (tcp_client) {
-		if (answer->_bfr_type == vos::BUFFER_IS_UDP) {
-			s = answer->to_tcp();
-			if (s < 0) {
-				return -1;
-			}
-		}
-
-		tcp_client->reset();
-		tcp_client->write(answer);
-
-	} else if (udp_client) {
-		if (answer->_bfr_type == vos::BUFFER_IS_UDP) {
-			_srvr_udp.send_udp(udp_client, answer);
-		} else {
-			_srvr_udp.send_udp_raw(udp_client
-						, &answer->_v[2]
-						, answer->_i - 2);
-		}
-	} else {
-		dlog.er("queue_send_answer: no client connected!\n");
-		return -1;
-	}
-
-	if (DBG_LVL_IS_3) {
-		_nc.dump_r();
-	}
-
-	return 0;
-}
-
-int Rescached::process_client(struct sockaddr_in* udp_client
-				, Socket* tcp_client
-				, DNSQuery** question)
-{
-	if (!(*question)) {
-		return -1;
-	}
-
-	int		s;
-	int		idx;
-	TreeNode*	node	= NULL;
-	DNSQuery*	answer	= NULL;
-	NCR*		ncr	= NULL;
-	int		diff	= 0;
-
-	idx = _nc.get_answer_from_cache ((*question), &answer, &node);
-
-	// Question is not found in cache
-	if (idx < 0) {
-		if (_dns_conn_t == 0) {
-			s = _resolver.send_udp((*question));
-		} else {
-			s = _resolver.send_tcp((*question));
-		}
-		if (s < 0) {
-			return -1;
-		}
-
-		queue_push(udp_client, tcp_client, question);
-		return 0;
-	}
-
-	ncr = (NCR*) node->get_content();
-
-	// Check if TTL outdated.
-	if (answer->_attrs == vos::DNS_IS_QUERY) {
-		time_t	now	= time(NULL);
-
-		diff = (int) difftime (now, ncr->_ttl);
-
-		// TTL is outdated.
-		if (diff >= 0) {
-			if (DBG_LVL_IS_1) {
-				dlog.out ("%8s: %3d %6ds %s\n"
-					, TAG_RENEW
-					, (*question)->_q_type
-					, diff
-					, (*question)->_name.chars());
-			}
-
-			if (0 == _dns_conn_t) {
-				s = _resolver.send_udp ((*question));
-			} else {
-				s = _resolver.send_tcp ((*question));
-			}
-			if (s < 0) {
-				return -1;
-			}
-
-			queue_push(udp_client, tcp_client, question);
-			return 0;
-		}
-
-		// Update answer TTL with time difference.
-		diff = (int) difftime (ncr->_ttl, now);
-		answer->set_rr_answer_ttl(diff);
-	}
-
-	if (DBG_LVL_IS_1) {
-		const char* p = NULL;
-
-		switch (answer->_attrs) {
-		case vos::DNS_IS_QUERY:
-			p = TAG_CACHED;
-			break;
-		case vos::DNS_IS_LOCAL:
-			p = TAG_LOCAL;
-			break;
-		case vos::DNS_IS_BLOCKED:
-			p = TAG_BLOCKED;
-			break;
-		}
-		dlog.out("%8s: %3d %6ds %s +%d\n"
-			, p
-			, (*question)->_q_type
-			, diff
-			, (*question)->_name.chars()
-			, ncr->_stat
-			);
-	}
-
-	_nc.increase_stat_and_rebuild(ncr->_p_list);
-
-	s = queue_send_answer(udp_client, tcp_client, (*question), answer);
-
-	delete (*question);
-	(*question) = NULL;
-
-	return s;
-}
-
 int Rescached::process_tcp_client()
 {
 	int		x		= 0;
@@ -903,7 +567,7 @@ int Rescached::process_tcp_client()
 				continue;
 			}
 
-			process_client(NULL, client, &question);
+			queue_push(NULL, client, &question);
 
 			question = NULL;
 		}
@@ -948,7 +612,7 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 			, (*question)->_q_type, 0, (*question)->_name._v);
 	}
 
-	_queue.push_tail(obj);
+	CW.push_question(obj);
 
 	return 0;
 }
@@ -960,6 +624,11 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 void Rescached::exit()
 {
 	_running = 0;
+
+	if (_RW) {
+		_RW->stop();
+		_RW->join();
+	}
 
 	if (_fdata._v) {
 		_nc.save(_fdata._v);

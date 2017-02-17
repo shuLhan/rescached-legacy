@@ -9,13 +9,8 @@
 
 #include "lib/List.hh"
 #include "lib/Config.hh"
-#include "lib/Resolver.hh"
-#include "lib/SockServer.hh"
 #include "lib/SSVReader.hh"
-#include "common.hh"
-#include "NameCache.hh"
-#include "NCR.hh"
-#include "ResQueue.hh"
+#include "ResolverWorker.hh"
 
 using vos::BNode;
 using vos::List;
@@ -23,8 +18,6 @@ using vos::File;
 using vos::Config;
 using vos::SockAddr;
 using vos::Socket;
-using vos::SockServer;
-using vos::Resolver;
 using vos::SSVReader;
 
 namespace rescached {
@@ -41,24 +34,17 @@ namespace rescached {
 
 #define	RESCACHED_DEF_PARENT	"8.8.8.8, 8.8.4.4"
 #define	RESCACHED_DEF_PARENT_CONN	"udp"
-#define	RESCACHED_DEF_CONN_T	0
 #define RESCACHED_DEF_LISTEN		"127.0.0.1:53"
 #define	RESCACHED_DEF_PORT	53
 #define	RESCACHED_DEF_THRESHOLD	1
 #define	RESCACHED_DEF_DEBUG	0
-#define	RESCACHED_DEF_TIMEOUT	7
 #define	RESCACHED_DEF_MINTTL		60
 
 #define	RESCACHED_DEF_LOG_SHOW_TS	0
 #define	RESCACHED_DEF_LOG_SHOW_STAMP	0
 #define	RESCACHED_DEF_STAMP		"[rescached] "
 
-#define	TAG_BLOCKED	"blocked"
-#define	TAG_LOCAL	"local"
-#define	TAG_CACHED	"cached"
-#define	TAG_RESOLVER	"resolver"
-#define	TAG_QUEUE	"queue"
-#define	TAG_RENEW	"renew"
+extern ClientWorker CW;
 
 class Rescached {
 public:
@@ -74,14 +60,6 @@ public:
 	void load_cache();
 
 	int run();
-	void queue_clean();
-	int queue_send_answer(struct sockaddr_in* udp_client
-				, Socket* tcp_client
-				, DNSQuery* question
-				, DNSQuery* answer);
-	int process_client(struct sockaddr_in* udp_client
-				, Socket* tcp_client
-				, DNSQuery** question);
 	int process_tcp_client();
 	int queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 			, DNSQuery** question);
@@ -97,19 +75,11 @@ public:
 	Buffer		_dns_conn;
 	Buffer		_listen_addr;
 	uint16_t	_listen_port;
-	int		_rto;
-	int		_dns_conn_t;
 
-	Resolver	_resolver;
-	SockServer	_srvr_udp;
 	SockServer	_srvr_tcp;
 
 	fd_set		_fd_all;
 	fd_set		_fd_read;
-	int		_running;
-
-	NameCache	_nc;
-	List		_queue;
 
 	int		_show_timestamp;
 	int		_show_appstamp;
@@ -117,8 +87,7 @@ private:
 	Rescached(const Rescached&);
 	void operator=(const Rescached&);
 
-	int _resolver_process(DNSQuery* answer);
-	void _resolver_read();
+	ResolverWorker*	_RW;
 };
 
 } /* namespace::rescached */
