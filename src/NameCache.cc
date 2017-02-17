@@ -11,7 +11,6 @@ namespace rescached {
 NameCache::NameCache() :
 	_cache_max(0)
 ,	_cache_thr(0)
-,	_locker()
 ,	_cachel()
 ,	_buckets(NULL)
 {}
@@ -129,7 +128,11 @@ int NameCache::load(const char* fdata)
 	}
 
 	s = R.read(row, list_md);
-	while (s == 1 && (_cachel.size() < _cache_max || 0 == _cache_max)) {
+
+	while (_running
+	&& s == 1
+	&& (_cachel.size() < _cache_max || 0 == _cache_max)
+	) {
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
 			if (ncr->_ttl <= 0 || ncr->_ttl == UINT_MAX) {
@@ -281,7 +284,7 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 		return -1;
 	}
 
-	_locker.lock();
+	lock();
 
 	NCR ncr(&question->_name, question->_q_type);
 	Buffer* name = (Buffer*) &question->_name;
@@ -302,7 +305,7 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 	(*answer) = ((NCR*)(*node)->get_content())->_answ;
 	c = 0;
 out:
-	_locker.unlock();
+	unlock();
 
 	return c;
 }
@@ -482,6 +485,7 @@ int NameCache::insert_copy (DNSQuery* answer
 
 	s = get_answer_from_cache (answer, &lanswer, &node);
 	if (s == 0) {
+		lock();
 		// replace answer
 		lanswer->set (answer);
 		lanswer->extract (vos::DNSQ_EXTRACT_RR_AUTH);
@@ -503,20 +507,21 @@ int NameCache::insert_copy (DNSQuery* answer
 				, answer->_ans_ttl_max
 				, name->_v);
 		}
+		unlock();
 
 	} else if (s == -1) {
 		// name not found, create new node.
-		_locker.lock();
 
 		ncr = NCR::INIT(name, answer);
 		if (!ncr) {
-			_locker.unlock();
+			unlock();
 			return s;
 		}
 
 		ncr->_answ->_ans_ttl_max = answer->_ans_ttl_max;
 		ncr->_answ->_attrs = answer->_attrs;
 
+		lock();
 		s = insert (&ncr, do_cleanup, skip_list);
 		if (s != 0) {
 			delete ncr;
@@ -529,8 +534,7 @@ int NameCache::insert_copy (DNSQuery* answer
 					, name->_v, _cachel.size());
 			}
 		}
-
-		_locker.unlock();
+		unlock();
 	}
 
 	return 0;
@@ -546,7 +550,7 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 	int s = 0;
 	NCR* ncr = NULL;
 
-	_locker.lock();
+	lock();
 
 	ncr = (NCR*) list_node->_item;
 	ncr->_stat++;
@@ -570,7 +574,7 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 	_cachel.detach(list_node);
 	_cachel.node_push_tail_sorted(list_node, 0, NCR::CMP_BY_STAT);
 out:
-	_locker.unlock();
+	unlock();
 }
 
 void NameCache::prune()
@@ -627,9 +631,9 @@ i + CACHET_IDX_FIRST);
 
 void NameCache::dump_r()
 {
-	_locker.lock();
+	lock();
 	dump();
-	_locker.unlock();
+	unlock();
 }
 
 } /* namespace::rescached */

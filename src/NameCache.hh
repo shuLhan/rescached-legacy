@@ -7,11 +7,10 @@
 #ifndef _RESCACHED_NAME_CACHE_HH
 #define _RESCACHED_NAME_CACHE_HH 1
 
-#include "Locker.hh"
-#include "DSVReader.hh"
-#include "DSVWriter.hh"
+#include "lib/DSVReader.hh"
+#include "lib/DSVWriter.hh"
+#include "lib/RBT.hh"
 #include "NCR.hh"
-#include "RBT.hh"
 
 using vos::Locker;
 using vos::BNode;
@@ -34,7 +33,7 @@ using vos::TreeNode;
 
 namespace rescached {
 
-class NameCache {
+class NameCache : public Locker {
 public:
 	NameCache();
 	~NameCache();
@@ -67,7 +66,6 @@ public:
 
 	long int	_cache_max;
 	long int	_cache_thr;
-	Locker		_locker;
 	List		_cachel;
 	RBT**		_buckets;
 private:
