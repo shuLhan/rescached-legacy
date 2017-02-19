@@ -11,7 +11,7 @@ namespace rescached {
 const char* ResQueue::__cname = "ResQueue";
 
 ResQueue::ResQueue() : Object()
-,	_timeout(0)
+,	_timeout(time(NULL))
 ,	_udp_client(NULL)
 ,	_tcp_client(NULL)
 ,	_qstn(NULL)

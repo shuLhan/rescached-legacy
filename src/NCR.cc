@@ -66,6 +66,7 @@ NCR* NCR::INIT(const Buffer* name, const Buffer* answer)
 	}
 
 	int s;
+	time_t now = time(NULL);
 	NCR* o = NULL;
 
 	o = new NCR(name);
@@ -76,6 +77,12 @@ NCR* NCR::INIT(const Buffer* name, const Buffer* answer)
 		}
 
 		o->_q_type = o->_answ->_q_type;
+
+		if (o->_answ->_ans_ttl_max < _cache_minttl) {
+			o->_ttl = (uint32_t) (now + _cache_minttl);
+		} else {
+			o->_ttl = (uint32_t) (now + o->_answ->_ans_ttl_max);
+		}
 	}
 
 	return o;

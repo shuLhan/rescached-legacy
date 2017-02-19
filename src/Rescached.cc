@@ -607,11 +607,6 @@ int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 	obj->_tcp_client	= tcp_client;
 	obj->_qstn		= (*question);
 
-	if (DBG_LVL_IS_1) {
-		dlog.out ("%8s: %3d %6ds %s\n", TAG_QUEUE
-			, (*question)->_q_type, 0, (*question)->_name._v);
-	}
-
 	CW.push_question(obj);
 
 	return 0;

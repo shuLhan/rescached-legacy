@@ -40,11 +40,12 @@ int ClientWorker::_queue_check_ttl(ResQueue* q, NCR* ncr)
 
 	if (diff >= 0) {
 		if (DBG_LVL_IS_1) {
-			dlog.out ("%8s: %3d %6ds %s\n"
+			dlog.out("%8s: %3d %s %d %d %d\n"
 				, TAG_RENEW
 				, q->_qstn->_q_type
-				, diff
-				, q->_qstn->_name.chars());
+				, q->_qstn->_name.chars()
+				, now, ncr->_ttl, diff
+				);
 		}
 
 		// Renew the question.
@@ -156,15 +157,16 @@ int ClientWorker::_queue_process_new(ResQueue* q)
 int ClientWorker::_queue_process_old(ResQueue* q)
 {
 	time_t t = time(NULL);
-	double difft = difftime(t, q->_timeout);
+	int difft = (int) difftime(t, q->_timeout);
 
 	if (difft >= _rto) {
 		if (DBG_LVL_IS_1) {
-			dlog.out("%8s: timeout: %3d %s %.2f\n"
-				, TAG_QUEUE
+			dlog.out("%8s: %3d %s %d %d %d\n"
+				, TAG_TIMEOUT
 				, q->_qstn->_q_type
 				, q->_qstn->_name._v
-				, difft);
+				, t, q->_timeout, difft
+				);
 		}
 
 		q->set_state(queue_state::IS_TIMEOUT);

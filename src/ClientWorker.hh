@@ -30,6 +30,7 @@ extern NameCache _nc;
 #define	TAG_RESOLVER	"resolver"
 #define	TAG_QUEUE	"queue"
 #define	TAG_RENEW	"renew"
+#define	TAG_TIMEOUT	"timeout"
 
 class ClientWorker : public Thread {
 public:
