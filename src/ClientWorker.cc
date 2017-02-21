@@ -19,37 +19,82 @@ ClientWorker::ClientWorker()
 ClientWorker::~ClientWorker()
 {}
 
-int ClientWorker::_queue_ask_question(ResQueue* q)
+/**
+ * `is_already_asked` will check previous queue if the same question has been
+ * asked.
+ *
+ * This is to minimized request to parent resolver and remove duplicate
+ * renew on old cache.
+ */
+int ClientWorker::_is_already_asked(BNode* qnode, ResQueue* q)
+{
+	BNode* p = qnode;
+	ResQueue* rq = NULL;
+
+	while (p != _queue_questions._tail) {
+		rq = (ResQueue*) p->get_content();
+
+		if (rq->get_state() != queue_state::IS_RESOLVING) {
+			goto cont;
+		}
+		if (rq->_qstn->_name.like(&q->_qstn->_name) != 0) {
+			goto cont;
+		}
+		if (rq->_qstn->_q_type != q->_qstn->_q_type) {
+			goto cont;
+		}
+
+		return 1;
+cont:
+		p = p->_left;
+	}
+
+	return 0;
+}
+
+int ClientWorker::_queue_ask_question(BNode* qnode, ResQueue* q)
 {
 	int s = 0;
+
+	s = _is_already_asked(qnode, q);
+	if (s) {
+		dlog.out("%8s: %3d %6d %s\n", TAG_SKIP
+			, q->_qstn->_q_type
+			, 0
+			, q->_qstn->_name.chars());
+		goto out;
+	}
 
 	if (_dns_conn_t == 0) {
 		s = _resolver.send_udp(q->_qstn);
 	} else {
 		s = _resolver.send_tcp(q->_qstn);
 	}
+out:
 	q->set_state(queue_state::IS_RESOLVING);
 
 	return s;
 }
 
-int ClientWorker::_queue_check_ttl(ResQueue* q, NCR* ncr)
+int ClientWorker::_queue_check_ttl(BNode* qnode, ResQueue* q, NCR* ncr)
 {
+	int s = 0;
 	time_t now = time(NULL);
 	int diff = (int) difftime(now, ncr->_ttl);
 
 	if (diff >= 0) {
-		if (DBG_LVL_IS_1) {
-			dlog.out("%8s: %3d %s %d %d %d\n"
+		// Renew the question.
+		s = _queue_ask_question(qnode, q);
+
+		if (DBG_LVL_IS_1 && s == 0) {
+			dlog.out("%8s: %3d %-6ds %s %d %d\n"
 				, TAG_RENEW
 				, q->_qstn->_q_type
+				, diff
 				, q->_qstn->_name.chars()
-				, now, ncr->_ttl, diff
+				, now, ncr->_ttl
 				);
 		}
-
-		// Renew the question.
-		_queue_ask_question(q);
 
 		return -1;
 	}
@@ -97,7 +142,7 @@ out:
 	return s;
 }
 
-int ClientWorker::_queue_process_new(ResQueue* q)
+int ClientWorker::_queue_process_new(BNode* qnode, ResQueue* q)
 {
 	int s = 0;
 	const char* tag = NULL;
@@ -109,7 +154,17 @@ int ClientWorker::_queue_process_new(ResQueue* q)
 
 	// Question is not found in cache
 	if (s < 0) {
-		_queue_ask_question(q);
+		s = _queue_ask_question(qnode, q);
+
+		if (DBG_LVL_IS_1 && s == 0) {
+			dlog.out("%8s: %3d %s\n"
+				, TAG_QUERY
+				, q->_qstn->_q_type
+				, q->_qstn->_name.chars()
+				);
+		}
+
+
 		return -1;
 	}
 
@@ -117,7 +172,7 @@ int ClientWorker::_queue_process_new(ResQueue* q)
 
 	switch (answer->_attrs) {
 	case vos::DNS_IS_QUERY:
-		s = _queue_check_ttl(q, ncr);
+		s = _queue_check_ttl(qnode, q, ncr);
 
 		if (s < 0) {
 			// Question is being renewed.
@@ -154,18 +209,19 @@ int ClientWorker::_queue_process_new(ResQueue* q)
 	return 0;
 }
 
-int ClientWorker::_queue_process_old(ResQueue* q)
+int ClientWorker::_queue_process_old(BNode* qnode, ResQueue* q)
 {
 	time_t t = time(NULL);
 	int difft = (int) difftime(t, q->_timeout);
 
 	if (difft >= _rto) {
 		if (DBG_LVL_IS_1) {
-			dlog.out("%8s: %3d %s %d %d %d\n"
+			dlog.out("%8s: %3d -%6d %s %d %d\n"
 				, TAG_TIMEOUT
 				, q->_qstn->_q_type
+				, difft
 				, q->_qstn->_name._v
-				, t, q->_timeout, difft
+				, t, q->_timeout
 				);
 		}
 
@@ -174,7 +230,7 @@ int ClientWorker::_queue_process_old(ResQueue* q)
 		return -1;
 	}
 
-	_queue_process_new(q);
+	_queue_process_new(qnode, q);
 
 	return 0;
 }
@@ -194,10 +250,10 @@ int ClientWorker::_queue_process_questions()
 
 		switch (q->get_state()) {
 		case queue_state::IS_NEW:
-			_queue_process_new(q);
+			_queue_process_new(p, q);
 			break;
 		case queue_state::IS_RESOLVING:
-			_queue_process_old(q);
+			_queue_process_old(p, q);
 			break;
 		case queue_state::IS_RESOLVED:
 		case queue_state::IS_TIMEOUT:

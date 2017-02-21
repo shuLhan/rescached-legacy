@@ -25,11 +25,13 @@ namespace rescached {
 extern NameCache _nc;
 
 #define	TAG_BLOCKED	"blocked"
-#define	TAG_LOCAL	"local"
 #define	TAG_CACHED	"cached"
-#define	TAG_RESOLVER	"resolver"
+#define	TAG_LOCAL	"local"
+#define	TAG_QUERY	"query"
 #define	TAG_QUEUE	"queue"
 #define	TAG_RENEW	"renew"
+#define	TAG_RESOLVER	"resolver"
+#define	TAG_SKIP	"skip"
 #define	TAG_TIMEOUT	"timeout"
 
 class ClientWorker : public Thread {
@@ -44,11 +46,12 @@ private:
 	List _queue_questions;
 	List _queue_answers;
 
-	int _queue_ask_question(ResQueue* q);
-	int _queue_check_ttl(ResQueue* q, NCR* ncr);
+	int _is_already_asked(BNode* qnode, ResQueue* q);
+	int _queue_ask_question(BNode* qnode, ResQueue* q);
+	int _queue_check_ttl(BNode* qnode, ResQueue* q, NCR* ncr);
 	int _queue_answer(ResQueue* q, DNSQuery* answer);
-	int _queue_process_new(ResQueue* q);
-	int _queue_process_old(ResQueue* q);
+	int _queue_process_new(BNode* qnode, ResQueue* q);
+	int _queue_process_old(BNode* qnode, ResQueue* q);
 	int _queue_process_questions();
 	int _queue_process_answers();
 };
