@@ -29,7 +29,7 @@ void usage()
 
 int query(List* ns, const char* stype, const char* sname)
 {
-	int s;
+	int s = 0;
 	int x = 0;
 	DNSQuery Q;
 	DNSQuery A;
@@ -59,7 +59,10 @@ int query(List* ns, const char* stype, const char* sname)
 
 	Resolver::N_TRY = 3;
 
-	R.resolve(&Q, &A);
+	s = R.resolve(&Q, &A);
+	if (s) {
+		exit(1);
+	}
 
 	D.out("%s\n", A.chars());
 
