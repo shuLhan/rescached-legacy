@@ -10,14 +10,20 @@
 #include "libvos.hh"
 #include "Buffer.hh"
 #include "Dlogger.hh"
+#include "List.hh"
+#include "SSVReader.hh"
 #include "Resolver.hh"
 
-#define DEF_SERVER "127.0.0.1:53"
+#define DEF_ETC_RESOLV "/etc/resolv.conf"
 #define DEF_QTYPE "A"
 
 using vos::Buffer;
 using vos::Dlogger;
 using vos::DNSQuery;
+using vos::List;
+using vos::Rowset;
+using vos::SSVReader;
 using vos::Resolver;
+using vos::SockAddr;
 
 #endif
