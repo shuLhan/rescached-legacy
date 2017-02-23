@@ -218,7 +218,7 @@ or if you want +rescached+ service run when system startup, enable it by invokin
 == CONFIGURATION
 
 All rescached startup option located in file +/etc/rescached/rescached.cfg+.
-See manual page *rescached.conf*(5) for more information.
+See manual page *rescached.cfg*(5) for more information.
 
 
 == EXIT STATUS
@@ -325,4 +325,4 @@ Source code repository: https://github.com/shuLhan/rescached
 
 == SEE ALSO
 
-*rescached.conf*(5), *resolver*(1)
+*rescached.cfg*(5), *resolver*(1)

@@ -129,4 +129,4 @@ Source code repository: https://github.com/shuLhan/rescached
 
 == SEE ALSO
 
-*rescached*(1), *rescached.conf*(5)
+*rescached*(1), *rescached.cfg*(5)

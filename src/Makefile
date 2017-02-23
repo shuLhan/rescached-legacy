@@ -27,7 +27,7 @@ SERVICE_NAME	=rescached
 TARGET		=$(BLD_D)/rescached
 
 RESCACHED_MAN=		$(DOC_D)/rescached.1.gz
-RESCACHED_CONF_MAN=	$(DOC_D)/rescached.conf.5.gz
+RESCACHED_CONF_MAN=	$(DOC_D)/rescached.cfg.5.gz
 RESOLVER_MAN=		$(DOC_D)/resolver.1.gz
 
 DOC_TARGET=		$(RESCACHED_MAN)		\
@@ -113,10 +113,10 @@ $(RESCACHED_MAN): $(DATA_D)/README.adoc
 	@a2x -v --doctype manpage --format manpage -D $(DOC_D) $< 2>/dev/null
 	@gzip -f $(DOC_D)/rescached.1
 
-$(RESCACHED_CONF_MAN): $(DOC_D)/rescached.conf.adoc
-	@echo ">> Generating man page for rescached.conf ..."
+$(RESCACHED_CONF_MAN): $(DOC_D)/rescached.cfg.adoc
+	@echo ">> Generating man page for rescached.cfg ..."
 	@a2x -v --doctype manpage --format manpage -D $(DOC_D) $< 2>/dev/null
-	@gzip -f $(DOC_D)/rescached.conf.5
+	@gzip -f $(DOC_D)/rescached.cfg.5
 
 $(RESOLVER_MAN): $(DOC_D)/resolver.adoc
 	@echo ">> Generating man page for resolver ..."

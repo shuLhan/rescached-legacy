@@ -1,19 +1,19 @@
 RESCACHED.CONF(5)
 =================
 :doctype: manpage
-:man source: rescached.conf
+:man source: rescached.cfg
 :man version: 2017.02.23
-:man manual: rescached.conf
+:man manual: rescached.cfg
 
 
 == NAME
 
-rescached.conf - Configuration for rescached service
+rescached.cfg - Configuration for rescached service
 
 
 == SYNOPSIS
 
-/etc/rescached/rescached.conf
+/etc/rescached/rescached.cfg
 
 
 == DESCRIPTION
