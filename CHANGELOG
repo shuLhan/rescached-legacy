@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v1.5.0 (2017-xx-xx)
+## v1.5.0 (2017-02-24)
 
 The new tool `resolver` is coming to the town!
 
@@ -8,7 +8,29 @@ The new tool `resolver` is coming to the town!
 Its like `dig` (bind tools). Currently, it only provide function to query
 nameserver in the following format,
 
-	$ resolver [@nameserver[:port]] hostname [type]
+	$ resolver [@nameserver[:port]] [type] hostname
+
+See resolver(1) manual for more information.
+
+Enhancements:
+
+* Rescached: refactoring client and resolver into threads
+
+  Rescached now have two threads: one is for processing client questions
+  (ClientWorker) and one is for reading answer from resolver.
+
+* Update list of blocked hosts
+
+* Minimize query to parent resolver by checking previous queue that has been
+  send to parent resolver.
+
+* Split manual page into three parts: rescached(1), rescached.cfg(5), and
+  resolver(1).
+
+Fixes:
+
+* Fix timeout calculation and debug output on queue and name cache records
+
 
 ## v1.4.1 (2017-02-08)
 
