@@ -167,9 +167,9 @@ do-install:
 	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
 	$(call do_install,$(DATA_D)/README.adoc,$(INSTALL_DATA_D))	\
 	$(call do_install_dir,$(DATA_D)/doc/dev,$(INSTALL_DATA_D))	\
-	$(call do_install,$(RESCACHED_MAN),$(INSTALL_MAN_D)/man1)
-	$(call do_install,$(RESCACHED_CONF_MAN),$(INSTALL_MAN_D)/man5)
-	$(call do_install,$(RESOLVER_MAN),$(INSTALL_MAN_D)/man1)
+	$(call do_install,$(RESCACHED_MAN),$(INSTALL_MAN_D)/man1/)
+	$(call do_install,$(RESCACHED_CONF_MAN),$(INSTALL_MAN_D)/man5/)
+	$(call do_install,$(RESOLVER_MAN),$(INSTALL_MAN_D)/man1/)
 
 
 do-uninstall:
