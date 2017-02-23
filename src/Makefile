@@ -16,7 +16,7 @@ export INSTALL_BIN_D	=$(DESTDIR)/usr/bin
 INSTALL_CFG_D	=$(DESTDIR)/etc/rescached
 INSTALL_CACHE_D	=$(DESTDIR)/var/cache/rescached
 INSTALL_DATA_D	=$(DESTDIR)/usr/share/rescached
-INSTALL_MAN_D	=$(DESTDIR)/usr/share/man/man1
+INSTALL_MAN_D	=$(DESTDIR)/usr/share/man
 
 LIBVOS_D	=lib
 
@@ -26,8 +26,13 @@ SERVICE_NAME	=rescached
 
 TARGET		=$(BLD_D)/rescached
 
-RESCACHED_MAN	=$(DOC_D)/rescached.1.gz
-DOC_TARGET	=$(RESCACHED_MAN)
+RESCACHED_MAN=		$(DOC_D)/rescached.1.gz
+RESCACHED_CONF_MAN=	$(DOC_D)/rescached.conf.5.gz
+RESOLVER_MAN=		$(DOC_D)/resolver.1.gz
+
+DOC_TARGET=		$(RESCACHED_MAN)		\
+			$(RESCACHED_CONF_MAN)		\
+			$(RESOLVER_MAN)
 
 RESCACHED_CFG	=$(SRC_D)/rescached.cfg
 RESCACHED_SVC	=
@@ -91,7 +96,6 @@ all: libvos-all
 debug: libvos-debug
 	$(MAKE) -C resolver debug
 
-doc: $(DOC_TARGET)
 
 $(BLD_D):
 	@$(call do_mkdir,$(BLD_D))
@@ -99,10 +103,26 @@ $(BLD_D):
 $(BLD_D)/rescached: $(TARGET_OBJS)
 	@$(do_build)
 
+##
+## Build documentation (man pages)
+##
+doc: $(DOC_TARGET)
+
 $(RESCACHED_MAN): $(DATA_D)/README.adoc
-	@echo ">> Generating man page..."
-	@a2x --doctype manpage --format manpage -D $(DOC_D) $< 2>/dev/null
+	@echo ">> Generating man page for rescached ..."
+	@a2x -v --doctype manpage --format manpage -D $(DOC_D) $< 2>/dev/null
 	@gzip -f $(DOC_D)/rescached.1
+
+$(RESCACHED_CONF_MAN): $(DOC_D)/rescached.conf.adoc
+	@echo ">> Generating man page for rescached.conf ..."
+	@a2x -v --doctype manpage --format manpage -D $(DOC_D) $< 2>/dev/null
+	@gzip -f $(DOC_D)/rescached.conf.5
+
+$(RESOLVER_MAN): $(DOC_D)/resolver.adoc
+	@echo ">> Generating man page for resolver ..."
+	@a2x -v --doctype manpage --format manpage -D $(DOC_D) $< 2>/dev/null
+	@gzip -f $(DOC_D)/resolver.1
+
 
 $(BLD_D)/%.oo: $(SRC_D)/%.cc $(SRC_D)/%.hh
 	@$(do_compile)
@@ -147,7 +167,9 @@ do-install:
 	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
 	$(call do_install,$(DATA_D)/README.adoc,$(INSTALL_DATA_D))	\
 	$(call do_install_dir,$(DATA_D)/doc/dev,$(INSTALL_DATA_D))	\
-	$(call do_install,$(RESCACHED_MAN),$(INSTALL_MAN_D))
+	$(call do_install,$(RESCACHED_MAN),$(INSTALL_MAN_D)/man1)
+	$(call do_install,$(RESCACHED_CONF_MAN),$(INSTALL_MAN_D)/man5)
+	$(call do_install,$(RESOLVER_MAN),$(INSTALL_MAN_D)/man1)
 
 
 do-uninstall:

@@ -1,0 +1,132 @@
+RESOLVER(1)
+===========
+:doctype: manpage
+:man source: resolver
+:man version: 2017.02.23
+:man manual: resolver
+
+
+== NAME
+
+resolver - a tool to query DNS record, specifically build for *rescached*(1)
+and developer.
+
+
+== SYNOPSIS
+
++resolver+ [@parent-resolver[:port]] [type] hostname
+
+
+== DESCRIPTION
+
++resolver+ is a tool to resolve hostname to address, or to query services
+on hostname by type (MX, SOA, TXT, etc.).
+It will return the DNS response with JSON format so it can be piped and
+processed to another program.
+
+
+== OPTIONS
+
+[[parent-resolver]]
+=== +parent-resolver+
+
+Value::		Internet address
+Format:: 	xxx.xxx.xxx.xxx
+Default::	Each of +nameserver+ in +/etc/resolv.conf+
+Description:: 	This option define the DNS server where the resolver will
+send the query.
+
+[[port]]
+=== +port+
+
+Value::		Any number between 1 to 65535
+Format::	:number
+Default::	53
+Description::	Port where the parent resolver serve DNS query from clients.
+
+[[type]]
+=== +type+
+
+Value::		DNS record type
+Format::	String
+Default::	A
+Description::	List of supported DNS record type,
+
+TYPE (ID) - Description
+
+* A       (1) - a host Address
+* NS      (2) - an authoritative Name Server
+* MD      (3) - a Mail Festination
+* MF      (4) - a Mail Forwarder
+* CNAME   (5) - the Canonical NAME for an alias
+* SOA     (6) - marks the Start of a zone of Authority
+* MB      (7) - a MailBox domain name
+* MG      (8) - a Mail Group member
+* MR      (9) - a Mail Rename domain name
+* NULL   (10) - a null resource record
+* WKS    (11) - a Well Known Service description
+* PTR    (12) - a domain name PoinTeR
+* HINFO  (13) - Host INFOrmation
+* MINFO  (14) - mailbox or mail list information
+* MX     (15) - Mail Exchange
+* TXT    (16) - TeXT strings
+* AAAA   (28) - a host address in IPv6
+* SRV    (33) -  a SerViCe record
+* AXFR  (252) - A request for a transfer of an entire zone
+* MAILB (253) - A request for mailbox-related records (MB, MG or MR)
+* MAILA (254) - A request for mail agent RRs
+
+[[hostname]]
+=== +hostname+
+
+Value::		Internet hostname
+Format::	[subdomain].[domain][.TLD]
+Default::	-
+Description::	Hostname that will be queried to parent resolver based on
+their type.
+
+
+== EXIT STATUS
+
+Upon exit and success +resolver+ will return 0, or 1 otherwise.
+
+
+== EXAMPLE
+
+* Resolve the IPv4 address for kilabit.info using nameserver in
+  +/etc/resolv.conf+ as parent resolver,
++
+	$ resolver kilabit.info
+
+* Resolve the IPv4 address for kilabit.info using 127.0.0.1 at port 54 as
+  parent resolver,
++
+	$ resolver @127.0.0.1:54 kilabit.info
+
+* Resolve the mail exchange (MX) for kilabit.info,
++
+	$ resolver kilabit.info MX
+
+
+== AUTHOR
+
++resolver+ is developed by M. Shulhan (ms@kilabit.info).
+
+
+== LICENSE
+
+Copyright 2009-2017, M. Shulhan (ms@kilabit.info).
+All rights reserved.
+
+Use of this source code is governed by a BSD-style license that can be found
+in the LICENSE file.
+
+
+== LINKS
+
+Source code repository: https://github.com/shuLhan/rescached
+
+
+== SEE ALSO
+
+*rescached*(1), *rescached.conf*(5)
