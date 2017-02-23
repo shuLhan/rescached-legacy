@@ -148,6 +148,8 @@ do-install:
 	$(call do_rmdir,$(INSTALL_DATA_D))				\
 	$(call do_mkdir,$(INSTALL_DATA_D))				\
 	$(call do_mkdir,$(INSTALL_MAN_D))				\
+	$(call do_mkdir,$(INSTALL_MAN_D)/man1)				\
+	$(call do_mkdir,$(INSTALL_MAN_D)/man5)				\
 									\
 	echo "";							\
 	echo " >> Installing program and configuration ...";		\
