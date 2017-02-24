@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
 		if (argv[1][0] == '@') {
 			ns = new List();
 
-			ns->push_tail(new Buffer(argv[1][1]));
+			ns->push_tail(new Buffer(&argv[1][1]));
 
 			s = query(ns, DEF_QTYPE, argv[2]);
 		//
@@ -171,6 +171,19 @@ int main(int argc, char* argv[])
 			s = query(ns, argv[1], argv[2]);
 		}
 		break;
+	case 4:
+		//
+		// $ resolver @127.0.0.1 TYPE hostname
+		//
+		if (argv[1][0] != '@') {
+			goto err;
+		}
+
+		ns = new List();
+
+		ns->push_tail(new Buffer(&argv[1][1]));
+
+		s = query(ns, argv[2], argv[3]);
 	}
 err:
 	if (ns) {
