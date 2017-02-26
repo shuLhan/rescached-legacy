@@ -72,17 +72,6 @@ Default:: 	rescached.log (in current directory)
 Description:: 	This file contain log of program when running.
 Verbosity of log output is depend on value of +debug+ option.
 
-[[file.hosts.block]]
-==== +file.hosts.block+
-
-[horizontal]
-Value::		A path to list of blocked hosts file
-Format::	/any/path/to/file
-Default::	/etc/rescached/hosts.block
-Description::	This file contain list of hosts that will be blocked by
-rescached.
-Format of file content is using Unix hosts file.
-
 [[server.parent]]
 ==== +server.parent+
 

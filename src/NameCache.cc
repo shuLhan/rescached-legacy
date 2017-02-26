@@ -479,7 +479,7 @@ int NameCache::insert_copy (DNSQuery* answer
 	if (answer->_i > 512) {
 		answer->remove_rr_aut();
 	}
-	if (DBG_LVL_IS_2) {
+	if (DBG_LVL_IS_3) {
 		dlog.out("answer size: %d\n", answer->_i);
 	}
 

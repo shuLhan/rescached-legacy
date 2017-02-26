@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## v1.6.0 (2017-03-xx)
+
+New Features:
+
+* Load all host files from `/etc/rescached/hosts.d`
+
+Breaking Changes:
+
+* Blocked host file now will be installed inside `/etc/rescached/hosts.d`
+
+  This deprecated the config option for blocked host file
+  `file.hosts.block`, since it will automatically loaded.
+
+
+## v1.5.1 (2017-02-24)
+
+resolver: fix running command with three and four arguments
+
+
 ## v1.5.0 (2017-02-24)
 
 The new tool `resolver` is coming to the town!

@@ -7,6 +7,7 @@
 #ifndef _RESCACHED_HH
 #define _RESCACHED_HH 1
 
+#include "lib/Dir.hh"
 #include "lib/List.hh"
 #include "lib/Config.hh"
 #include "lib/SSVReader.hh"
@@ -19,6 +20,8 @@ using vos::Config;
 using vos::SockAddr;
 using vos::Socket;
 using vos::SSVReader;
+using vos::Dir;
+using vos::DirNode;
 
 namespace rescached {
 
@@ -29,8 +32,10 @@ namespace rescached {
 #define	RESCACHED_LOG		"rescached.log"
 #define	RESCACHED_PID		"rescached.pid"
 #define	RESCACHED_CACHE_MAX	100000
-#define	RESCACHED_HOSTS_BLOCK	"hosts.block"
 #define	RESCACHED_SYS_HOSTS	"/etc/hosts"
+
+#define	HOSTS_D		"/etc/rescached/hosts.d"
+#define	HOSTS_BLOCK	"hosts.block"
 
 #define	RESCACHED_DEF_PARENT	"8.8.8.8, 8.8.4.4"
 #define	RESCACHED_DEF_PARENT_CONN	"udp"
@@ -46,7 +51,7 @@ namespace rescached {
 
 extern ClientWorker CW;
 
-class Rescached {
+class Rescached : public Object {
 public:
 	Rescached();
 	~Rescached();
@@ -56,7 +61,6 @@ public:
 	int load_config(const char* fconf);
 	int bind();
 	int load_hosts(const char* hosts_file, const uint32_t attrs);
-	int load_hosts_block ();
 	void load_cache();
 
 	int run();
@@ -70,7 +74,6 @@ public:
 	Buffer		_fdata;
 	Buffer		_flog;
 	Buffer		_fpid;
-	Buffer		_fhostsblock;
 	Buffer		_dns_parent;
 	Buffer		_dns_conn;
 	Buffer		_listen_addr;
@@ -83,11 +86,17 @@ public:
 
 	int		_show_timestamp;
 	int		_show_appstamp;
+
 private:
 	Rescached(const Rescached&);
 	void operator=(const Rescached&);
 
+	void load_host_files(const char* dir, DirNode* host_file);
+	void load_hosts_d();
+
 	ResolverWorker*	_RW;
+
+	static const char* __cname;
 };
 
 } /* namespace::rescached */

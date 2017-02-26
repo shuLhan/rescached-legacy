@@ -14,6 +14,7 @@ DESTDIR		=
 
 export INSTALL_BIN_D	=$(DESTDIR)/usr/bin
 INSTALL_CFG_D	=$(DESTDIR)/etc/rescached
+INSTALL_HOSTS_D	=$(DESTDIR)/etc/rescached/hosts.d
 INSTALL_CACHE_D	=$(DESTDIR)/var/cache/rescached
 INSTALL_DATA_D	=$(DESTDIR)/usr/share/rescached
 INSTALL_MAN_D	=$(DESTDIR)/usr/share/man
@@ -70,6 +71,8 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/SockAddr.oo	\
 			$(LIBVOS_BLD_D)/Socket.oo	\
 			$(LIBVOS_BLD_D)/SockServer.oo	\
+			$(LIBVOS_BLD_D)/Dir.oo		\
+			$(LIBVOS_BLD_D)/DirNode.oo	\
 			$(LIBVOS_BLD_D)/Dlogger.oo	\
 			$(LIBVOS_BLD_D)/ConfigData.oo	\
 			$(LIBVOS_BLD_D)/Config.oo	\
@@ -143,6 +146,7 @@ do-install:
 	echo " >> Creating directories ...";				\
 	$(call do_mkdir,$(INSTALL_BIN_D))				\
 	$(call do_mkdir,$(INSTALL_CFG_D))				\
+	$(call do_mkdir,$(INSTALL_HOSTS_D))				\
 	$(call do_mkdir,$(INSTALL_SVC_D))				\
 	$(call do_mkdir,$(INSTALL_CACHE_D))				\
 	$(call do_rmdir,$(INSTALL_DATA_D))				\
@@ -158,7 +162,7 @@ do-install:
 	if [ ! -f $(INSTALL_CFG_D)/$(RESCACHED_CFG) ]; then		\
 		$(call do_install,$(RESCACHED_CFG),$(INSTALL_CFG_D))	\
 	fi;								\
-	$(call do_install,$(SRC_D)/hosts.block,$(INSTALL_CFG_D))	\
+	$(call do_install,$(SRC_D)/hosts.block,$(INSTALL_HOSTS_D))	\
 									\
 	echo "";							\
 	echo " >> Installing service ...";				\
@@ -169,8 +173,8 @@ do-install:
 	$(call do_install,$(DATA_D)/LICENSE,$(INSTALL_DATA_D))		\
 	$(call do_install,$(DATA_D)/README.adoc,$(INSTALL_DATA_D))	\
 	$(call do_install_dir,$(DATA_D)/doc/dev,$(INSTALL_DATA_D))	\
-	$(call do_install,$(RESCACHED_MAN),$(INSTALL_MAN_D)/man1/)
-	$(call do_install,$(RESCACHED_CONF_MAN),$(INSTALL_MAN_D)/man5/)
+	$(call do_install,$(RESCACHED_MAN),$(INSTALL_MAN_D)/man1/)	\
+	$(call do_install,$(RESCACHED_CONF_MAN),$(INSTALL_MAN_D)/man5/)	\
 	$(call do_install,$(RESOLVER_MAN),$(INSTALL_MAN_D)/man1/)
 
 

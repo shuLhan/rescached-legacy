@@ -36,10 +36,12 @@ network.
 === Features
 
 * Enable to handle request from UDP and TCP connections.
-* Saving/loading cache to/from disk
-* Load and serve addresses and hostnames in +/etc/hosts+
+* Saving/loading cache to/from disk.
+* Load and serve addresses and hostnames in +/etc/hosts+.
+* Load and serve addresses and hostnames from all files, recursively, in
+* +/etc/rescached/hosts.d/+.
 * Blocking ads and/or malicious websites through list in
-  +/etc/rescached/hosts.block+
+  +/etc/rescached/hosts.d/hosts.block+.
 
 
 === Behind The DNS
@@ -242,7 +244,14 @@ option.
 The +rescached+ main configuration.
 This configuration will be read when program started.
 
-'/etc/rescached/hosts.block'::
+'/etc/rescached/hosts.d/'::
+
+Directory that will be scanned by rescached for custom host files.
+All files in this directory will be loaded recursively, its means if its
+contain sub directory, all files in those sub directory will also be loaded
+too.
+
+'/etc/rescached/hosts.d/hosts.block'::
 
 List of ads server hostname that will blocked by the +rescached+.
 This configuration will be read when program started.
@@ -254,12 +263,17 @@ This configuration will be read when program started.
 
 '/usr/bin/rescached-update-hosts-block.sh'::
 
-Script to update list of ads/malware hosts in +/etc/rescached/hosts.block+.
+Script to update list of ads/malware hosts in
++/etc/rescached/hosts.d/hosts.block+.
 
 '/var/cache/rescached.vos'::
 
 The cache file.
 This file will be read when program started and written when program exit.
+
+'/var/run/rescached.pid'::
+
+File where process ID of rescached will be saved when running.
 
 
 == NOTES
