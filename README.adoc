@@ -28,6 +28,7 @@ rescached - resolver (domain name service) cache daemon.
 when running and in local disk when not running.
 
 +rescached+ is not a reimplementation of DNS server like BIND.
+
 +rescached+ primary goal is only to caching DNS queries and answers, used by
 personal or small group of users, to minimize unneeded traffic to outside
 network.
@@ -38,8 +39,8 @@ network.
 * Enable to handle request from UDP and TCP connections.
 * Saving/loading cache to/from disk.
 * Load and serve addresses and hostnames in +/etc/hosts+.
-* Load and serve addresses and hostnames from all files, recursively, in
-* +/etc/rescached/hosts.d/+.
+* Load and serve addresses and hostnames from all files inside directory
+  +/etc/rescached/hosts.d/+, recursively.
 * Blocking ads and/or malicious websites through list in
   +/etc/rescached/hosts.d/hosts.block+.
 
@@ -52,8 +53,9 @@ address (e.g.: 103.200.4.162) so browser can make a connection to
 'kilabit.info' server.
 
 How browser do that?
+
 First, it will send query to one of DNS server listed in your system
-configuration (+/etc/resolv.conf+ in Linux).
+configuration (i.e. +/etc/resolv.conf+ in Linux).
 Then, if your DNS server also "caching" the name that you requested, it will
 reply the answer (internet address) directly, if it is not then it will ask
 their parent DNS server.
@@ -72,8 +74,8 @@ button, or javascripts from an other server.
 To make this repetitive procedures less occurred, you can run +rescached+ in
 your personal computer.
 The first time the answer is received in your local computer, +rescached+ will
-saved it in computer memory and any later request of the same address will be
-answered directly by +rescached+.
+saved it in computer memory and any subsequent request of the same address
+will be answered directly by +rescached+.
 
 ----
 +----+      +----------------+      +------------------+
@@ -93,15 +95,14 @@ already exist in +rescached+ cache.
 
 === How Cache in +rescached+ Works
 
-This section explain the simplified illustration of how internal program.
+This section explain the simplified version of how internal program works.
 
-Each of query and answer data in cache have a number of accessed field, which
+Each query and answer data in cache have a number of accessed field, which
 defined how the cache will be ordered in memory.
 The frequently queried host-name will be at the top of cache list, and less
 queried host-name will at the bottom of cache list.
-This, obviously, will make a cache list based on user habit (frequently
-accessed host-name), which effect on the search time on cache list: fast
-reply.
+The following table show an example of list of cache with number of frequently
+accessed in the first column, and name of host in the second column.
 
 ----
 +-----+------------------+
@@ -120,8 +121,8 @@ reply.
 The number of cache that +rescached+ can hold in memory is depend on the value
 of +cache.max+ in configuration file.
 When the number of cache in memory reached it +cache.max+ value, it will
-remove all cache data that has the number of frequently accessed less than
-+cache.threshold+.
+remove all cache data that has the number of frequently accessed less than or
+equal to +cache.threshold+.
 
 
 == Installation
@@ -136,7 +137,7 @@ remove all cache data that has the number of frequently accessed less than
 
 === Compiling From Source
 
-To build +rescached+ from the source, follow this procedures bellow,
+To build +rescached+ from the source, follow the procedures bellow,
 
 	$ git clone http://www.github.com/shuLhan/rescached.git rescached.git
 	$ cd rescached.git/src
@@ -149,13 +150,13 @@ To build +rescached+ from the source, follow this procedures bellow,
 After program successfully build, you can install it manually or using GNU
 +make+ program.
 
-==== Install Using GNU +make+ Program
+==== Installing Using GNU +make+ Program
 
-Installing using GNU +make+ tool in Linux system using init.d use,
+In Linux system with +init.d+ use,
 
 	$ sudo make install-init
 
-For Linux system with systemd use,
+In Linux system with +systemd+ use,
 
 	$ sudo make install
 
@@ -183,7 +184,7 @@ configuration option.
 +
 If you want your program running each time the system is starting up you can
 create a system startup script (or system service).
-You can see an example for init.d startup script in file
+You can see an example for +init.d+ startup script in file
 +scripts/rescached.run+ or +scripts/rescached.arch+.
 +
 This step is really different between each system, consult your distribution
@@ -194,25 +195,26 @@ wiki, forum or mailing-list for how to create system startup script.
 * Set your parent DNS server.
 +
 Edit rescached configuration, +/etc/rescached/rescached.cfg+, change the value
-of +server.parent,server.parent+ based on your preferred DNS server.
+of +server.parent+ based on your preferred DNS server.
 
-* Set maximum caches.
+* Set maximum caches and cache threshold
 +
 Edit rescached configuration, +/etc/rescached/rescached.cfg+, change the value
 of +cache.max+ and/or +cache.threshold+ to match your needs.
 
 * Set your system DNS server to point to rescached.
 +
-In Linux,
+In UNIX system,
 +
 	$ sudo mv /etc/resolv.conf /etc/resolv.conf.org
 	$ sudo echo "nameserver 127.0.0.1" > /etc/resolv.conf
 
-* If you use systemd as service, run +rescached+ service by invoking,
+* If you use +systemd+, run +rescached+ service by invoking,
 +
 	$ sudo systemctl start rescached.service
 +
-or if you want +rescached+ service run when system startup, enable it by invoking,
+and if you want +rescached+ service to run when system startup, enable it by
+invoking,
 +
 	$ sudo systemctl enable rescached.service
 
@@ -220,7 +222,7 @@ or if you want +rescached+ service run when system startup, enable it by invokin
 == CONFIGURATION
 
 All rescached startup option located in file +/etc/rescached/rescached.cfg+.
-See manual page *rescached.cfg*(5) for more information.
+See manual page of *rescached.cfg*(5) for more information.
 
 
 == EXIT STATUS
@@ -233,8 +235,9 @@ Upon success, +rescached+ will return 0, or 1 otherwise.
 'LIBVOS_DEBUG'::
 
 If the value is set to non zero before running, +rescached+ will print debug
-output to screen and log file. The output of debug is different from +debug+
-option.
+output from libvos (the library that is used to build the program) to screen
+and log file.
+The output of debug is different from +debug+ option.
 
 
 == FILES
@@ -246,25 +249,26 @@ This configuration will be read when program started.
 
 '/etc/rescached/hosts.d/'::
 
-Directory that will be scanned by rescached for custom host files.
-All files in this directory will be loaded recursively, its means if its
-contain sub directory, all files in those sub directory will also be loaded
-too.
+Directory that will be scanned by rescached for custom host files,
+recursively.
+Its means if its contain sub directory, all files in those sub directory will
+be loaded too.
 
 '/etc/rescached/hosts.d/hosts.block'::
 
 List of ads server hostname that will blocked by the +rescached+.
-This configuration will be read when program started.
+This file will be loaded when program started.
 
 '/etc/hosts'::
 
 System hostname to address mapping.
-This configuration will be read when program started.
+This file will be loaded when program started.
 
 '/usr/bin/rescached-update-hosts-block.sh'::
 
 Script to update list of ads/malware hosts in
 +/etc/rescached/hosts.d/hosts.block+.
+After executing this script, you must restart rescached.
 
 '/var/cache/rescached.vos'::
 
