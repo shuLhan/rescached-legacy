@@ -45,11 +45,10 @@ const char* NCR::chars()
 		__str = NULL;
 	}
 
-	b.aprint("[ 'name': %s, 'QTYPE': %d, 'TTL': %d ]", _name->_v, _q_type
+	b.aprint("[ 'name': %s, 'QTYPE': %d, 'TTL': %d ]", _name->v(), _q_type
 		, _ttl);
 
-	__str = b._v;
-	b._v = NULL;
+	__str = b.detach();
 
 	return __str;
 }

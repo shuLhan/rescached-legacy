@@ -14,6 +14,7 @@
 using vos::Dlogger;
 using vos::SockServer;
 using vos::Resolver;
+using vos::SocketConnType;
 
 namespace rescached {
 
@@ -24,7 +25,7 @@ extern short	_skip_log;
 
 extern Resolver		_resolver;
 extern SockServer	_srvr_udp;
-extern uint8_t		_dns_conn_t;
+extern SocketConnType	_dns_conn_t;
 extern uint8_t		_rto;
 extern uint8_t		_running;
 
@@ -32,7 +33,7 @@ extern uint8_t		_running;
 #define	DBG_LVL_IS_2	(_dbg >= 2)
 #define	DBG_LVL_IS_3	(_dbg >= 3)
 
-#define	RESCACHED_DEF_CONN_T	0
+#define	RESCACHED_DEF_CONN_T	vos::IS_UDP
 #define	RESCACHED_DEF_TIMEOUT	7
 
 } /* namespace::rescached */

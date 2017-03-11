@@ -34,7 +34,7 @@ int ClientWorker::_is_already_asked(BNode* qnode, ResQueue* q)
 	while (p != _queue_questions._tail) {
 		rq = (ResQueue*) p->get_content();
 
-		if (rq->get_state() != queue_state::IS_RESOLVING) {
+		if (rq->get_state() != IS_RESOLVING) {
 			goto cont;
 		}
 		if (rq->_qstn->_name.like(&q->_qstn->_name) != 0) {
@@ -65,13 +65,13 @@ int ClientWorker::_queue_ask_question(BNode* qnode, ResQueue* q)
 		goto out;
 	}
 
-	if (_dns_conn_t == 0) {
+	if (_dns_conn_t == vos::IS_UDP) {
 		s = _resolver.send_udp(q->_qstn);
 	} else {
 		s = _resolver.send_tcp(q->_qstn);
 	}
 out:
-	q->set_state(queue_state::IS_RESOLVING);
+	q->set_state(IS_RESOLVING);
 
 	return s;
 }
@@ -108,7 +108,7 @@ int ClientWorker::_queue_check_ttl(BNode* qnode, ResQueue* q, NCR* ncr)
 
 int ClientWorker::_queue_answer(ResQueue* q, DNSQuery* answer)
 {
-	int s;
+	int s = 0;
 
 	answer->set_id(q->_qstn->_id);
 
@@ -128,7 +128,7 @@ int ClientWorker::_queue_answer(ResQueue* q, DNSQuery* answer)
 			_srvr_udp.send_udp(q->_udp_client, answer);
 		} else {
 			_srvr_udp.send_udp_raw(q->_udp_client
-						, &answer->_v[2]
+						, answer->v(2)
 						, answer->_i - 2);
 		}
 	} else {
@@ -137,7 +137,7 @@ int ClientWorker::_queue_answer(ResQueue* q, DNSQuery* answer)
 	}
 
 out:
-	q->set_state(queue_state::IS_RESOLVED);
+	q->set_state(IS_RESOLVED);
 
 	return s;
 }
@@ -180,7 +180,7 @@ int ClientWorker::_queue_process_new(BNode* qnode, ResQueue* q)
 		}
 
 		// Update answer TTL with time difference.
-		answer->set_rr_answer_ttl(s);
+		answer->set_rr_answer_ttl((unsigned int) s);
 
 		tag = TAG_CACHED;
 		break;
@@ -220,12 +220,12 @@ int ClientWorker::_queue_process_old(BNode* qnode, ResQueue* q)
 				, TAG_TIMEOUT
 				, q->_qstn->_q_type
 				, difft
-				, q->_qstn->_name._v
+				, q->_qstn->_name.v()
 				, t, q->_timeout
 				);
 		}
 
-		q->set_state(queue_state::IS_TIMEOUT);
+		q->set_state(IS_TIMEOUT);
 
 		return -1;
 	}
@@ -249,22 +249,22 @@ int ClientWorker::_queue_process_questions()
 		q = (ResQueue*) p->get_content();
 
 		switch (q->get_state()) {
-		case queue_state::IS_NEW:
+		case IS_NEW:
 			_queue_process_new(p, q);
 			break;
-		case queue_state::IS_RESOLVING:
+		case IS_RESOLVING:
 			_queue_process_old(p, q);
 			break;
-		case queue_state::IS_RESOLVED:
-		case queue_state::IS_TIMEOUT:
+		case IS_RESOLVED:
+		case IS_TIMEOUT:
 			_queue_questions.node_remove_unsafe(p);
 			delete q;
 			x--;
 			break;
 		}
 
-		if (q->get_state() == queue_state::IS_RESOLVED
-		||  q->get_state() == queue_state::IS_TIMEOUT
+		if (q->get_state() == IS_RESOLVED
+		||  q->get_state() == IS_TIMEOUT
 		) {
 			_queue_questions.node_remove_unsafe(p);
 			delete q;

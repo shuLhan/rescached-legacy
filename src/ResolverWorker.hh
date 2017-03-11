@@ -13,7 +13,7 @@
 #include "ClientWorker.hh"
 
 using vos::Resolver;
-using vos::connection_type;
+using vos::SocketConnType;
 
 namespace rescached {
 
@@ -22,17 +22,18 @@ extern NameCache _nc;
 
 class ResolverWorker : public Thread {
 public:
-	ResolverWorker(Buffer* dns_parent, uint8_t conn_type);
+	ResolverWorker(Buffer* dns_parent, SocketConnType conn_type);
 	~ResolverWorker();
 
 	void* run(void* arg);
 
 	Buffer _dns_parent;
-	uint8_t _conn_type;
+	SocketConnType _conn_type;
 	fd_set _fd_all;
 	fd_set _fd_read;
 
-	static ResolverWorker* INIT(Buffer* dns_parent, uint8_t conn_type);
+	static ResolverWorker* INIT(Buffer* dns_parent
+		, SocketConnType conn_type);
 
 	static const char* __cname;
 private:

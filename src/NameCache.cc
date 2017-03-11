@@ -83,8 +83,8 @@ int NameCache::raw_to_ncrecord(DSVRecord* raw, NCR** ncr)
 
 	(*ncr) = NCR::INIT(name, answer);
 	if (*ncr) {
-		(*ncr)->_stat	= (int) strtol(stat->_v, 0, 10);
-		(*ncr)->_ttl	= (int32_t) strtol(ttl->_v, 0, 10);
+		(*ncr)->_stat	= (int) strtol(stat->v(), 0, 10);
+		(*ncr)->_ttl	= (uint32_t) strtol(ttl->v(), 0, 10);
 	}
 	raw->columns_reset();
 
@@ -156,7 +156,7 @@ int NameCache::load(const char* fdata)
 						dlog.er("    load: %3d %6ds %s\n"
 							, ncr->_answ->_q_type
 							, ncr->_answ->_ans_ttl_max
-							, ncr->_name->_v);
+							, ncr->_name->v());
 					}
 				}
 				break;
@@ -192,7 +192,7 @@ int NameCache::ncrecord_to_record(const NCR* ncr, DSVRecord* row)
 		row->set_column_number(1, ncr->_stat);
 	}
 
-	row->set_column_number (2, ncr->_ttl);
+	row->set_column_number (2, int(ncr->_ttl));
 
 	if (ncr->_answ) {
 		row->set_column(3, ncr->_answ);
@@ -289,7 +289,7 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 	NCR ncr(&question->_name, question->_q_type);
 	Buffer* name = (Buffer*) &question->_name;
 	int c = -1;
-	RBT* bucket = bucket_get_by_index(toupper(name->_v[0]));
+	RBT* bucket = bucket_get_by_index(toupper(name->char_at(0)));
 
 	if (!bucket->get_root()) {
 		goto out;
@@ -341,7 +341,7 @@ void NameCache::clean_by_threshold(const long int thr)
 			break;
 		}
 
-		bucket = bucket_get_by_index(toupper(ncr->_name->_v[0]));
+		bucket = bucket_get_by_index(toupper(ncr->_name->char_at(0)));
 
 		if (bucket->get_root()) {
 			node = (TreeNode*) ncr->_p_tree;
@@ -353,7 +353,7 @@ void NameCache::clean_by_threshold(const long int thr)
 				if (DBG_LVL_IS_1) {
 					dlog.er("removing: %3d %s -%d\n"
 						, ncr_del->_answ->_q_type
-						, ncr_del->_name->_v
+						, ncr_del->_name->v()
 						, ncr_del->_stat);
 				}
 
@@ -427,7 +427,7 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 		++thr;
 	}
 
-	bucket = bucket_get_by_index (toupper ((*ncr)->_name->_v[0]));
+	bucket = bucket_get_by_index (toupper ((*ncr)->_name->char_at(0)));
 
 	/* add to tree */
 	p_tree = new TreeNode((*ncr));
@@ -505,7 +505,7 @@ int NameCache::insert_copy (DNSQuery* answer
 			dlog.out (" renewed: %3d %6ds %s\n"
 				, answer->_q_type
 				, answer->_ans_ttl_max
-				, name->_v);
+				, name->v());
 		}
 		unlock();
 
@@ -531,7 +531,7 @@ int NameCache::insert_copy (DNSQuery* answer
 				dlog.out ("  insert: %3d %6ds %s (%ld)\n"
 					, answer->_q_type
 					, answer->_ans_ttl_max
-					, name->_v, _cachel.size());
+					, name->v(), _cachel.size());
 			}
 		}
 		unlock();
@@ -568,7 +568,7 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 	if (DBG_LVL_IS_1) {
 		dlog.out(" rebuild: %3d %6ds %s +%d\n"
 			, ncr->_answ->_q_type, ncr->_answ->_ans_ttl_max
-			, ncr->_answ->_name._v, ncr->_stat);
+			, ncr->_answ->_name.v(), ncr->_stat);
 	}
 
 	_cachel.detach(list_node);

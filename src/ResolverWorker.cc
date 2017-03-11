@@ -15,7 +15,7 @@ const char* ResolverWorker::__cname = "ResolverWorker";
 //}}}
 //{{{ PUBLIC METHODS
 
-ResolverWorker::ResolverWorker(Buffer* dns_parent, uint8_t conn_type)
+ResolverWorker::ResolverWorker(Buffer* dns_parent, SocketConnType conn_type)
 : Thread(NULL)
 , _dns_parent(dns_parent)
 , _conn_type(conn_type)
@@ -42,7 +42,7 @@ void* ResolverWorker::run(void* arg)
 
 	while (running) {
 		// TCP: if resolver connection is open, add it to selector.
-		if (RW->_conn_type == connection_type::IS_TCP
+		if (RW->_conn_type == vos::IS_TCP
 		&&  _resolver.is_open()) {
 			FD_SET(_resolver._d, &RW->_fd_all);
 
@@ -102,7 +102,7 @@ int ResolverWorker::init()
 		dlog.out("%s: create socket %d\n", __cname, _conn_type);
 	}
 
-	if (_conn_type == connection_type::IS_UDP) {
+	if (_conn_type == vos::IS_UDP) {
 		s = _resolver.init(SOCK_DGRAM);
 	} else {
 		s = _resolver.init(SOCK_STREAM);
@@ -113,7 +113,7 @@ int ResolverWorker::init()
 		return -2;
 	}
 
-	if (_conn_type == connection_type::IS_UDP) {
+	if (_conn_type == vos::IS_UDP) {
 		FD_SET(_resolver._d, &_fd_all);
 	}
 
@@ -140,7 +140,7 @@ int ResolverWorker::init()
  * `0` if success.
  */
 ResolverWorker* ResolverWorker::INIT(Buffer* dns_parent
-	, uint8_t conn_type)
+	, SocketConnType conn_type)
 {
 	int s = 0;
 	ResolverWorker* rw = new ResolverWorker(dns_parent, conn_type);
@@ -176,7 +176,7 @@ int ResolverWorker::do_read()
 	int s = 0;
 	DNSQuery* answer = new DNSQuery();
 
-	if (_conn_type == connection_type::IS_UDP) {
+	if (_conn_type == vos::IS_UDP) {
 		if (DBG_LVL_IS_2) {
 			dlog.out("%s: read udp.\n", __cname);
 		}

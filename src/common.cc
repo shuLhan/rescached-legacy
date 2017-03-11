@@ -15,7 +15,7 @@ short		_skip_log	= 1;
 
 Resolver	_resolver;
 SockServer	_srvr_udp;
-uint8_t		_dns_conn_t = RESCACHED_DEF_CONN_T;
+SocketConnType	_dns_conn_t = vos::IS_UDP;
 uint8_t		_rto = RESCACHED_DEF_TIMEOUT;
 uint8_t		_running = 0;
 

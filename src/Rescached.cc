@@ -53,7 +53,7 @@ int Rescached::init(const char* fconf)
 	}
 
 	// Open log file with maximum size to 2MB
-	s = dlog.open(_flog._v, 2048000
+	s = dlog.open(_flog.v(), 2048000
 		, _show_appstamp ? RESCACHED_DEF_STAMP : ""
 		, _show_timestamp);
 	if (s != 0) {
@@ -191,7 +191,7 @@ int Rescached::load_config(const char* fconf)
 	}
 
 	if (_dns_conn.like_raw ("tcp") == 0) {
-		_dns_conn_t = connection_type::IS_TCP;
+		_dns_conn_t = vos::IS_TCP;
 	}
 
 	s = config_parse_server_listen(&cfg);
@@ -242,13 +242,13 @@ int Rescached::load_config(const char* fconf)
 	_dbg	= (!v) ? _dbg : atoi(v);
 
 	if (DBG_LVL_IS_1) {
-		dlog.er("%s: cache file        : %s\n", __cname, _fdata._v);
-		dlog.er("%s: pid file          : %s\n", __cname, _fpid._v);
-		dlog.er("%s: log file          : %s\n", __cname, _flog._v);
-		dlog.er("%s: parent address    : %s\n", __cname, _dns_parent._v);
-		dlog.er("%s: parent connection : %s\n", __cname, _dns_conn._v);
+		dlog.er("%s: cache file        : %s\n", __cname, _fdata.v());
+		dlog.er("%s: pid file          : %s\n", __cname, _fpid.v());
+		dlog.er("%s: log file          : %s\n", __cname, _flog.v());
+		dlog.er("%s: parent address    : %s\n", __cname, _dns_parent.v());
+		dlog.er("%s: parent connection : %s\n", __cname, _dns_conn.v());
 		dlog.er("%s: listening on      : %s:%d\n", __cname
-			, _listen_addr._v, _listen_port);
+			, _listen_addr.v(), _listen_port);
 		dlog.er("%s: timeout           : %d seconds\n", __cname, _rto);
 		dlog.er("%s: cache maximum     : %ld\n", __cname, _nc._cache_max);
 		dlog.er("%s: cache threshold   : %ld\n", __cname, _nc._cache_thr);
@@ -296,7 +296,7 @@ int Rescached::bind()
 		return -1;
 	}
 
-	s = _srvr_udp.bind(_listen_addr._v, _listen_port);
+	s = _srvr_udp.bind(_listen_addr.v(), _listen_port);
 	if (s != 0) {
 		return -1;
 	}
@@ -307,7 +307,7 @@ int Rescached::bind()
 		return -1;
 	}
 
-	s = _srvr_tcp.bind_listen(_listen_addr._v, _listen_port);
+	s = _srvr_tcp.bind_listen(_listen_addr.v(), _listen_port);
 	if (s != 0) {
 		return -1;
 	}
@@ -319,7 +319,7 @@ int Rescached::bind()
 	FD_SET(_srvr_udp._d, &_fd_all);
 	FD_SET(_srvr_tcp._d, &_fd_all);
 
-	dlog.out("%s: listening on %s:%d.\n", __cname, _listen_addr._v
+	dlog.out("%s: listening on %s:%d.\n", __cname, _listen_addr.v()
 		, _listen_port);
 
 	return 0;
@@ -440,9 +440,9 @@ void Rescached::load_cache()
 		return;
 	}
 
-	dlog.out("%s: loading cache '%s'...\n", __cname, _fdata._v);
+	dlog.out("%s: loading cache '%s'...\n", __cname, _fdata.v());
 
-	_nc.load(_fdata._v);
+	_nc.load(_fdata.v());
 
 	dlog.out("%s: %d records loaded.\n", __cname, _nc._cachel.size());
 
@@ -554,9 +554,9 @@ int Rescached::run()
 int Rescached::process_tcp_client()
 {
 	int		x		= 0;
-	int		s		= 0;
 	Socket*		client		= NULL;
 	DNSQuery*	question	= NULL;
+	ssize_t s = 0;
 
 	if (!_srvr_tcp._clients) {
 		return 0;
@@ -642,12 +642,12 @@ void Rescached::exit()
 		_RW->join();
 	}
 
-	if (_fdata._v) {
-		_nc.save(_fdata._v);
+	if (!_fdata.is_empty()) {
+		_nc.save(_fdata.v());
 	}
 
-	if (_fpid._v) {
-		unlink(_fpid._v);
+	if (!_fpid.is_empty()) {
+		unlink(_fpid.v());
 	}
 }
 
