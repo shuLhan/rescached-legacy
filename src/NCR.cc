@@ -66,9 +66,8 @@ NCR* NCR::INIT(const Buffer* name, const Buffer* answer)
 
 	int s;
 	time_t now = time(NULL);
-	NCR* o = NULL;
 
-	o = new NCR(name);
+	NCR* o = new NCR(name);
 	if (o) {
 		s = DNSQuery::INIT(&o->_answ, answer, vos::BUFFER_IS_UDP);
 		if (s != 0) {
@@ -157,11 +156,10 @@ void NCR::SWAP_PTREE(Object* x, Object* y)
 		return;
 	}
 
-	TreeNode* tmp = NULL;
 	NCR* nx = (NCR*) x;
 	NCR* ny = (NCR*) y;
 
-	tmp = nx->_p_tree;
+	TreeNode* tmp = nx->_p_tree;
 	nx->_p_tree = ny->_p_tree;
 	ny->_p_tree = tmp;
 }

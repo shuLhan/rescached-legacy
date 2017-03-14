@@ -30,7 +30,7 @@ int NameCache::bucket_init ()
 {
 	int s = 0;
 
-	_buckets = (RBT**) calloc(CACHET_IDX_FIRST + 1, sizeof(RBT));
+	_buckets = (RBT**) calloc(CACHET_IDX_FIRST + 1, sizeof(RBT*));
 	if (!_buckets) {
 		return -1;
 	}
@@ -70,16 +70,10 @@ RBT* NameCache::bucket_get_by_index(int c)
  */
 int NameCache::raw_to_ncrecord(DSVRecord* raw, NCR** ncr)
 {
-	int	s	= 0;
-	DSVRecord* name		= NULL;
-	DSVRecord* stat		= NULL;
-	DSVRecord* ttl		= NULL;
-	DSVRecord* answer	= NULL;
-
-	name		= raw->get_column(0);
-	stat		= raw->get_column(1);
-	ttl		= raw->get_column(2);
-	answer		= raw->get_column(3);
+	DSVRecord* name = raw->get_column(0);
+	DSVRecord* stat = raw->get_column(1);
+	DSVRecord* ttl = raw->get_column(2);
+	DSVRecord* answer = raw->get_column(3);
 
 	(*ncr) = NCR::INIT(name, answer);
 	if (*ncr) {
@@ -88,7 +82,7 @@ int NameCache::raw_to_ncrecord(DSVRecord* raw, NCR** ncr)
 	}
 	raw->columns_reset();
 
-	return s;
+	return 0;
 }
 
 /**
@@ -135,7 +129,7 @@ int NameCache::load(const char* fdata)
 	) {
 		s = raw_to_ncrecord(row, &ncr);
 		if (0 == s) {
-			if (ncr->_ttl <= 0 || ncr->_ttl == UINT_MAX) {
+			if (ncr->_ttl == 0 || ncr->_ttl == UINT_MAX) {
 				ncr->_ttl = (uint32_t) time_now;
 			}
 
@@ -329,11 +323,10 @@ void NameCache::clean_by_threshold(const long int thr)
 	TreeNode*	ndel	= NULL;
 	RBT*		bucket	= NULL;
 
-	BNode* p = NULL;
 	NCR* ncr = NULL;
 	NCR* ncr_del = NULL;
 
-	p = _cachel._tail;
+	BNode* p = _cachel._tail;
 	do {
 		ncr = (NCR*) p->_item;
 
@@ -548,11 +541,10 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 	}
 
 	int s = 0;
-	NCR* ncr = NULL;
 
 	lock();
 
-	ncr = (NCR*) list_node->_item;
+	NCR* ncr = (NCR*) list_node->_item;
 	ncr->_stat++;
 
 	if (list_node == _cachel._head) {
@@ -579,11 +571,10 @@ out:
 
 void NameCache::prune()
 {
-	int i = 0;
 	BNode* node = NULL;
 
 	if (_buckets) {
-		for (; i <= CACHET_IDX_SIZE; ++i) {
+		for (int i = 0; i <= CACHET_IDX_SIZE; ++i) {
 			delete _buckets[i];
 		}
 		free(_buckets);

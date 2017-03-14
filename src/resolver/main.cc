@@ -72,7 +72,7 @@ int query(List* ns, const char* stype, const char* sname)
 List* load_etc_resolv()
 {
 	int x = 0;
-	List* ns = new List();
+	List* ns = NULL;
 	List* cols = NULL;
 	Rowset* rs = NULL;
 	const char* v = NULL;
@@ -85,6 +85,7 @@ List* load_etc_resolv()
 		return NULL;
 	}
 
+	ns = new List();
 	rs = reader._rows;
 
 	x = 0;

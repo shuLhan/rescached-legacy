@@ -335,7 +335,6 @@ int Rescached::bind()
 int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 {
 	int	s	= 0;
-	int	is_ipv4	= 0;
 	int	addr	= 0;
 	int	cnt	= 0;
 
@@ -363,7 +362,7 @@ int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 		row = (List*) reader._rows->at(x);
 		ip = (Buffer*) row->at(0);
 
-		is_ipv4	= inet_pton (AF_INET, ip->chars(), &addr);
+		int is_ipv4 = inet_pton (AF_INET, ip->chars(), &addr);
 		addr	= 0;
 
 		if (is_ipv4 != 1) {
@@ -608,9 +607,7 @@ int Rescached::process_tcp_client()
 int Rescached::queue_push(struct sockaddr_in* udp_client, Socket* tcp_client
 			, DNSQuery** question)
 {
-	ResQueue* obj = NULL;
-
-	obj = new ResQueue();
+	ResQueue* obj = new ResQueue();
 	if (!obj) {
 		return -1;
 	}

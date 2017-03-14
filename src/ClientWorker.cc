@@ -78,13 +78,12 @@ out:
 
 int ClientWorker::_queue_check_ttl(BNode* qnode, ResQueue* q, NCR* ncr)
 {
-	int s = 0;
 	time_t now = time(NULL);
 	int diff = (int) difftime(now, ncr->_ttl);
 
 	if (diff >= 0) {
 		// Renew the question.
-		s = _queue_ask_question(qnode, q);
+		int s = _queue_ask_question(qnode, q);
 
 		if (DBG_LVL_IS_1 && s == 0) {
 			dlog.out("%8s: %3d %-6ds %s %d %d\n"
@@ -238,11 +237,10 @@ int ClientWorker::_queue_process_old(BNode* qnode, ResQueue* q)
 int ClientWorker::_queue_process_questions()
 {
 	int x = 0;
-	BNode* p = NULL;
 	BNode* pnext = NULL;
 	ResQueue* q = NULL;
 
-	p = _queue_questions._head;
+	BNode* p = _queue_questions._head;
 
 	while (x < _queue_questions.size()) {
 		pnext = p->_right;
@@ -257,9 +255,6 @@ int ClientWorker::_queue_process_questions()
 			break;
 		case IS_RESOLVED:
 		case IS_TIMEOUT:
-			_queue_questions.node_remove_unsafe(p);
-			delete q;
-			x--;
 			break;
 		}
 
@@ -280,19 +275,17 @@ int ClientWorker::_queue_process_questions()
 
 int ClientWorker::_queue_process_answers()
 {
-	int y = 0;
-	BNode* p_answer = NULL;
 	BNode* p_question = NULL;
 	BNode* p_question_next = NULL;
 	DNSQuery* answer = NULL;
 	ResQueue* rq = NULL;
 
-	p_answer = _queue_answers.node_pop_head();
+	BNode* p_answer = _queue_answers.node_pop_head();
 
 	while (p_answer) {
 		answer = (DNSQuery*) p_answer->get_content();
 
-		y = 0;
+		int y = 0;
 		p_question = _queue_questions._head;
 
 		while (p_question && y < _queue_questions.size()) {

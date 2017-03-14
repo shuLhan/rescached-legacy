@@ -59,8 +59,7 @@ void* ResolverWorker::run(void* arg)
 		s = select(FD_SETSIZE, &RW->_fd_read, NULL, NULL, &timeout);
 		if (s <= 0) {
 			if (EINTR == errno) {
-				s = 0;
-				break;
+				return 0;
 			}
 			goto cont;
 		}
