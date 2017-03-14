@@ -201,7 +201,7 @@ int ResolverWorker::do_read()
 		dlog.out("%s: read status %d.\n", __cname, s);
 	}
 
-	if (s > 0) {
+	if (s == 0) {
 		s = _nc.insert_copy(answer, 1, 0);
 
 		if (DBG_LVL_IS_2) {
