@@ -199,19 +199,25 @@ int ResolverWorker::do_read()
 
 	if (DBG_LVL_IS_2) {
 		dlog.out("%s: read status %d.\n", __cname, s);
+
+		dlog.out("%s: %s\n", __cname
+			, answer->get_rcode_name());
 	}
 
-	if (s == 0) {
-		s = _nc.insert_copy(answer, 1, 0);
+	if (s != 0) {
+		delete answer;
+		return -1;
+	}
 
-		if (DBG_LVL_IS_2) {
-			dlog.out("%s: push answer %s\n", __cname
-				, answer->_name.chars());
-		}
+	s = _nc.insert_copy(answer, 1, 0);
 
-		if (answer) {
-			CW.push_answer(answer);
-		}
+	if (DBG_LVL_IS_2) {
+		dlog.out("%s: push answer %s\n", __cname
+			, answer->_name.chars());
+	}
+
+	if (answer) {
+		CW.push_answer(answer);
 	}
 
 	return s;
