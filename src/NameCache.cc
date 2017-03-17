@@ -13,7 +13,10 @@ NameCache::NameCache() :
 ,	_cache_thr(0)
 ,	_cachel()
 ,	_buckets(NULL)
-{}
+,	__ncr_finder()
+{
+	delete __ncr_finder._name;
+}
 
 NameCache::~NameCache()
 {
@@ -280,17 +283,18 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 
 	lock();
 
-	NCR ncr(&question->_name, question->_q_type);
-	Buffer* name = (Buffer*) &question->_name;
+	__ncr_finder._q_type = question->_q_type;
+	__ncr_finder._name = (vos::Buffer*) &question->_name;
+
 	int c = -1;
-	RBT* bucket = bucket_get_by_index(toupper(name->char_at(0)));
+	RBT* bucket = bucket_get_by_index(toupper(__ncr_finder._name->char_at(0)));
 
 	if (!bucket->get_root()) {
 		goto out;
 	}
 
 
-	(*node) = bucket->find(&ncr);
+	(*node) = bucket->find(&__ncr_finder);
 	if (!(*node)) {
 		c = -1;
 		goto out;
@@ -299,6 +303,8 @@ int NameCache::get_answer_from_cache (const DNSQuery* question
 	(*answer) = ((NCR*)(*node)->get_content())->_answ;
 	c = 0;
 out:
+	__ncr_finder._name = 0;
+
 	unlock();
 
 	return c;

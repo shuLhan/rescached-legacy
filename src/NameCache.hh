@@ -71,6 +71,8 @@ public:
 private:
 	NameCache(const NameCache&);
 	void operator=(const NameCache&);
+
+	NCR __ncr_finder;
 };
 
 } /* namespace::rescached */
