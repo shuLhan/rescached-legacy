@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v1.6.0 (2017-03-xx)
+## v1.6.0 (2017-03-18)
 
 New Features:
 
@@ -12,6 +12,14 @@ Breaking Changes:
 
   This deprecated the config option for blocked host file
   `file.hosts.block`, since it will automatically loaded.
+
+Fixes:
+
+* ResolverWorker: delete answer when fail at reading from server
+
+Internal:
+
+* Fix code as recommended by clang's `scan-build` and `cppcheck` tools
 
 
 ## v1.5.1 (2017-02-24)
