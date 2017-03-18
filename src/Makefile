@@ -205,16 +205,19 @@ install-init: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 install-init: RESCACHED_SVC=$(SCRIPTS_D)/rescached.run
 install-init: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 install-init: all do-install
+	$(MAKE) -C resolver install
 
 uninstall: SVC_D=$(SVC_SYSTEMD)
 uninstall: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 uninstall: SYSTEM_SVC=$(INSTALL_SVC_D)/rescached.service
 uninstall: do-uninstall
+	$(MAKE) -C resolver uninstall
 
 uninstall-init: SVC_D=$(SVC_INIT_D)
 uninstall-init: INSTALL_SVC_D=$(DESTDIR)$(SVC_D)
 uninstall-init: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 uninstall-init: do-uninstall
+	$(MAKE) -C resolver uninstall
 
 clean:
 	@$(call do_rmdir,$(BLD_D))
