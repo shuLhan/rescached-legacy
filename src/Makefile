@@ -219,6 +219,9 @@ uninstall-init: SYSTEM_SVC=$(INSTALL_SVC_D)/$(SERVICE_NAME)
 uninstall-init: do-uninstall
 	$(MAKE) -C resolver uninstall
 
+cppcheck:
+	@cppcheck-gui --enable-all -p rescached.cppcheck $(SRC_D)
+
 clean:
 	@$(call do_rmdir,$(BLD_D))
 	$(MAKE) -C resolver clean
