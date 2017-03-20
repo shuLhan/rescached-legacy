@@ -45,9 +45,7 @@ Rescached::~Rescached()
  */
 int Rescached::init(const char* fconf)
 {
-	register int s;
-
-	s = load_config(fconf);
+	int s = load_config(fconf);
 	if (s != 0) {
 		return -1;
 	}
@@ -282,8 +280,6 @@ int Rescached::bind()
 		return 0;
 	}
 
-	register int s;
-
 	// (1)
 	_RW = ResolverWorker::INIT(&_dns_parent, _dns_conn_t);
 	if (!_RW) {
@@ -291,7 +287,7 @@ int Rescached::bind()
 	}
 
 	// (3)
-	s = _srvr_udp.create_udp();
+	int s = _srvr_udp.create_udp();
 	if (s != 0) {
 		return -1;
 	}
