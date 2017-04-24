@@ -391,7 +391,7 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 	if (! (*ncr)->_name) {
 		return -1;
 	}
-	if (! (*ncr)->_name->_i) {
+	if (! (*ncr)->_name->len()) {
 		return -1;
 	}
 	if (! (*ncr)->_stat) {
@@ -472,14 +472,14 @@ int NameCache::insert_copy (DNSQuery* answer
 	NCR*		ncr	= NULL;
 	time_t		time_now= time(NULL);
 
-	if (answer->_i > 512) {
+	if (answer->len() > 512) {
 		answer->remove_rr_add();
 	}
-	if (answer->_i > 512) {
+	if (answer->len() > 512) {
 		answer->remove_rr_aut();
 	}
 	if (DBG_LVL_IS_3) {
-		dlog.out("answer size: %d\n", answer->_i);
+		dlog.out("answer size: %d\n", answer->len());
 	}
 
 	s = get_answer_from_cache (answer, &lanswer, &node);

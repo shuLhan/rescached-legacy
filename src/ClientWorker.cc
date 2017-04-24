@@ -128,7 +128,7 @@ int ClientWorker::_queue_answer(ResQueue* q, DNSQuery* answer)
 		} else {
 			_srvr_udp.send_udp_raw(q->_udp_client
 						, answer->v(2)
-						, answer->_i - 2);
+						, answer->len() - 2);
 		}
 	} else {
 		dlog.er("queue_answer: no client connected!\n");

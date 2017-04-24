@@ -372,7 +372,7 @@ int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 				, (uint16_t) vos::QUERY_T_ADDRESS
 				, (uint16_t) vos::QUERY_C_IN
 				, INT_MAX
-				, (uint16_t) ip->_i
+				, (uint16_t) ip->len()
 				, ip->chars()
 				, attrs);
 
