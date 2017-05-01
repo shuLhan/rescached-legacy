@@ -94,6 +94,7 @@ int Rescached::init(const char* fconf)
 int Rescached::config_parse_server_listen(Config* cfg)
 {
 	int s;
+	long int li_port = 0;
 	List* addr_port = NULL;
 	Buffer* addr = NULL;
 	Buffer* port = NULL;
@@ -117,7 +118,12 @@ int Rescached::config_parse_server_listen(Config* cfg)
 	port = (Buffer*) addr_port->at(1);
 
 	_listen_addr.copy(addr);
-	_listen_port = (uint16_t) port->to_lint();
+	s = port->to_lint(&li_port);
+	if (s != 0 || li_port <= 0 || li_port > 65535) {
+		_listen_port = RESCACHED_DEF_PORT;
+	} else {
+		_listen_port = (uint16_t) li_port;
+	}
 
 out:
 	if (addr_port) {
