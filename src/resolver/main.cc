@@ -125,7 +125,7 @@ cont:
 
 int main(int argc, char* argv[])
 {
-	int s = 0;
+	int s = 1;
 	List* ns = NULL;
 
 	switch (argc) {
