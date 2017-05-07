@@ -9,6 +9,7 @@
 
 #include "lib/Dir.hh"
 #include "lib/List.hh"
+#include "lib/ListBuffer.hh"
 #include "lib/Config.hh"
 #include "lib/SSVReader.hh"
 #include "ResolverWorker.hh"

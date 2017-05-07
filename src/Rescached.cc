@@ -106,7 +106,7 @@ int Rescached::config_parse_server_listen(Config* cfg)
 		return -1;
 	}
 
-	addr_port = _listen_addr.split_by_char(':', 1);
+	addr_port = SPLIT_BY_CHAR(&_listen_addr, ':', 1);
 
 	// (1)
 	if (addr_port->size() == 1) {

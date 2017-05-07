@@ -79,8 +79,9 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/SSVReader.oo	\
 			$(LIBVOS_BLD_D)/Rowset.oo	\
 			$(LIBVOS_BLD_D)/File.oo		\
-			$(LIBVOS_BLD_D)/Buffer.oo	\
+			$(LIBVOS_BLD_D)/ListBuffer.oo	\
 			$(LIBVOS_BLD_D)/List.oo		\
+			$(LIBVOS_BLD_D)/Buffer.oo	\
 			$(LIBVOS_BLD_D)/BNode.oo	\
 			$(LIBVOS_BLD_D)/Thread.oo	\
 			$(LIBVOS_BLD_D)/Locker.oo	\
