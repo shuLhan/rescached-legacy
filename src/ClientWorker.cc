@@ -153,8 +153,6 @@ int ClientWorker::_queue_process_new(BNode* qnode, ResQueue* q)
 
 	// Question is not found in cache
 	if (s < 0) {
-		s = _queue_ask_question(qnode, q);
-
 		if (DBG_LVL_IS_1 && s == 0) {
 			dlog.out("%8s: %3d %s\n"
 				, TAG_QUERY
@@ -163,6 +161,7 @@ int ClientWorker::_queue_process_new(BNode* qnode, ResQueue* q)
 				);
 		}
 
+		s = _queue_ask_question(qnode, q);
 
 		return -1;
 	}
