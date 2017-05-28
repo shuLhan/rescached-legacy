@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 Mhd Sulhan (ms@kilabit.info)
+ * Copyright 2009-2017 Mhd Sulhan (ms@kilabit.info)
  */
 
 #include "Rescached.hh"
@@ -16,6 +16,7 @@ Rescached::Rescached() :
 ,	_fpid()
 ,	_dns_parent()
 ,	_dns_conn()
+,	_hosts_d()
 ,	_listen_addr()
 ,	_listen_port(RESCACHED_DEF_PORT)
 ,	_srvr_tcp()
@@ -76,7 +77,9 @@ int Rescached::init(const char* fconf)
 		return -1;
 	}
 
-	load_hosts_d();
+	if (_hosts_d.len() > 0) {
+		load_hosts_d();
+	}
 
 	load_cache();
 
@@ -226,6 +229,9 @@ int Rescached::load_config(const char* fconf)
 	if (_cache_minttl <= 0) {
 		_cache_minttl = RESCACHED_DEF_MINTTL;
 	}
+
+	v = cfg.get(RESCACHED_CONF_HEAD, "hosts_d.path", HOSTS_D);
+	_hosts_d.copy_raw(v);
 
 	_dbg = (int) cfg.get_number(RESCACHED_CONF_HEAD, "debug"
 					, RESCACHED_DEF_DEBUG);
@@ -425,9 +431,9 @@ void Rescached::load_hosts_d()
 {
 	Dir hosts_d;
 
-	hosts_d.open(HOSTS_D);
+	hosts_d.open(_hosts_d.v());
 
-	load_host_files(HOSTS_D, hosts_d._ls->_child);
+	load_host_files(_hosts_d.v(), hosts_d._ls->_child);
 
 	hosts_d.close();
 }
