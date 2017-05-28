@@ -45,7 +45,7 @@ const char* NCR::chars()
 		__str = NULL;
 	}
 
-	b.aprint("[ 'name': %s, 'QTYPE': %d, 'TTL': %d ]", _name->v(), _q_type
+	b.append_fmt("[ 'name': %s, 'QTYPE': %d, 'TTL': %d ]", _name->v(), _q_type
 		, _ttl);
 
 	__str = b.detach();
