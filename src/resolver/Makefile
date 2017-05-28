@@ -33,6 +33,7 @@ TARGET_OBJS	=\
 		$(LIBVOS_BLD_D)/DNSRecordType.oo\
 		$(LIBVOS_BLD_D)/Socket.oo	\
 		$(LIBVOS_BLD_D)/SockAddr.oo	\
+		$(LIBVOS_BLD_D)/ListSockAddr.oo	\
 		$(LIBVOS_BLD_D)/Resolver.oo	\
 		$(LIBVOS_BLD_D)/List.oo		\
 		$(LIBVOS_BLD_D)/Rowset.oo	\
