@@ -189,7 +189,13 @@ int ResolverWorker::do_read()
 		s = _resolver.recv_tcp(answer);
 
 		if (s <= 0) {
+			if (DBG_LVL_IS_2) {
+				dlog.out("%s: read status %d.\n", __cname, s);
+				dlog.out("%s: close tcp.\n", __cname);
+			}
+
 			FD_CLR(_resolver._d, &_fd_all);
+			_resolver.reset();
 			_resolver.close();
 		} else {
 			// convert answer to UDP.
@@ -197,9 +203,7 @@ int ResolverWorker::do_read()
 		}
 	}
 
-	if (DBG_LVL_IS_2) {
-		dlog.out("%s: read status %d.\n", __cname, s);
-
+	if (s > 0 && DBG_LVL_IS_2) {
 		dlog.out("%s: %s\n", __cname
 			, answer->get_rcode_name());
 	}
