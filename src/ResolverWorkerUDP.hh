@@ -4,8 +4,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef	_RESCACHED_RESOLVER_HH
-#define	_RESCACHED_RESOLVER_HH 1
+#ifndef	_RESCACHED_RESOLVER_WORKER_UDP_HH
+#define	_RESCACHED_RESOLVER_WORKER_UDP_HH 1
 
 #include "lib/Thread.hh"
 #include "lib/Resolver.hh"
@@ -20,25 +20,23 @@ namespace rescached {
 extern ClientWorker CW;
 extern NameCache _nc;
 
-class ResolverWorker : public Thread {
+class ResolverWorkerUDP : public Thread {
 public:
-	ResolverWorker(Buffer* dns_parent, SocketConnType conn_type);
-	~ResolverWorker();
+	ResolverWorkerUDP(Buffer* dns_parent);
+	~ResolverWorkerUDP();
 
 	void* run(void* arg);
 
 	Buffer _dns_parent;
-	SocketConnType _conn_type;
 	fd_set _fd_all;
 	fd_set _fd_read;
 
-	static ResolverWorker* INIT(Buffer* dns_parent
-		, SocketConnType conn_type);
+	static ResolverWorkerUDP* INIT(Buffer* dns_parent);
 
 	static const char* __cname;
 private:
-	ResolverWorker(const ResolverWorker&);
-	void operator=(const ResolverWorker&);
+	ResolverWorkerUDP(const ResolverWorkerUDP&);
+	void operator=(const ResolverWorkerUDP&);
 
 	int do_read();
 	int init();

@@ -54,7 +54,7 @@ TARGET_OBJS	=					\
 			$(BLD_D)/common.oo		\
 			$(BLD_D)/Rescached.oo		\
 			$(BLD_D)/ClientWorker.oo	\
-			$(BLD_D)/ResolverWorker.oo	\
+			$(BLD_D)/ResolverWorkerUDP.oo	\
 			$(BLD_D)/ResQueue.oo		\
 			$(BLD_D)/NameCache.oo		\
 			$(BLD_D)/NCR.oo			\

@@ -12,7 +12,7 @@
 #include "lib/ListBuffer.hh"
 #include "lib/Config.hh"
 #include "lib/SSVReader.hh"
-#include "ResolverWorker.hh"
+#include "ResolverWorkerUDP.hh"
 
 using vos::BNode;
 using vos::List;
@@ -97,7 +97,7 @@ private:
 	void load_host_files(const char* dir, DirNode* host_file);
 	void load_hosts_d();
 
-	ResolverWorker*	_RW;
+	ResolverWorkerUDP *_WorkerUDP;
 
 	static const char* __cname;
 };

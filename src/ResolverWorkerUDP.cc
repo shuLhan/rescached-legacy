@@ -4,21 +4,20 @@
  * found in the LICENSE file.
  */
 
-#include "ResolverWorker.hh"
+#include "ResolverWorkerUDP.hh"
 
 namespace rescached {
 
 //{{{ STATIC VARIABLES
 
-const char* ResolverWorker::__cname = "ResolverWorker";
+const char* ResolverWorkerUDP::__cname = "ResolverWorkerUDP";
 
 //}}}
 //{{{ PUBLIC METHODS
 
-ResolverWorker::ResolverWorker(Buffer* dns_parent, SocketConnType conn_type)
+ResolverWorkerUDP::ResolverWorkerUDP(Buffer* dns_parent)
 : Thread(NULL)
 , _dns_parent(dns_parent)
-, _conn_type(conn_type)
 , _fd_all()
 , _fd_read()
 {
@@ -26,14 +25,14 @@ ResolverWorker::ResolverWorker(Buffer* dns_parent, SocketConnType conn_type)
 	FD_ZERO(&_fd_read);
 }
 
-ResolverWorker::~ResolverWorker()
+ResolverWorkerUDP::~ResolverWorkerUDP()
 {}
 
-void* ResolverWorker::run(void* arg)
+void* ResolverWorkerUDP::run(void* arg)
 {
 	int s = 0;
 	int running = 0;
-	ResolverWorker* RW = (ResolverWorker*) arg;
+	ResolverWorkerUDP* RW = (ResolverWorkerUDP*) arg;
 	struct timeval timeout;
 
 	lock();
@@ -41,17 +40,6 @@ void* ResolverWorker::run(void* arg)
 	unlock();
 
 	while (running) {
-		// TCP: if resolver connection is open, add it to selector.
-		if (RW->_conn_type == vos::IS_TCP
-		&&  _resolver.is_open()) {
-			FD_SET(_resolver._d, &RW->_fd_all);
-
-			if (DBG_LVL_IS_2) {
-				dlog.out ("%s: adding open resolver.\n"
-					, __cname);
-			}
-		}
-
 		RW->_fd_read = RW->_fd_all;
 		timeout.tv_sec	= _rto;
 		timeout.tv_usec	= 0;
@@ -81,7 +69,7 @@ cont:
 	return 0;
 }
 
-int ResolverWorker::init()
+int ResolverWorkerUDP::init()
 {
 	int s = 0;
 
@@ -97,24 +85,13 @@ int ResolverWorker::init()
 		return -1;
 	}
 
-	if (DBG_LVL_IS_2) {
-		dlog.out("%s: create socket %d\n", __cname, _conn_type);
-	}
-
-	if (_conn_type == vos::IS_UDP) {
-		s = _resolver.init(SOCK_DGRAM);
-	} else {
-		s = _resolver.init(SOCK_STREAM);
-	}
+	s = _resolver.init(SOCK_DGRAM);
 	if (s) {
-		dlog.er("%s: fail to create socket %d\n", __cname
-			, _conn_type);
+		dlog.er("%s: fail to create datagram socket\n", __cname);
 		return -2;
 	}
 
-	if (_conn_type == vos::IS_UDP) {
-		FD_SET(_resolver._d, &_fd_all);
-	}
+	FD_SET(_resolver._d, &_fd_all);
 
 	s = start();
 	if (s) {
@@ -138,11 +115,10 @@ int ResolverWorker::init()
  * `-3` if thread can not be created.
  * `0` if success.
  */
-ResolverWorker* ResolverWorker::INIT(Buffer* dns_parent
-	, SocketConnType conn_type)
+ResolverWorkerUDP* ResolverWorkerUDP::INIT(Buffer* dns_parent)
 {
 	int s = 0;
-	ResolverWorker* rw = new ResolverWorker(dns_parent, conn_type);
+	ResolverWorkerUDP* rw = new ResolverWorkerUDP(dns_parent);
 
 	if (!rw) {
 		return NULL;
@@ -170,38 +146,16 @@ ResolverWorker* ResolverWorker::INIT(Buffer* dns_parent
  *
  * After that we pass the answer to our clients.
  */
-int ResolverWorker::do_read()
+int ResolverWorkerUDP::do_read()
 {
 	int s = 0;
 	DNSQuery* answer = new DNSQuery();
 
-	if (_conn_type == vos::IS_UDP) {
-		if (DBG_LVL_IS_2) {
-			dlog.out("%s: read udp.\n", __cname);
-		}
-
-		s = _resolver.recv_udp(answer);
-	} else {
-		if (DBG_LVL_IS_2) {
-			dlog.out("%s: read tcp.\n", __cname);
-		}
-
-		s = _resolver.recv_tcp(answer);
-
-		if (s <= 0) {
-			if (DBG_LVL_IS_2) {
-				dlog.out("%s: read status %d.\n", __cname, s);
-				dlog.out("%s: close tcp.\n", __cname);
-			}
-
-			FD_CLR(_resolver._d, &_fd_all);
-			_resolver.reset();
-			_resolver.close();
-		} else {
-			// convert answer to UDP.
-			answer->to_udp();
-		}
+	if (DBG_LVL_IS_2) {
+		dlog.out("%s: read udp.\n", __cname);
 	}
+
+	s = _resolver.recv_udp(answer);
 
 	if (s > 0 && DBG_LVL_IS_2) {
 		dlog.out("%s: %s\n", __cname

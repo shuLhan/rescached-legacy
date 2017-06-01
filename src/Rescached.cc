@@ -24,14 +24,14 @@ Rescached::Rescached() :
 ,	_fd_read()
 ,	_show_timestamp(RESCACHED_DEF_LOG_SHOW_TS)
 ,	_show_appstamp(RESCACHED_DEF_LOG_SHOW_STAMP)
-,	_RW(NULL)
+,	_WorkerUDP(NULL)
 {}
 
 Rescached::~Rescached()
 {
-	if (_RW) {
-		delete _RW;
-		_RW = NULL;
+	if (_WorkerUDP) {
+		delete _WorkerUDP;
+		_WorkerUDP = NULL;
 	}
 }
 
@@ -293,9 +293,11 @@ int Rescached::bind()
 	}
 
 	// (1)
-	_RW = ResolverWorker::INIT(&_dns_parent, _dns_conn_t);
-	if (!_RW) {
-		return -1;
+	if (_dns_conn_t == vos::IS_UDP) {
+		_WorkerUDP = ResolverWorkerUDP::INIT(&_dns_parent);
+		if (!_WorkerUDP) {
+			return -1;
+		}
 	}
 
 	// (3)
@@ -642,9 +644,9 @@ void Rescached::exit()
 {
 	_running = 0;
 
-	if (_RW) {
-		_RW->stop();
-		_RW->join();
+	if (_WorkerUDP) {
+		_WorkerUDP->stop();
+		_WorkerUDP->join();
 	}
 
 	if (!_fdata.is_empty()) {
