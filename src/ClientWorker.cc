@@ -5,10 +5,13 @@
  */
 
 #include "ClientWorker.hh"
+#include "ResolverWorkerUDP.hh"
 
 namespace rescached {
 
 NameCache _nc;
+extern Resolver _WorkerTCP;
+extern ResolverWorkerUDP *_WorkerUDP;
 
 ClientWorker::ClientWorker()
 : Thread(NULL)
@@ -69,23 +72,43 @@ int ClientWorker::_queue_ask_question(BNode* qnode, ResQueue* q)
 	}
 
 	if (_dns_conn_t == vos::IS_UDP) {
-		s = _resolver.send_udp(q->_qstn);
+		s = _WorkerUDP->ask(q->_qstn);
 
 		q->set_state(IS_RESOLVING);
 
 		return s;
 	}
 
-	DNSQuery answer;
-
-	s = _resolver.resolve_tcp(q->_qstn, &answer);
+	s = _WorkerTCP.send_tcp(q->_qstn);
 	if (s) {
 		q->set_state(IS_ERROR);
 
 		return -1;
 	}
 
-	push_answer(&answer);
+	DNSQuery *answer = new DNSQuery();
+
+	s = _WorkerTCP.recv_tcp(answer);
+	if (s) {
+		q->set_state(IS_ERROR);
+
+		delete answer;
+		return -1;
+	}
+
+	s = _nc.insert_copy(answer, 1, 0);
+
+	if (DBG_LVL_IS_2) {
+		dlog.out("%s: push answer %s\n", __cname
+			, answer->_name.chars());
+	}
+
+	q->set_state(IS_RESOLVING);
+
+	_WorkerTCP.reset();
+	_WorkerTCP.close();
+
+	_queue_answers.push_tail(answer);
 
 	return s;
 }
@@ -171,7 +194,7 @@ int ClientWorker::_queue_process_new(BNode* qnode, ResQueue* q)
 
 	// Question is not found in cache
 	if (s < 0) {
-		if (DBG_LVL_IS_1 && s == 0) {
+		if (DBG_LVL_IS_1) {
 			dlog.out("%8s: %3d %s\n"
 				, TAG_QUERY
 				, q->_qstn->_q_type

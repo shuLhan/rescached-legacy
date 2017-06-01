@@ -25,11 +25,8 @@ public:
 	ResolverWorkerUDP(Buffer* dns_parent);
 	~ResolverWorkerUDP();
 
+	int ask(DNSQuery *question);
 	void* run(void* arg);
-
-	Buffer _dns_parent;
-	fd_set _fd_all;
-	fd_set _fd_read;
 
 	static ResolverWorkerUDP* INIT(Buffer* dns_parent);
 
@@ -37,6 +34,11 @@ public:
 private:
 	ResolverWorkerUDP(const ResolverWorkerUDP&);
 	void operator=(const ResolverWorkerUDP&);
+
+	Buffer		_dns_parent;
+	Resolver	_resolver;
+	fd_set		_fd_all;
+	fd_set		_fd_read;
 
 	int do_read();
 	int init();

@@ -18,6 +18,7 @@ const char* ResolverWorkerUDP::__cname = "ResolverWorkerUDP";
 ResolverWorkerUDP::ResolverWorkerUDP(Buffer* dns_parent)
 : Thread(NULL)
 , _dns_parent(dns_parent)
+, _resolver()
 , _fd_all()
 , _fd_read()
 {
@@ -27,6 +28,14 @@ ResolverWorkerUDP::ResolverWorkerUDP(Buffer* dns_parent)
 
 ResolverWorkerUDP::~ResolverWorkerUDP()
 {}
+
+/**
+ * Method `ask(question)` will send DNS question to one of the parent server.
+ */
+int ResolverWorkerUDP::ask(DNSQuery *question)
+{
+	return _resolver.send_udp(question);
+}
 
 void* ResolverWorkerUDP::run(void* arg)
 {

@@ -51,8 +51,6 @@ namespace rescached {
 #define	RESCACHED_DEF_LOG_SHOW_STAMP	0
 #define	RESCACHED_DEF_STAMP		"[rescached] "
 
-extern ClientWorker CW;
-
 class Rescached : public Object {
 public:
 	Rescached();
@@ -96,8 +94,6 @@ private:
 
 	void load_host_files(const char* dir, DirNode* host_file);
 	void load_hosts_d();
-
-	ResolverWorkerUDP *_WorkerUDP;
 
 	static const char* __cname;
 };

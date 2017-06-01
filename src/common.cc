@@ -13,7 +13,6 @@ int		_dbg		= 0;
 uint32_t	_cache_minttl	= 60;
 short		_skip_log	= 1;
 
-Resolver	_resolver;
 SockServer	_srvr_udp;
 SocketConnType	_dns_conn_t = vos::IS_UDP;
 uint8_t		_rto = RESCACHED_DEF_TIMEOUT;

@@ -6,7 +6,9 @@
 
 namespace rescached {
 
-ClientWorker CW;
+ClientWorker		CW;
+Resolver		_WorkerTCP;
+ResolverWorkerUDP	*_WorkerUDP;
 
 const char* Rescached::__cname = "Rescached";
 
@@ -24,15 +26,10 @@ Rescached::Rescached() :
 ,	_fd_read()
 ,	_show_timestamp(RESCACHED_DEF_LOG_SHOW_TS)
 ,	_show_appstamp(RESCACHED_DEF_LOG_SHOW_STAMP)
-,	_WorkerUDP(NULL)
 {}
 
 Rescached::~Rescached()
 {
-	if (_WorkerUDP) {
-		delete _WorkerUDP;
-		_WorkerUDP = NULL;
-	}
 }
 
 /**
@@ -292,16 +289,28 @@ int Rescached::bind()
 		return 0;
 	}
 
+	int s;
+
 	// (1)
 	if (_dns_conn_t == vos::IS_UDP) {
 		_WorkerUDP = ResolverWorkerUDP::INIT(&_dns_parent);
 		if (!_WorkerUDP) {
 			return -1;
 		}
+	} else {
+		s = _WorkerTCP.add_server(_dns_parent.v());
+		if (s) {
+			return -1;
+		}
+
+		s = _WorkerTCP.init(SOCK_STREAM);
+		if (s) {
+			return -1;
+		}
 	}
 
 	// (3)
-	int s = _srvr_udp.create_udp();
+	s = _srvr_udp.create_udp();
 	if (s != 0) {
 		return -1;
 	}
@@ -647,6 +656,9 @@ void Rescached::exit()
 	if (_WorkerUDP) {
 		_WorkerUDP->stop();
 		_WorkerUDP->join();
+
+		delete _WorkerUDP;
+		_WorkerUDP = NULL;
 	}
 
 	if (!_fdata.is_empty()) {

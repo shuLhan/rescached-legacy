@@ -23,7 +23,6 @@ extern int	_dbg;
 extern uint32_t	_cache_minttl;
 extern short	_skip_log;
 
-extern Resolver		_resolver;
 extern SockServer	_srvr_udp;
 extern SocketConnType	_dns_conn_t;
 extern uint8_t		_rto;
