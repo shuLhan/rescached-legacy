@@ -62,16 +62,30 @@ int ClientWorker::_queue_ask_question(BNode* qnode, ResQueue* q)
 			, q->_qstn->_q_type
 			, 0
 			, q->_qstn->_name.chars());
-		goto out;
+
+		q->set_state(IS_RESOLVING);
+
+		return s;
 	}
 
 	if (_dns_conn_t == vos::IS_UDP) {
 		s = _resolver.send_udp(q->_qstn);
-	} else {
-		s = _resolver.send_tcp(q->_qstn);
+
+		q->set_state(IS_RESOLVING);
+
+		return s;
 	}
-out:
-	q->set_state(IS_RESOLVING);
+
+	DNSQuery answer;
+
+	s = _resolver.resolve_tcp(q->_qstn, &answer);
+	if (s) {
+		q->set_state(IS_ERROR);
+
+		return -1;
+	}
+
+	push_answer(&answer);
 
 	return s;
 }
@@ -105,6 +119,10 @@ int ClientWorker::_queue_check_ttl(BNode* qnode, ResQueue* q, NCR* ncr)
 	return diff;
 }
 
+/**
+ * Method `_queue_answer(q, answer)` will process queue item `q` by replying
+ * with `answer`.
+ */
 int ClientWorker::_queue_answer(ResQueue* q, DNSQuery* answer)
 {
 	int s = 0;
@@ -254,11 +272,13 @@ int ClientWorker::_queue_process_questions()
 			break;
 		case IS_RESOLVED:
 		case IS_TIMEOUT:
+		case IS_ERROR:
 			break;
 		}
 
 		if (q->get_state() == IS_RESOLVED
 		||  q->get_state() == IS_TIMEOUT
+		||  q->get_state() == IS_ERROR
 		) {
 			_queue_questions.node_remove_unsafe(p);
 			delete q;

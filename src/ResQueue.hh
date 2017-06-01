@@ -21,6 +21,7 @@ enum queue_state {
 ,	IS_RESOLVING	= 1
 ,	IS_RESOLVED	= 2
 ,	IS_TIMEOUT	= 4
+,	IS_ERROR	= 5
 };
 
 class ResQueue : public Object {
