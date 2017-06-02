@@ -123,12 +123,11 @@ int ClientWorker::_queue_check_ttl(BNode* qnode, ResQueue* q, NCR* ncr)
 		int s = _queue_ask_question(qnode, q);
 
 		if (DBG_LVL_IS_1 && s == 0) {
-			dlog.out("%8s: %3d %-6ds %s %d %d\n"
+			dlog.out("%8s: %3d %6ds %s\n"
 				, TAG_RENEW
 				, q->_qstn->_q_type
 				, diff
 				, q->_qstn->_name.chars()
-				, now, ncr->_ttl
 				);
 		}
 
