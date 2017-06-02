@@ -331,6 +331,7 @@ void NameCache::clean_by_threshold(const long int thr)
 
 	NCR* ncr = NULL;
 	NCR* ncr_del = NULL;
+	int idx;
 
 	BNode* p = _cachel._tail;
 	do {
@@ -340,7 +341,15 @@ void NameCache::clean_by_threshold(const long int thr)
 			break;
 		}
 
-		bucket = bucket_get_by_index(toupper(ncr->_name->char_at(0)));
+		idx = toupper(ncr->_name->char_at(0));
+		bucket = bucket_get_by_index(idx);
+
+		if (DBG_LVL_IS_2) {
+			dlog.er("removing: %3d %s -%d\n"
+				, ncr->_answ->_q_type
+				, ncr->_name->v()
+				, ncr->_stat);
+		}
 
 		if (bucket->get_root()) {
 			node = (TreeNode*) ncr->_p_tree;
@@ -349,8 +358,8 @@ void NameCache::clean_by_threshold(const long int thr)
 			if (ndel) {
 				ncr_del = (NCR*) ndel->get_content();
 
-				if (DBG_LVL_IS_1) {
-					dlog.er("removing: %3d %s -%d\n"
+				if (DBG_LVL_IS_2) {
+					dlog.er("removed: %3d %s -%d\n"
 						, ncr_del->_answ->_q_type
 						, ncr_del->_name->v()
 						, ncr_del->_stat);
