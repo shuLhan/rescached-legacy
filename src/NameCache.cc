@@ -412,12 +412,16 @@ int NameCache::insert (NCR** ncr, const int do_cleanup
 		answer->set_id(0);
 	}
 
-	if (answer->_ans_ttl_max < _cache_minttl) {
-		answer->set_rr_answer_ttl (_cache_minttl);
-		(*ncr)->_ttl = (uint32_t) (time_now + _cache_minttl);
+	if (answer->get_num_answer() == 0) {
+		(*ncr)->_ttl = 0;
 	} else {
-		answer->set_rr_answer_ttl (answer->_ans_ttl_max);
-		(*ncr)->_ttl = (uint32_t) (time_now + answer->_ans_ttl_max);
+		if (answer->_ans_ttl_max < _cache_minttl) {
+			answer->set_rr_answer_ttl (_cache_minttl);
+			(*ncr)->_ttl = (uint32_t) (time_now + _cache_minttl);
+		} else {
+			answer->set_rr_answer_ttl (answer->_ans_ttl_max);
+			(*ncr)->_ttl = (uint32_t) (time_now + answer->_ans_ttl_max);
+		}
 	}
 
 	while (do_cleanup && _cachel.size() >= _cache_max) {
@@ -471,6 +475,7 @@ int NameCache::insert_copy (DNSQuery* answer
 	Buffer*		name	= (Buffer*) &answer->_name;
 	NCR*		ncr	= NULL;
 	time_t		time_now= time(NULL);
+	int		n_answer= answer->get_num_answer();
 
 	if (answer->len() > 512) {
 		answer->remove_rr_add();
@@ -485,6 +490,7 @@ int NameCache::insert_copy (DNSQuery* answer
 	s = get_answer_from_cache (answer, &lanswer, &node);
 	if (s == 0) {
 		lock();
+
 		// replace answer
 		lanswer->set (answer);
 		lanswer->extract (vos::DNSQ_EXTRACT_RR_AUTH);
@@ -492,12 +498,17 @@ int NameCache::insert_copy (DNSQuery* answer
 		ncr = (NCR*) node->get_content();
 
 		// reset TTL in NCR
-		if (answer->_ans_ttl_max < _cache_minttl) {
-			ncr->_ttl = (uint32_t) (time_now
-				+ _cache_minttl);
+		if (n_answer == 0) {
+			ncr->_ttl = 0;
+			answer->_ans_ttl_max = 0;
 		} else {
-			ncr->_ttl = (uint32_t) (time_now
-				+ answer->_ans_ttl_max);
+			if (answer->_ans_ttl_max < _cache_minttl) {
+				ncr->_ttl = (uint32_t) (time_now
+					+ _cache_minttl);
+			} else {
+				ncr->_ttl = (uint32_t) (time_now
+					+ answer->_ans_ttl_max);
+			}
 		}
 
 		if (!_skip_log && DBG_LVL_IS_1) {
@@ -517,8 +528,12 @@ int NameCache::insert_copy (DNSQuery* answer
 			return s;
 		}
 
-		ncr->_answ->_ans_ttl_max = answer->_ans_ttl_max;
-		ncr->_answ->_attrs = answer->_attrs;
+		if (n_answer == 0) {
+			ncr->_answ->_ans_ttl_max = 0;
+		} else {
+			ncr->_answ->_ans_ttl_max = answer->_ans_ttl_max;
+			ncr->_answ->_attrs = answer->_attrs;
+		}
 
 		lock();
 		s = insert (&ncr, do_cleanup, skip_list);

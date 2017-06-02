@@ -76,10 +76,14 @@ NCR* NCR::INIT(const Buffer* name, const Buffer* answer)
 
 		o->_q_type = o->_answ->_q_type;
 
-		if (o->_answ->_ans_ttl_max < _cache_minttl) {
-			o->_ttl = (uint32_t) (now + _cache_minttl);
+		if (o->_answ->get_num_answer() == 0) {
+			o->_ttl = 0;
 		} else {
-			o->_ttl = (uint32_t) (now + o->_answ->_ans_ttl_max);
+			if (o->_answ->_ans_ttl_max < _cache_minttl) {
+				o->_ttl = (uint32_t) (now + _cache_minttl);
+			} else {
+				o->_ttl = (uint32_t) (now + o->_answ->_ans_ttl_max);
+			}
 		}
 	}
 
