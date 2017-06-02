@@ -240,7 +240,7 @@ int NameCache::save(const char* fdata)
 
 	p = _cachel._head;
 	do {
-		ncr = (NCR*) p->_item;
+		ncr = (NCR*) p->get_content();
 
 		ncrecord_to_record(ncr, row);
 
@@ -251,8 +251,8 @@ int NameCache::save(const char* fdata)
 
 		row->columns_reset();
 
-		p = p->_right;
-	} while(p != _cachel._tail->_right);
+		p = p->get_right();
+	} while(p != _cachel._tail->get_right());
 
 	_cachel.unlock();
 
@@ -334,7 +334,7 @@ void NameCache::clean_by_threshold(const long int thr)
 
 	BNode* p = _cachel._tail;
 	do {
-		ncr = (NCR*) p->_item;
+		ncr = (NCR*) p->get_content();
 
 		if (ncr->_stat > thr) {
 			break;
@@ -364,7 +364,7 @@ void NameCache::clean_by_threshold(const long int thr)
 		}
 
 		p = _cachel.node_pop_tail();
-		p->_item = NULL;
+		p->set_content(NULL);
 		delete p;
 
 		p = _cachel._tail;
@@ -550,7 +550,7 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 
 	lock();
 
-	NCR* ncr = (NCR*) list_node->_item;
+	NCR* ncr = (NCR*) list_node->get_content();
 	ncr->_stat++;
 
 	if (list_node == _cachel._head) {
@@ -558,7 +558,8 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 	}
 
 	// Quick check the stat with upper cache
-	s = NCR::CMP_BY_STAT(list_node->_item, list_node->_left->_item);
+	s = NCR::CMP_BY_STAT(list_node->get_content()
+		, list_node->get_left()->get_content());
 	if (s <= 0) {
 		goto out;
 	}
@@ -589,8 +590,8 @@ void NameCache::prune()
 
 	while (_cachel.size() > 0) {
 		node = _cachel.node_pop_head();
-		if (node->_item) {
-			node->_item = NULL;
+		if (node->get_content()) {
+			node->set_content(NULL);
 		}
 		delete node;
 	}

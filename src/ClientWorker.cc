@@ -49,7 +49,7 @@ int ClientWorker::_is_already_asked(BNode* qnode, ResQueue* q)
 
 		return 1;
 cont:
-		p = p->_left;
+		p = p->get_left();
 	}
 
 	return 0;
@@ -283,7 +283,7 @@ int ClientWorker::_queue_process_questions()
 	BNode* p = _queue_questions._head;
 
 	while (x < _queue_questions.size()) {
-		pnext = p->_right;
+		pnext = p->get_right();
 		q = (ResQueue*) p->get_content();
 
 		switch (q->get_state()) {
@@ -331,7 +331,7 @@ int ClientWorker::_queue_process_answers()
 		p_question = _queue_questions._head;
 
 		while (p_question && y < _queue_questions.size()) {
-			p_question_next = p_question->_right;
+			p_question_next = p_question->get_right();
 			rq = (ResQueue*) p_question->get_content();
 
 			if (answer->_name.like(&rq->_qstn->_name) != 0) {
