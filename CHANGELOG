@@ -1,8 +1,23 @@
 # CHANGELOG
 
-## v1.6.1 (2017-05-xx)
+## v1.7.0 (2017-06-03)
+
+New Features:
+
+* If no answer in DNS record, set cache TTL to 0
+
+* Add config option to set `hosts.d` location or not to load it if its empty
 
 * Set default TTL for local hosts to one day
+
+Fixes:
+
+* Fix segvault when cleaning up cache
+
+* Fix resolver with TCP as parent connection
+
+* resolver: fix usage not printed on error
+
 
 ## v1.6.0 (2017-03-18)
 
