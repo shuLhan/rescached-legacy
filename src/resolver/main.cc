@@ -79,8 +79,8 @@ List* load_etc_resolv()
 
 	SSVReader reader('#');
 
-	x = reader.load(DEF_ETC_RESOLV);
-	if (x) {
+	Error err = reader.load(DEF_ETC_RESOLV);
+	if (err != NULL) {
 		D.er("Fail to load %s!\n", DEF_ETC_RESOLV);
 		return NULL;
 	}

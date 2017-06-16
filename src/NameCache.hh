@@ -12,6 +12,7 @@
 #include "lib/RBT.hh"
 #include "NCR.hh"
 
+using vos::Error;
 using vos::Locker;
 using vos::BNode;
 using vos::List;

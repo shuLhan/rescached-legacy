@@ -61,7 +61,7 @@ void* ResolverWorkerUDP::run(void* arg)
 			goto cont;
 		}
 
-		if (FD_ISSET(_resolver._d, &RW->_fd_read)) {
+		if (_resolver.is_readable(&RW->_fd_read, NULL)) {
 			RW->do_read();
 		}
 
@@ -100,7 +100,7 @@ int ResolverWorkerUDP::init()
 		return -2;
 	}
 
-	FD_SET(_resolver._d, &_fd_all);
+	_resolver.set_add(&_fd_all, NULL);
 
 	s = start();
 	if (s) {

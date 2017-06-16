@@ -49,15 +49,15 @@ int Rescached::init(const char* fconf)
 	}
 
 	// Open log file with maximum size to 2MB
-	s = dlog.open(_flog.v(), 2048000
+	Error err = dlog.open(_flog.v(), 2048000
 		, _show_appstamp ? RESCACHED_DEF_STAMP : ""
 		, _show_timestamp);
-	if (s != 0) {
+	if (err != NULL) {
 		return -1;
 	}
 
-	s = File::WRITE_PID (_fpid.chars());
-	if (s != 0) {
+	err = File::WRITE_PID (_fpid.chars());
+	if (err != NULL) {
 		dlog.er("%s: PID file exist"
 			", rescached process may already running.\n"
 			, __cname);
@@ -93,7 +93,6 @@ int Rescached::init(const char* fconf)
 //
 int Rescached::config_parse_server_listen(Config* cfg)
 {
-	int s;
 	long int li_port = 0;
 	List* addr_port = NULL;
 	Buffer* addr = NULL;
@@ -101,8 +100,8 @@ int Rescached::config_parse_server_listen(Config* cfg)
 
 	const char* v = cfg->get(RESCACHED_CONF_HEAD, "server.listen"
 				, RESCACHED_DEF_LISTEN);
-	s = _listen_addr.copy_raw(v);
-	if (s != 0) {
+	Error err = _listen_addr.copy_raw(v);
+	if (err != NULL) {
 		return -1;
 	}
 
@@ -118,8 +117,8 @@ int Rescached::config_parse_server_listen(Config* cfg)
 	port = (Buffer*) addr_port->at(1);
 
 	_listen_addr.copy(addr);
-	s = port->to_lint(&li_port);
-	if (s != 0 || li_port <= 0 || li_port > 65535) {
+	err = port->to_lint(&li_port);
+	if (err != NULL || li_port <= 0 || li_port > 65535) {
 		_listen_port = RESCACHED_DEF_PORT;
 	} else {
 		_listen_port = (uint16_t) li_port;
@@ -156,41 +155,41 @@ int Rescached::load_config(const char* fconf)
 
 	dlog.out("%s: loading config '%s'\n", __cname, fconf);
 
-	s = cfg.load(fconf);
-	if (s < 0) {
+	Error err = cfg.load(fconf);
+	if (err != NULL) {
 		dlog.er("%s: cannot open config file '%s'!", __cname, fconf);
 		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.data", RESCACHED_DATA);
-	s = _fdata.copy_raw(v);
-	if (s != 0) {
+	err = _fdata.copy_raw(v);
+	if (err != NULL) {
 		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.log", RESCACHED_LOG);
-	s = _flog.copy_raw(v);
-	if (s != 0) {
+	err = _flog.copy_raw(v);
+	if (err != NULL) {
 		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "file.pid", RESCACHED_PID);
-	s = _fpid.copy_raw(v);
-	if (s != 0) {
+	err = _fpid.copy_raw(v);
+	if (err != NULL) {
 		return -1;
 	}
 
 	v = cfg.get(RESCACHED_CONF_HEAD, "server.parent"
 			, RESCACHED_DEF_PARENT);
-	s = _dns_parent.copy_raw(v);
-	if (s != 0) {
+	err = _dns_parent.copy_raw(v);
+	if (err != NULL) {
 		return -1;
 	}
 
 	v = cfg.get (RESCACHED_CONF_HEAD, "server.parent.connection"
 			, RESCACHED_DEF_PARENT_CONN);
-	s = _dns_conn.copy_raw (v);
-	if (s != 0) {
+	err = _dns_conn.copy_raw (v);
+	if (err != NULL) {
 		return -1;
 	}
 
@@ -335,8 +334,8 @@ int Rescached::bind()
 	FD_ZERO(&_fd_all);
 	FD_ZERO(&_fd_read);
 
-	FD_SET(_srvr_udp._d, &_fd_all);
-	FD_SET(_srvr_tcp._d, &_fd_all);
+	_srvr_udp.set_add(&_fd_all, NULL);
+	_srvr_tcp.set_add(&_fd_all, NULL);
 
 	dlog.out("%s: listening on %s:%d.\n", __cname, _listen_addr.v()
 		, _listen_port);
@@ -372,8 +371,8 @@ int Rescached::load_hosts(const char* fhosts, const uint32_t attrs)
 
 	reader._comment_c = '#';
 
-	s = reader.load (fhosts);
-	if (s != 0) {
+	Error err = reader.load(fhosts);
+	if (err != NULL) {
 		return -1;
 	}
 
@@ -498,7 +497,7 @@ int Rescached::run()
 			continue;
 		}
 
-		if (FD_ISSET(_srvr_udp._d, &_fd_read)) {
+		if (_srvr_udp.is_readable(&_fd_read, NULL)) {
 			if (DBG_LVL_IS_2) {
 				dlog.out("%s: read server udp.\n", __cname);
 			}
@@ -540,19 +539,19 @@ int Rescached::run()
 				free (addr);
 				addr = NULL;
 			}
-		} else if (FD_ISSET(_srvr_tcp._d, &_fd_read)) {
+		} else if (_srvr_tcp.is_readable(&_fd_read, NULL)) {
 			if (DBG_LVL_IS_2) {
 				dlog.out("%s: read server tcp.\n", __cname);
 			}
 
-			client = _srvr_tcp.accept_conn();
-			if (! client) {
+			Error err = _srvr_tcp.accept_conn(&client);
+			if (err != NULL) {
 				dlog.er("%s: error at accepting client TCP connection!\n"
 					, __cname);
 				continue;
 			}
 
-			FD_SET(client->_d, &_fd_all);
+			client->set_add(&_fd_all, NULL);
 
 			s = process_tcp_client();
 		} else {
@@ -575,6 +574,7 @@ int Rescached::process_tcp_client()
 	Socket*		client		= NULL;
 	DNSQuery*	question	= NULL;
 	ssize_t s = 0;
+	Error err;
 
 	if (!_srvr_tcp._clients) {
 		return 0;
@@ -583,16 +583,16 @@ int Rescached::process_tcp_client()
 	for (; x < _srvr_tcp._clients->size(); x++) {
 		client = (Socket*) _srvr_tcp._clients->at(x);
 
-		if (FD_ISSET(client->_d, &_fd_read) == 0) {
+		if (! client->is_readable(&_fd_read, NULL)) {
 			continue;
 		}
 
 		client->reset();
-		s = client->read();
+		err = client->read();
 
-		if (s <= 0) {
+		if (err != NULL) {
 			/* client read error or close connection */
-			FD_CLR(client->_d, &_fd_all);
+			client->set_clear(&_fd_all);
 			_srvr_tcp.remove_client(client);
 			delete client;
 		} else {

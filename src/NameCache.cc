@@ -109,8 +109,8 @@ int NameCache::load(const char* fdata)
 	DNSQuery*	lanswer	= NULL;
 	TreeNode*	node	= NULL;
 
-	s = R.open_ro(fdata);
-	if (s != 0) {
+	Error err = R.open_ro(fdata);
+	if (err != NULL) {
 		return -1;
 	}
 
@@ -221,8 +221,8 @@ int NameCache::save(const char* fdata)
 			, _cachel.size());
 	}
 
-	s = W.open_wo(fdata);
-	if (s != 0) {
+	Error err = W.open_wo(fdata);
+	if (err != NULL) {
 		return -1;
 	}
 
@@ -640,7 +640,7 @@ void NameCache::dump()
 			continue;
 		}
 
-		dlog.writes(
+		dlog.writef(
 "\n\n\
 ------------------------------------------------------------------------\n\
  [%c]\n\

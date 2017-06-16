@@ -17,6 +17,7 @@
 #define DEF_ETC_RESOLV "/etc/resolv.conf"
 #define DEF_QTYPE "A"
 
+using vos::Error;
 using vos::Buffer;
 using vos::Dlogger;
 using vos::DNSQuery;

@@ -87,6 +87,7 @@ TARGET_OBJS	=					\
 			$(LIBVOS_BLD_D)/BNode.oo	\
 			$(LIBVOS_BLD_D)/Thread.oo	\
 			$(LIBVOS_BLD_D)/Locker.oo	\
+			$(LIBVOS_BLD_D)/Error.oo	\
 			$(LIBVOS_BLD_D)/Object.oo	\
 			$(LIBVOS_BLD_D)/libvos.oo
 

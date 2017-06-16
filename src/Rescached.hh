@@ -14,6 +14,7 @@
 #include "lib/SSVReader.hh"
 #include "ResolverWorkerUDP.hh"
 
+using vos::Error;
 using vos::BNode;
 using vos::List;
 using vos::File;
