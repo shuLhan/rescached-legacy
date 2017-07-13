@@ -221,7 +221,7 @@ int NameCache::save(const char* fdata)
 			, _cachel.size());
 	}
 
-	Error err = W.open_wo(fdata);
+	Error err = W.open_wt(fdata);
 	if (err != NULL) {
 		return -1;
 	}
