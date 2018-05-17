@@ -238,7 +238,7 @@ int NameCache::save(const char* fdata)
 
 	_cachel.lock();
 
-	p = _cachel._head;
+	p = _cachel.head();
 	do {
 		ncr = (NCR*) p->get_content();
 
@@ -252,7 +252,7 @@ int NameCache::save(const char* fdata)
 		row->columns_reset();
 
 		p = p->get_right();
-	} while(p != _cachel._tail->get_right());
+	} while(p != _cachel.tail()->get_right());
 
 	_cachel.unlock();
 
@@ -333,7 +333,7 @@ void NameCache::clean_by_threshold(const long int thr)
 	NCR* ncr_del = NULL;
 	int idx;
 
-	BNode* p = _cachel._tail;
+	BNode* p = _cachel.tail();
 	do {
 		ncr = (NCR*) p->get_content();
 
@@ -376,7 +376,7 @@ void NameCache::clean_by_threshold(const long int thr)
 		p->set_content(NULL);
 		delete p;
 
-		p = _cachel._tail;
+		p = _cachel.tail();
 	} while (p);
 }
 
@@ -577,7 +577,7 @@ void NameCache::increase_stat_and_rebuild(BNode* list_node)
 	NCR* ncr = (NCR*) list_node->get_content();
 	ncr->_stat++;
 
-	if (list_node == _cachel._head) {
+	if (list_node == _cachel.head()) {
 		goto out;
 	}
 

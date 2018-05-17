@@ -34,7 +34,7 @@ int ClientWorker::_is_already_asked(BNode* qnode, ResQueue* q)
 	BNode* p = qnode;
 	ResQueue* rq = NULL;
 
-	while (p != _queue_questions._tail) {
+	while (p != _queue_questions.tail()) {
 		rq = (ResQueue*) p->get_content();
 
 		if (rq->get_state() != IS_RESOLVING) {
@@ -279,7 +279,7 @@ int ClientWorker::_queue_process_questions()
 	BNode* pnext = NULL;
 	ResQueue* q = NULL;
 
-	BNode* p = _queue_questions._head;
+	BNode* p = _queue_questions.head();
 
 	while (x < _queue_questions.size()) {
 		pnext = p->get_right();
@@ -327,7 +327,7 @@ int ClientWorker::_queue_process_answers()
 		answer = (DNSQuery*) p_answer->get_content();
 
 		int y = 0;
-		p_question = _queue_questions._head;
+		p_question = _queue_questions.head();
 
 		while (p_question && y < _queue_questions.size()) {
 			p_question_next = p_question->get_right();
